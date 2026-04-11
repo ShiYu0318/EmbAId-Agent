@@ -1,4 +1,6 @@
-# proprAI-Chat
+# proprAI Chat 智嵌
+
+A fully customizable RAG-powered AI chatbot platform for any website. Deploy with a single script tag. Embed your documents into a VectorDB for retrieval. Customize UI and persona to match your brand. Built-in prompt injection defence. A real-time streaming chat widget that transforming any website into an intelligent conversational platform.
 
 ## proprAI = propri + AI
 
