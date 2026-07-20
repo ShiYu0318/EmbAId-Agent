@@ -13,3 +13,41 @@ A fully customizable RAG-powered AI chatbot platform for any website. Deploy wit
 於是在 propri 中嵌入 AI 形成 proprAI，就如同在網站中嵌入 proprAI 一般，將智慧鑲嵌（inlaid）在其中
 
 > Fun Fact: 鑲嵌 (inlaid) 本身也正好鑲嵌了 AI 在其中
+
+## Architecture
+
+| Package | Stack | Purpose |
+|---|---|---|
+| `apps/api` | Python, FastAPI, SQLAlchemy, LangChain | REST + SSE API, RAG pipeline, multi-tenant data model |
+| `apps/dashboard` | Next.js, React, TypeScript | Management dashboard |
+| `apps/widget` | Vanilla TypeScript, esbuild, Shadow DOM | Embeddable chat widget |
+| `packages/sdk-js` | TypeScript | Official `@proprai/sdk-js` client |
+
+Retrieval runs on Postgres + pgvector in deployment and SQLite + FAISS for local development, behind one storage interface. Hybrid retrieval fuses dense vectors with lexical search, followed by cross-encoder reranking, a low-confidence refusal path, contextual chunk embedding, and a semantic answer cache. Every answer records an auditable retrieval trace.
+
+## Development
+
+Backend:
+
+```bash
+cd apps/api
+uv sync --extra dev
+uv run uvicorn src.main:app --reload
+uv run pytest
+```
+
+Frontend workspaces:
+
+```bash
+pnpm install
+pnpm -r build
+pnpm -r test
+```
+
+Full stack with Docker:
+
+```bash
+docker compose -f docker/docker-compose.yml up --build
+```
+
+The API self-documents at `/docs` (Swagger UI) and `/redoc`.
