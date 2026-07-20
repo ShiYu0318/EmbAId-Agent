@@ -109,7 +109,9 @@ class _VectorStore:
             self._dim = dim
             self._index = faiss.IndexIDMap2(faiss.IndexFlatIP(dim))
         if dim != self._dim:
-            raise ValueError(f"embedding dimension {dim} does not match index dimension {self._dim}")
+            raise ValueError(
+                f"embedding dimension {dim} does not match index dimension {self._dim}"
+            )
 
         self._drop([key for key, _, _ in items])
         vectors = np.asarray([embedding for _, _, embedding in items], dtype="float32")
