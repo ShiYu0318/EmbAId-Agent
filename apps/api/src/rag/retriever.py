@@ -59,9 +59,7 @@ def fuse(
             rank = hit.rank or position
             fused = merged.get(hit.chunk_id)
             if fused is None:
-                fused = FusedHit(
-                    chunk_id=hit.chunk_id, document_id=hit.document_id, rrf_score=0.0
-                )
+                fused = FusedHit(chunk_id=hit.chunk_id, document_id=hit.document_id, rrf_score=0.0)
                 merged[hit.chunk_id] = fused
             fused.rrf_score += 1.0 / (k + rank)
             if is_vector:

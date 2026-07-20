@@ -71,9 +71,7 @@ class PreparedAnswer:
         return self.needs_model and not self.trace.cache_hit and self.trace.answered
 
 
-async def flag_question(
-    session: AsyncSession, project: Project, question: str
-) -> FlaggedQuestion:
+async def flag_question(session: AsyncSession, project: Project, question: str) -> FlaggedQuestion:
     normalized = normalize(question)[:MAX_NORMALIZED_CHARS]
     result = await session.execute(
         select(FlaggedQuestion).where(
@@ -201,9 +199,7 @@ def _message_text(content: object) -> str:
     return ""
 
 
-async def stream_answer(
-    runtime: RagRuntime, prepared: PreparedAnswer
-) -> AsyncIterator[str]:
+async def stream_answer(runtime: RagRuntime, prepared: PreparedAnswer) -> AsyncIterator[str]:
     if prepared.messages is None:
         if prepared.answer:
             yield prepared.answer

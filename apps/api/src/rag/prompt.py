@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from ..db.models import Project
-from .types import Citation, ChatTurn, RetrievedChunk
+from .types import ChatTurn, Citation, RetrievedChunk
 
 DEFAULT_LOCALE = "zh-TW"
 MAX_HISTORY_TURNS = 8
