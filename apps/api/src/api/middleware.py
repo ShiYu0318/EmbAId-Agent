@@ -1,0 +1,71 @@
+import time
+from collections import defaultdict, deque
+
+from fastapi import Request, Response
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import ASGIApp
+
+from ..config import get_settings
+
+WINDOW_SECONDS = 60
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+        if get_settings().is_production:
+            response.headers.setdefault(
+                "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+            )
+        return response
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: ASGIApp) -> None:
+        super().__init__(app)
+        self._hits: dict[str, deque[float]] = defaultdict(deque)
+
+    def _identity(self, request: Request) -> str | None:
+        key = request.headers.get("x-api-key")
+        if key:
+            return f"key:{key[:16]}"
+        if request.url.path.startswith("/auth/"):
+            client = request.client
+            return f"ip:{client.host}" if client else None
+        return None
+
+    def _limit_for(self, request: Request) -> int:
+        settings = get_settings()
+        key = request.headers.get("x-api-key", "")
+        if key.startswith("sk_"):
+            return settings.rate_limit_secret
+        if key:
+            return settings.rate_limit_publishable
+        return settings.rate_limit_publishable
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        identity = self._identity(request)
+        if identity is None:
+            return await call_next(request)
+
+        limit = self._limit_for(request)
+        now = time.monotonic()
+        window = self._hits[identity]
+        while window and now - window[0] > WINDOW_SECONDS:
+            window.popleft()
+
+        if len(window) >= limit:
+            retry_after = int(WINDOW_SECONDS - (now - window[0])) + 1
+            return Response(
+                content='{"detail":{"code":"rate_limited","message":"rate limit exceeded"}}',
+                status_code=429,
+                media_type="application/json",
+                headers={"Retry-After": str(retry_after)},
+            )
+
+        window.append(now)
+        return await call_next(request)

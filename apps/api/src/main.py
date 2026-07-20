@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .api.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
 from .config import get_settings
 from .db.session import create_all, dispose_engine
 
@@ -49,6 +50,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RateLimitMiddleware)
 
     if settings.sentry_dsn:
         import sentry_sdk
