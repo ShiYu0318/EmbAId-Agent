@@ -1,2 +1,5 @@
 .DS_Store
 .env
+
+# Local planning/design docs — kept out of GitHub history
+docs/superpowers/
