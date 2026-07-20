@@ -24,3 +24,6 @@ data/
 *.faiss
 *.sqlite
 *.sqlite3
+
+# Next.js generated
+next-env.d.ts
