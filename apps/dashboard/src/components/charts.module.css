@@ -1,0 +1,116 @@
+.chart {
+  width: 100%;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.axisLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.chartTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.chartValue {
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.chartCaption {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.hbarList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hbarRow {
+  display: grid;
+  gap: 6px;
+}
+
+.hbarHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.hbarLabel {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hbarValue {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.hbarTrack {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.hbarFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.donutWrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.donutCenter {
+  font-size: 20px;
+  font-weight: 650;
+  fill: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 12px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.legendSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}

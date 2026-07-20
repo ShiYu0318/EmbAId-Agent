@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
 
-const config: NextConfig = {
+const nextConfig: NextConfig = {
   reactStrictMode: true,
-  typescript: { ignoreBuildErrors: false },
-  eslint: { ignoreDuringBuilds: true },
+  eslint: {
+    dirs: ["src"],
+  },
 };
 
-export default config;
+export default nextConfig;
