@@ -65,9 +65,7 @@ async def contextualize(
         context = message_text(response)
         return combine(context, chunk) if context else None
 
-    results = await asyncio.gather(
-        *(describe(chunk) for chunk in chunks), return_exceptions=True
-    )
+    results = await asyncio.gather(*(describe(chunk) for chunk in chunks), return_exceptions=True)
     return [None if isinstance(result, BaseException) else result for result in results]
 
 

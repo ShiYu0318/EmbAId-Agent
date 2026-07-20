@@ -360,9 +360,7 @@ async def reindex_project(ctx: dict[str, Any], project_id: str) -> dict[str, Any
         project = await session.get(Project, project_id)
         if project is None:
             return {"status": "missing", "project_id": project_id}
-        result = await session.execute(
-            select(Document.id).where(Document.project_id == project_id)
-        )
+        result = await session.execute(select(Document.id).where(Document.project_id == project_id))
         document_ids = list(result.scalars().all())
 
     reindexed = 0

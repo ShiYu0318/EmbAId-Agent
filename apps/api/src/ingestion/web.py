@@ -265,9 +265,7 @@ async def crawl_site(
     active = fetcher or HttpPageFetcher()
     start = normalize_url(start_url)
     robots = (
-        await load_robots(origin_of(start), active)
-        if respect_robots
-        else RobotsPolicy(parser=None)
+        await load_robots(origin_of(start), active) if respect_robots else RobotsPolicy(parser=None)
     )
     polite_delay = max(delay, robots.crawl_delay or 0.0)
 
