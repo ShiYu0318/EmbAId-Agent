@@ -100,7 +100,7 @@ export class ApiClient {
         method: "POST",
         headers: this.headers(),
         body: JSON.stringify({ message, conversation_id: conversationId }),
-        signal,
+        ...(signal ? { signal } : {}),
       });
     } catch (error) {
       handlers.onError?.(error as Error);
@@ -126,7 +126,7 @@ export class ApiClient {
 
       if (event === "conversation") {
         const record = payload as Record<string, string>;
-        handlers.onConversation?.(record.conversation_id, record.message_id);
+        handlers.onConversation?.(record.conversation_id ?? "", record.message_id ?? "");
       } else if (event === "token") {
         handlers.onToken?.(String((payload as Record<string, unknown>).text ?? ""));
       } else if (event === "citations") {

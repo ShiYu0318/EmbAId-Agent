@@ -7,7 +7,7 @@ export function isSafeUrl(raw: string): boolean {
   if (cleaned.startsWith("/") || cleaned.startsWith("#")) return true;
 
   const match = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(cleaned);
-  if (!match) return true;
+  if (!match || !match[1]) return true;
 
   return ALLOWED_SCHEMES.has(match[1].toLowerCase());
 }
@@ -96,14 +96,14 @@ export function renderMarkdown(markdown: string, doc: Document): DocumentFragmen
 
   let index = 0;
   while (index < lines.length) {
-    const line = lines[index];
+    const line = lines[index] ?? "";
 
     if (line.trim().startsWith("```")) {
       const language = line.trim().slice(3).trim();
       const body: string[] = [];
       index += 1;
-      while (index < lines.length && !lines[index].trim().startsWith("```")) {
-        body.push(lines[index]);
+      while (index < lines.length && !(lines[index] ?? "").trim().startsWith("```")) {
+        body.push(lines[index] ?? "");
         index += 1;
       }
       index += 1;
@@ -122,10 +122,10 @@ export function renderMarkdown(markdown: string, doc: Document): DocumentFragmen
       const list = doc.createElement(ordered ? "ol" : "ul");
 
       while (index < lines.length) {
-        const itemMatch = /^\s*([-*+]|\d+\.)\s+(.*)$/.exec(lines[index]);
+        const itemMatch = /^\s*([-*+]|\d+\.)\s+(.*)$/.exec(lines[index] ?? "");
         if (!itemMatch) break;
         const item = doc.createElement("li");
-        item.appendChild(renderInline(doc, itemMatch[2]));
+        item.appendChild(renderInline(doc, itemMatch[2] ?? ""));
         list.appendChild(item);
         index += 1;
       }
@@ -140,9 +140,11 @@ export function renderMarkdown(markdown: string, doc: Document): DocumentFragmen
     }
 
     const paragraph: string[] = [];
-    while (index < lines.length && lines[index].trim() !== "") {
-      if (/^\s*```/.test(lines[index]) || /^\s*([-*+]|\d+\.)\s+/.test(lines[index])) break;
-      paragraph.push(lines[index]);
+    while (index < lines.length) {
+      const current = lines[index] ?? "";
+      if (current.trim() === "") break;
+      if (/^\s*```/.test(current) || /^\s*([-*+]|\d+\.)\s+/.test(current)) break;
+      paragraph.push(current);
       index += 1;
     }
 

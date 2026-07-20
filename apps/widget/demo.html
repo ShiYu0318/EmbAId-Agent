@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>proprAI Chat widget demo</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 48px;
+        color: red !important;
+        background: #10121a;
+      }
+      h1 { color: #fff; }
+      p { color: #9aa0b4; max-width: 40ch; }
+    </style>
+  </head>
+  <body>
+    <h1>宿主頁面</h1>
+    <p>
+      這個頁面刻意套用了侵略性的全域樣式（所有文字被強制設為紅色），
+      用來驗證小工具的 Shadow DOM 樣式隔離不受宿主頁面影響。
+    </p>
+
+    <script>
+      const originalFetch = window.fetch;
+      window.fetch = async (input, init) => {
+        const url = String(input);
+        if (url.endsWith("/widget-config")) {
+          return new Response(
+            JSON.stringify({
+              primary_color: "#7c5cff",
+              greeting: "您好，這是示範用的知識助理，歡迎提問。",
+              starter_questions: ["營業時間是什麼時候？", "如何申請退款？"],
+              bot_name: "智嵌助理",
+              theme: "dark",
+              locale: "zh-TW",
+            }),
+            { headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (url.endsWith("/v1/chat")) {
+          const frames = [
+            'event: conversation\ndata: {"conversation_id":"conv_demo","message_id":"msg_demo"}\n\n',
+            'event: token\ndata: {"text":"這是一則"}\n\n',
+            'event: token\ndata: {"text":"**示範**回覆。"}\n\n',
+            'event: citations\ndata: {"items":[{"chunk_id":"c1","document_id":"d1","title":"服務條款","url":"https://example.com","snippet":"原文片段"}]}\n\n',
+            'event: done\ndata: {"answered":true}\n\n',
+          ];
+          const stream = new ReadableStream({
+            start(controller) {
+              const encoder = new TextEncoder();
+              for (const frame of frames) controller.enqueue(encoder.encode(frame));
+              controller.close();
+            },
+          });
+          return new Response(stream, { headers: { "Content-Type": "text/event-stream" } });
+        }
+        return originalFetch(input, init);
+      };
+    </script>
+    <script src="./dist/widget.js" data-key="pub_demo" data-project="proj_demo" data-api-url="http://localhost:8000"></script>
+  </body>
+</html>
