@@ -58,8 +58,7 @@ class PostgresBackend:
                 tokens_tsv tsvector GENERATED ALWAYS AS (to_tsvector('simple', tokens)) STORED
             )
             """,
-            f"CREATE INDEX IF NOT EXISTS {_CHUNK_TABLE}_project_idx"
-            f" ON {_CHUNK_TABLE} (project_id)",
+            f"CREATE INDEX IF NOT EXISTS {_CHUNK_TABLE}_project_idx ON {_CHUNK_TABLE} (project_id)",
             f"CREATE INDEX IF NOT EXISTS {_CHUNK_TABLE}_document_idx"
             f" ON {_CHUNK_TABLE} (project_id, document_id)",
             f"CREATE INDEX IF NOT EXISTS {_CHUNK_TABLE}_tsv_idx"
@@ -71,8 +70,7 @@ class PostgresBackend:
                 embedding vector({self._dim}) NOT NULL
             )
             """,
-            f"CREATE INDEX IF NOT EXISTS {_CACHE_TABLE}_project_idx"
-            f" ON {_CACHE_TABLE} (project_id)",
+            f"CREATE INDEX IF NOT EXISTS {_CACHE_TABLE}_project_idx ON {_CACHE_TABLE} (project_id)",
         ]
         async with self.engine.begin() as conn:
             for statement in statements:
