@@ -52,7 +52,19 @@ class Settings(BaseSettings):
     rate_limit_publishable: int = 20
     rate_limit_secret: int = 200
 
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    oauth_redirect_base: str = "http://localhost:8000"
+
     sentry_dsn: str | None = None
+
+    @property
+    def google_oauth_enabled(self) -> bool:
+        return bool(self.google_client_id and self.google_client_secret)
+
+    @property
+    def google_redirect_uri(self) -> str:
+        return f"{self.oauth_redirect_base.rstrip('/')}/auth/oauth/google/callback"
 
     @property
     def cors_origin_list(self) -> list[str]:

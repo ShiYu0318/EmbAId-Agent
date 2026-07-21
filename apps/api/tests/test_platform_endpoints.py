@@ -206,9 +206,7 @@ async def test_gap_approval_requires_an_answer(authed_client: AsyncClient) -> No
     project_id, _, _ = await _project_with_keys(authed_client)
 
     async with session_scope() as session:
-        gap = FlaggedQuestion(
-            project_id=project_id, question_text="無解", normalized_text="無解"
-        )
+        gap = FlaggedQuestion(project_id=project_id, question_text="無解", normalized_text="無解")
         session.add(gap)
         await session.flush()
         gap_id = gap.id

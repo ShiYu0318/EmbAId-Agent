@@ -1,11 +1,17 @@
-from fastapi import APIRouter, status
+from urllib.parse import urlencode
+
+from fastapi import APIRouter, Query, status
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...config import get_settings
 from ...db.models import Organization, User
 from ...security import passwords, tokens
 from ..deps import CurrentUser, SessionDep
 from ..errors import ApiError, Conflict, Unauthorized
+from ..services import google_oauth
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -86,7 +92,11 @@ async def signup(payload: SignupRequest, session: SessionDep) -> TokenPayload:
 async def login(payload: LoginRequest, session: SessionDep) -> TokenPayload:
     result = await session.execute(select(User).where(User.email == payload.email.lower()))
     user = result.scalars().first()
-    if user is None or not passwords.verify_password(user.password_hash, payload.password):
+    if (
+        user is None
+        or user.password_hash is None
+        or not passwords.verify_password(user.password_hash, payload.password)
+    ):
         raise Unauthorized("invalid email or password")
 
     if passwords.needs_rehash(user.password_hash):
@@ -114,3 +124,87 @@ async def me(user: CurrentUser) -> UserPayload:
     return UserPayload(
         id=user.id, email=user.email, display_name=user.display_name, locale=user.locale
     )
+
+
+class ProvidersPayload(BaseModel):
+    google: bool
+
+
+@router.get("/providers", response_model=ProvidersPayload)
+async def providers() -> ProvidersPayload:
+    return ProvidersPayload(google=get_settings().google_oauth_enabled)
+
+
+async def _upsert_google_user(session: AsyncSession, profile: google_oauth.GoogleProfile) -> User:
+    result = await session.execute(select(User).where(User.google_sub == profile.sub))
+    user = result.scalars().first()
+    if user is not None:
+        return user
+
+    result = await session.execute(select(User).where(User.email == profile.email))
+    user = result.scalars().first()
+    if user is not None:
+        user.google_sub = profile.sub
+        if profile.picture and not user.avatar_url:
+            user.avatar_url = profile.picture
+        await session.commit()
+        return user
+
+    user = User(
+        email=profile.email,
+        google_sub=profile.sub,
+        display_name=profile.name,
+        avatar_url=profile.picture,
+    )
+    session.add(user)
+    await session.flush()
+    session.add(
+        Organization(
+            name=f"{profile.email.split('@')[0]} workspace",
+            owner_user_id=user.id,
+        )
+    )
+    await session.commit()
+    return user
+
+
+@router.get("/oauth/google")
+async def google_login(next: str = Query(default="/")) -> RedirectResponse:
+    if not get_settings().google_oauth_enabled:
+        raise ApiError("google login is not configured")
+    return RedirectResponse(google_oauth.authorization_url(next))
+
+
+@router.get("/oauth/google/callback")
+async def google_callback(
+    session: SessionDep,
+    code: str | None = Query(default=None),
+    state: str | None = Query(default=None),
+    error: str | None = Query(default=None),
+) -> RedirectResponse:
+    settings = get_settings()
+    dashboard = settings.dashboard_url.rstrip("/")
+
+    def failure(reason: str) -> RedirectResponse:
+        return RedirectResponse(f"{dashboard}/login?{urlencode({'oauth_error': reason})}")
+
+    if error or not code or not state:
+        return failure(error or "oauth_cancelled")
+
+    try:
+        next_path = google_oauth.verify_state(state)
+        profile = await google_oauth.exchange_code(code)
+    except google_oauth.OAuthError:
+        return failure("oauth_failed")
+
+    user = await _upsert_google_user(session, profile)
+    issued = _tokens_for(user)
+
+    query = urlencode(
+        {
+            "access_token": issued.access_token,
+            "refresh_token": issued.refresh_token,
+            "next": next_path,
+        }
+    )
+    return RedirectResponse(f"{dashboard}/oauth/callback?{query}")

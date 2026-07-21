@@ -31,8 +31,12 @@ class User(Base):
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True, default=ids.user_id)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255))
+    password_hash: Mapped[str | None] = mapped_column(String(255), default=None)
+    google_sub: Mapped[str | None] = mapped_column(
+        String(64), unique=True, index=True, default=None
+    )
     display_name: Mapped[str | None] = mapped_column(String(120), default=None)
+    avatar_url: Mapped[str | None] = mapped_column(String(500), default=None)
     locale: Mapped[str] = mapped_column(String(10), default="zh-TW")
     created_at: Mapped[datetime] = _now_column()
 
