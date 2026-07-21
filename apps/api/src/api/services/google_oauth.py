@@ -79,7 +79,9 @@ async def exchange_code(code: str) -> GoogleProfile:
             },
         )
         if token_response.status_code != 200:
-            raise OAuthError("failed to exchange authorization code")
+            raise OAuthError(
+                f"token exchange failed ({token_response.status_code}): {token_response.text}"
+            )
 
         access_token = token_response.json().get("access_token")
         if not access_token:
@@ -89,7 +91,9 @@ async def exchange_code(code: str) -> GoogleProfile:
             USERINFO_ENDPOINT, headers={"Authorization": f"Bearer {access_token}"}
         )
         if userinfo_response.status_code != 200:
-            raise OAuthError("failed to load user profile")
+            raise OAuthError(
+                f"userinfo failed ({userinfo_response.status_code}): {userinfo_response.text}"
+            )
 
     info = userinfo_response.json()
     sub = info.get("sub")

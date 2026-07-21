@@ -1,3 +1,4 @@
+import logging
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Query, status
@@ -14,6 +15,7 @@ from ..errors import ApiError, Conflict, Unauthorized
 from ..services import google_oauth
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 
 class SignupRequest(BaseModel):
@@ -194,7 +196,8 @@ async def google_callback(
     try:
         next_path = google_oauth.verify_state(state)
         profile = await google_oauth.exchange_code(code)
-    except google_oauth.OAuthError:
+    except google_oauth.OAuthError as exc:
+        logger.warning("google oauth callback failed: %s", exc)
         return failure("oauth_failed")
 
     user = await _upsert_google_user(session, profile)
