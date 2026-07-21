@@ -272,6 +272,7 @@ proprAI-Chat/
       tests/             Offline test suite (fakes for search, embeddings, and chat model)
     dashboard/           Next.js management dashboard
     widget/              Embeddable Shadow DOM chat widget + esbuild build + demo.html
+    landing/             Marketing site with an embedded live widget demo (static + esbuild)
   packages/
     sdk-js/              @proprai/sdk-js official TypeScript client
   docker/                docker-compose.yml + Dockerfiles
@@ -316,6 +317,13 @@ Build just the widget and open its isolation demo:
 ```bash
 pnpm --filter @proprai/widget build
 # open apps/widget/demo.html in a browser
+```
+
+Build and serve the marketing site with the live floating widget demo:
+
+```bash
+cd apps/landing
+npm run serve                 # builds the widget, assembles dist/, serves on :4180
 ```
 
 ### Full stack with Docker

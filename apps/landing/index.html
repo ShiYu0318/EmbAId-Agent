@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>proprAI Chat 智嵌 — 讓你的內容,開口回答</title>
+    <meta
+      name="description"
+      content="API-first 的 RAG 內容問答平台。上傳文件、嵌入一段 script,幾分鐘就有一個懂你知識庫的 AI 助理。混合檢索、重排序、可稽核來源,一次到位。"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到主要內容</a>
+
+    <header class="nav" data-nav>
+      <div class="container nav__inner">
+        <a class="brand" href="#top" aria-label="proprAI Chat 首頁">
+          <span class="brand__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
+              <circle cx="9" cy="12" r="1" fill="currentColor" stroke="none" />
+              <circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" />
+            </svg>
+          </span>
+          <span class="brand__name">proprAI Chat<span class="brand__sub"> 智嵌</span></span>
+        </a>
+
+        <nav class="nav__links" aria-label="主要導覽">
+          <a href="#features">功能</a>
+          <a href="#how">運作原理</a>
+          <a href="#developers">開發者</a>
+          <a href="#pricing">定價</a>
+        </nav>
+
+        <div class="nav__actions">
+          <a class="btn btn--ghost" href="#demo">看實機展示</a>
+          <a class="btn btn--primary" href="#pricing">免費開始</a>
+        </div>
+
+        <button class="nav__toggle" type="button" aria-label="開啟選單" aria-expanded="false" data-nav-toggle>
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+      <div class="nav__mobile" data-nav-mobile>
+        <a href="#features">功能</a>
+        <a href="#how">運作原理</a>
+        <a href="#developers">開發者</a>
+        <a href="#pricing">定價</a>
+        <a class="btn btn--primary" href="#pricing">免費開始</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <span id="top"></span>
+
+      <section class="hero">
+        <div class="hero__glow" aria-hidden="true"></div>
+        <div class="hero__grid" aria-hidden="true"></div>
+        <div class="container hero__inner">
+          <div class="hero__copy">
+            <span class="badge reveal">
+              <span class="badge__dot" aria-hidden="true"></span>
+              API-first RAG 內容問答平台
+            </span>
+            <h1 class="hero__title reveal">
+              讓你的內容,<span class="grad">開口回答</span>
+            </h1>
+            <p class="hero__lede reveal">
+              上傳文件、連結網站,再嵌入一段 script,幾分鐘內就有一個真正讀懂你知識庫的
+              AI 助理。混合檢索、交叉重排序、低信心自動婉拒、可稽核來源——把
+              「會亂編的聊天機器人」變成「查得到出處的答案」。
+            </p>
+            <div class="hero__cta reveal">
+              <a class="btn btn--primary btn--lg" href="#pricing">免費開始建立助理</a>
+              <a class="btn btn--ghost btn--lg" href="#demo">
+                看實機展示
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </a>
+            </div>
+            <div class="hero__proof reveal">
+              <span>不需信用卡</span>
+              <span class="dot" aria-hidden="true"></span>
+              <span>五分鐘上線</span>
+              <span class="dot" aria-hidden="true"></span>
+              <span>自架或雲端皆可</span>
+            </div>
+          </div>
+
+          <div class="hero__visual reveal" aria-hidden="true">
+            <div class="chat-mock" data-chat-mock>
+              <div class="chat-mock__bar">
+                <span class="chat-mock__avatar">智</span>
+                <div class="chat-mock__meta">
+                  <strong>智嵌助理</strong>
+                  <em>由 proprAI Chat 驅動</em>
+                </div>
+                <span class="chat-mock__live">線上</span>
+              </div>
+              <div class="chat-mock__body" data-chat-body></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="strip">
+        <div class="container strip__inner">
+          <span class="strip__label">適合的場景</span>
+          <ul class="strip__items">
+            <li>客服知識庫</li>
+            <li>技術文件</li>
+            <li>產品手冊</li>
+            <li>法遵政策</li>
+            <li>校園與課程</li>
+            <li>內部維基</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="features" class="section">
+        <div class="container">
+          <div class="section__head reveal">
+            <span class="eyebrow">核心能力</span>
+            <h2>不只是把文件塞進提示詞</h2>
+            <p>
+              每個環節都為「答得準、答得可信」設計。從檢索、重排序到婉拒與稽核,
+              一條龍處理 RAG 最難的地方。
+            </p>
+          </div>
+
+          <div class="bento">
+            <article class="card reveal">
+              <span class="card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /><path d="M8 11h6M11 8v6" /></svg>
+              </span>
+              <h3>混合檢索</h3>
+              <p>向量語意與關鍵字語彙雙軌並行,以 RRF 融合排序,長尾專有名詞也找得到。</p>
+            </article>
+
+            <article class="card reveal">
+              <span class="card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18" /><path d="M7 6v12" /><circle cx="7" cy="9" r="1.6" fill="currentColor" stroke="none" /></svg>
+              </span>
+              <h3>交叉重排序</h3>
+              <p>Cross-encoder 對候選段落逐一評分,把最相關的證據推到最前面再交給模型。</p>
+            </article>
+
+            <article class="card reveal">
+              <span class="card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3 6.2L4 20l.9-2.6" /><path d="M9 10h6M9 13h4" /></svg>
+              </span>
+              <h3>對話式改寫</h3>
+              <p>多輪對話自動補全指代與省略,把「那它呢?」還原成完整、可檢索的問題。</p>
+            </article>
+
+            <article class="card reveal">
+              <span class="card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7z" /><path d="M9.5 12.5 11 14l3.5-3.5" /></svg>
+              </span>
+              <h3>低信心婉拒</h3>
+              <p>證據不足時不硬掰,誠實回覆「文件裡沒有」,並把問題記錄為知識缺口。</p>
+            </article>
+
+            <article class="card reveal">
+              <span class="card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H4z" /><path d="M4 9h16" /><path d="M8 20h8M12 16v4" /><path d="M8 12.5h5" /></svg>
+              </span>
+              <h3>可稽核軌跡</h3>
+              <p>每則回答都能回溯:檢索了哪些段落、分數多少、為何選它,決策全程透明。</p>
+            </article>
+
+            <article class="card reveal">
+              <span class="card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z" /><path d="M4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7" /><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" /></svg>
+              </span>
+              <h3>語意快取</h3>
+              <p>語意相近的問題直接命中快取,省下重複的模型花費,回應更快、成本更低。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="how" class="section section--alt">
+        <div class="container">
+          <div class="section__head reveal">
+            <span class="eyebrow">運作原理</span>
+            <h2>三步,從一堆文件到一個會回答的助理</h2>
+          </div>
+
+          <ol class="steps">
+            <li class="step reveal">
+              <span class="step__num">01</span>
+              <h3>匯入內容</h3>
+              <p>上傳 PDF、Word、Markdown,或直接連結網站與 Sitemap。系統自動抓取、清洗、切塊。</p>
+            </li>
+            <li class="step reveal">
+              <span class="step__num">02</span>
+              <h3>索引與嵌入</h3>
+              <p>帶上下文的分塊嵌入寫入向量庫,同時建立語彙索引,支撐後續的混合檢索。</p>
+            </li>
+            <li class="step reveal">
+              <span class="step__num">03</span>
+              <h3>嵌入或呼叫</h3>
+              <p>貼一段 script 就有浮動助理,或用 REST API 與 SDK 把問答能力接進任何產品。</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="metrics" data-metrics>
+            <div class="metric reveal">
+              <strong data-count="200" data-suffix="ms" data-prefix="&lt;">0</strong>
+              <span>典型檢索延遲</span>
+            </div>
+            <div class="metric reveal">
+              <strong data-count="40" data-suffix="+">0</strong>
+              <span>支援檔案格式</span>
+            </div>
+            <div class="metric reveal">
+              <strong data-count="3" data-suffix=" 種">0</strong>
+              <span>API Key 權限層級</span>
+            </div>
+            <div class="metric reveal">
+              <strong data-count="100" data-suffix="%">0</strong>
+              <span>回答附帶來源</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="demo" class="section section--alt">
+        <div class="container demo">
+          <div class="section__head reveal">
+            <span class="eyebrow">實機展示</span>
+            <h2>右下角的助理,現在就能對話</h2>
+            <p>
+              這顆浮動泡泡就是嵌入 script 後產生的真實小工具,運行在 Shadow DOM 裡,
+              不會被你網站的樣式污染。點開它,問問看檢索原理、如何嵌入或資料安全。
+            </p>
+          </div>
+
+          <div class="demo__grid">
+            <div class="demo__hint reveal">
+              <div class="demo__pointer">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 5v14M6 13l6 6 6-6" />
+                </svg>
+                <span>點右下角的泡泡開始對話</span>
+              </div>
+              <ul class="demo__list">
+                <li>串流逐字回覆,附上引用來源</li>
+                <li>提供起手問題,一鍵發問</li>
+                <li>深色 / 淺色主題自動適配</li>
+              </ul>
+            </div>
+
+            <div class="code reveal" data-copy-root>
+              <div class="code__bar">
+                <span class="code__file">index.html</span>
+                <button class="code__copy" type="button" data-copy="embed">複製</button>
+              </div>
+              <pre class="code__body"><code id="embed">&lt;script
+  src="https://cdn.proprai.chat/widget.js"
+  data-key="pub_xxx"
+  data-project="proj_xxx"
+  data-api-url="https://api.proprai.chat"
+&gt;&lt;/script&gt;</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="developers" class="section">
+        <div class="container">
+          <div class="section__head reveal">
+            <span class="eyebrow">開發者優先</span>
+            <h2>一個 API,三種接法</h2>
+            <p>浮動小工具、REST API、或型別完整的 TypeScript SDK,選你順手的方式接上。</p>
+          </div>
+
+          <div class="tabs reveal" data-tabs data-copy-root>
+            <div class="tabs__head" role="tablist" aria-label="程式碼範例">
+              <button role="tab" aria-selected="true" data-tab="curl">cURL</button>
+              <button role="tab" aria-selected="false" data-tab="sdk">TypeScript SDK</button>
+              <button role="tab" aria-selected="false" data-tab="embed2">嵌入 Script</button>
+            </div>
+
+            <div class="tabs__panel" data-panel="curl">
+              <div class="code__bar">
+                <span class="code__file">terminal</span>
+                <button class="code__copy" type="button" data-copy="curl">複製</button>
+              </div>
+              <pre class="code__body"><code id="curl">curl https://api.proprai.chat/v1/chat \
+  -H "X-API-Key: sk_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"退款要多久?","project_id":"proj_xxx"}'</code></pre>
+            </div>
+
+            <div class="tabs__panel" data-panel="sdk" hidden>
+              <div class="code__bar">
+                <span class="code__file">app.ts</span>
+                <button class="code__copy" type="button" data-copy="sdk">複製</button>
+              </div>
+              <pre class="code__body"><code id="sdk">import { ProprAI } from "@proprai/sdk";
+
+const client = new ProprAI({ apiKey: process.env.PROPRAI_KEY });
+
+const stream = await client.chat.stream({
+  projectId: "proj_xxx",
+  message: "退款政策是什麼?",
+});
+
+for await (const token of stream) {
+  process.stdout.write(token.text);
+}</code></pre>
+            </div>
+
+            <div class="tabs__panel" data-panel="embed2" hidden>
+              <div class="code__bar">
+                <span class="code__file">index.html</span>
+                <button class="code__copy" type="button" data-copy="embed2">複製</button>
+              </div>
+              <pre class="code__body"><code id="embed2">&lt;script
+  src="https://cdn.proprai.chat/widget.js"
+  data-key="pub_xxx"
+  data-project="proj_xxx"
+&gt;&lt;/script&gt;</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" class="section section--alt">
+        <div class="container">
+          <div class="section__head reveal">
+            <span class="eyebrow">定價</span>
+            <h2>從免費體驗開始,隨用量成長</h2>
+            <p>本頁為產品展示,價格僅為示意。自架版本永久免費、原始碼開放。</p>
+          </div>
+
+          <div class="pricing">
+            <article class="plan reveal">
+              <h3>體驗</h3>
+              <p class="plan__price">免費</p>
+              <p class="plan__note">個人專案與試用</p>
+              <ul>
+                <li>1 個專案</li>
+                <li>500 則訊息 / 月</li>
+                <li>浮動小工具嵌入</li>
+                <li>社群支援</li>
+              </ul>
+              <a class="btn btn--ghost btn--block" href="#demo">先看展示</a>
+            </article>
+
+            <article class="plan plan--featured reveal">
+              <span class="plan__tag">最受歡迎</span>
+              <h3>成長</h3>
+              <p class="plan__price">$29<span>/月</span></p>
+              <p class="plan__note">上線中的產品團隊</p>
+              <ul>
+                <li>10 個專案</li>
+                <li>20,000 則訊息 / 月</li>
+                <li>完整 API 與 SDK</li>
+                <li>可稽核檢索軌跡</li>
+                <li>Webhook 與知識缺口報表</li>
+              </ul>
+              <a class="btn btn--primary btn--block" href="#demo">開始使用</a>
+            </article>
+
+            <article class="plan reveal">
+              <h3>企業</h3>
+              <p class="plan__price">洽談</p>
+              <p class="plan__note">自架、合規與規模化</p>
+              <ul>
+                <li>不限專案</li>
+                <li>自架 / 私有雲部署</li>
+                <li>SSO 與稽核紀錄</li>
+                <li>專屬支援</li>
+              </ul>
+              <a class="btn btn--ghost btn--block" href="#demo">聯絡我們</a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section cta">
+        <div class="container cta__inner reveal">
+          <div class="cta__glow" aria-hidden="true"></div>
+          <h2>準備好讓你的內容開口了嗎?</h2>
+          <p>上傳第一份文件,五分鐘後就能在自己的網站上看到會查證的助理。</p>
+          <div class="cta__actions">
+            <a class="btn btn--primary btn--lg" href="#pricing">免費開始建立</a>
+            <a class="btn btn--ghost btn--lg" href="#developers">閱讀開發者文件</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer__inner">
+        <div class="footer__brand">
+          <span class="brand__name">proprAI Chat<span class="brand__sub"> 智嵌</span></span>
+          <p>把知識庫變成會查證的答案。</p>
+        </div>
+        <nav class="footer__cols" aria-label="頁尾導覽">
+          <div>
+            <h4>產品</h4>
+            <a href="#features">功能</a>
+            <a href="#how">運作原理</a>
+            <a href="#pricing">定價</a>
+          </div>
+          <div>
+            <h4>開發者</h4>
+            <a href="#developers">API</a>
+            <a href="#demo">嵌入小工具</a>
+            <a href="#developers">SDK</a>
+          </div>
+          <div>
+            <h4>資源</h4>
+            <a href="#demo">實機展示</a>
+            <a href="#top">回到頂端</a>
+          </div>
+        </nav>
+      </div>
+      <div class="container footer__bottom">
+        <span>© 2026 proprAI Chat</span>
+        <span>Shadow DOM 隔離 · zh-TW 優先 · 開放原始碼</span>
+      </div>
+    </footer>
+
+    <script src="./demo.js"></script>
+    <script
+      src="./widget.js"
+      data-key="pub_demo"
+      data-project="proj_demo"
+      data-api-url="https://demo.proprai.chat"
+    ></script>
+  </body>
+</html>
