@@ -69,6 +69,10 @@ const zhTW = {
     genericError: "驗證失敗，請稍後再試。",
     displayNamePlaceholder: "你的名字（選填）",
     organizationPlaceholder: "團隊或公司名稱（選填）",
+    orDivider: "或",
+    continueWithGoogle: "使用 Google 繼續",
+    oauthError: "Google 登入失敗，請再試一次。",
+    completingSignIn: "正在完成登入…",
   },
   nav: {
     overview: "總覽",

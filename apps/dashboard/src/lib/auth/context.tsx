@@ -14,6 +14,7 @@ interface AuthContextValue {
   api: Api;
   login: (body: LoginBody) => Promise<void>;
   signup: (body: SignupBody) => Promise<void>;
+  establishSession: (access: string, refresh: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -60,6 +61,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const result = await api.auth.signup(body);
         store.setSession(result.access_token, result.refresh_token, result.user);
         setUser(result.user);
+      },
+      async establishSession(access, refresh) {
+        store.setTokens(access, refresh);
+        const profile = await api.auth.me();
+        store.setSession(access, refresh, profile);
+        setUser(profile);
       },
       logout() {
         store.clear();

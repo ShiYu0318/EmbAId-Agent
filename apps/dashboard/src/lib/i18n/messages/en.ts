@@ -71,6 +71,10 @@ const en: LocaleMessages = {
     genericError: "Authentication failed. Please try again.",
     displayNamePlaceholder: "Your name (optional)",
     organizationPlaceholder: "Team or company name (optional)",
+    orDivider: "or",
+    continueWithGoogle: "Continue with Google",
+    oauthError: "Google sign-in failed. Please try again.",
+    completingSignIn: "Completing sign-in...",
   },
   nav: {
     overview: "Overview",
