@@ -281,7 +281,7 @@ function TagsPanel({ projectId, t }: { projectId: string; t: TranslateFn }) {
 
 export default function KnowledgePage() {
   const { t } = useI18n();
-  const [tab, setTab] = useState<Tab>("sources");
+  const [tab, setTab] = useState<Tab>("documents");
 
   return (
     <>
@@ -293,8 +293,8 @@ export default function KnowledgePage() {
               value={tab}
               onChange={setTab}
               options={[
-                { value: "sources", label: t("knowledge.tabSources") },
                 { value: "documents", label: t("knowledge.tabDocuments") },
+                { value: "sources", label: t("knowledge.tabSources") },
                 { value: "tags", label: t("knowledge.tabTags") },
               ]}
             />
