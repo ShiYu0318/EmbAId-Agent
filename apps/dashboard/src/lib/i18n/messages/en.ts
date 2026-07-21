@@ -206,7 +206,7 @@ const en: LocaleMessages = {
     keyRequired: "Project key required",
     keyHint:
       "Paste a publishable or secret key for this project to start chatting. It is stored only in this browser.",
-    keyPlaceholder: "pk_... or sk_...",
+    keyPlaceholder: "pub_... or sk_...",
     setKey: "Set key",
     changeKey: "Change key",
     messagePlaceholder: "Type a message to test the assistant…",

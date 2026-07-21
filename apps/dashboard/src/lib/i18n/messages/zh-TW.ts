@@ -202,7 +202,7 @@ const zhTW = {
     subtitle: "以專案金鑰即時測試助理的回覆與檢索結果。",
     keyRequired: "需要專案金鑰",
     keyHint: "貼上此專案的可公開（publishable）或私密（secret）金鑰即可開始對話。金鑰只會保存在此瀏覽器。",
-    keyPlaceholder: "pk_... 或 sk_...",
+    keyPlaceholder: "pub_... 或 sk_...",
     setKey: "設定金鑰",
     changeKey: "更換金鑰",
     messagePlaceholder: "輸入訊息以測試助理…",
