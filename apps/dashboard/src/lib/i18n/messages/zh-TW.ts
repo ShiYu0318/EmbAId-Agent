@@ -381,6 +381,10 @@ const zhTW = {
     savedConfig: "外觀設定已儲存。",
     previewGreetingFallback: "您好，有什麼可以協助您的嗎？",
     needPublishableKey: "嵌入程式碼需搭配可公開金鑰，請至設定頁建立。",
+    tryTitle: "在官網試用",
+    tryHint: "貼上你的 publishable key，即可在官網的浮動助理中即時讀取這個專案的文件。可到「API 金鑰」頁建立一把。",
+    tryKeyPlaceholder: "貼上 publishable key（pub_…）",
+    tryButton: "在官網開啟試用",
   },
   settings: {
     title: "設定",

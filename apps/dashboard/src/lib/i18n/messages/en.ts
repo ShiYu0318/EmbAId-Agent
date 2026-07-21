@@ -385,6 +385,10 @@ const en: LocaleMessages = {
     savedConfig: "Appearance saved.",
     previewGreetingFallback: "Hi, how can I help you today?",
     needPublishableKey: "The embed snippet needs a publishable key. Create one in Settings.",
+    tryTitle: "Try on the site",
+    tryHint: "Paste a publishable key to open the marketing site with this project's live assistant reading your documents. Create one on the API Keys page.",
+    tryKeyPlaceholder: "Paste publishable key (pub_…)",
+    tryButton: "Open live demo",
   },
   settings: {
     title: "Settings",

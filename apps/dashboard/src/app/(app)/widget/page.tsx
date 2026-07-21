@@ -40,6 +40,7 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [copied, copy] = useCopy();
+  const [tryKey, setTryKey] = useState("");
 
   useEffect(() => {
     if (data) setConfig({ ...DEFAULT_CONFIG, ...data });
@@ -64,6 +65,19 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
   }
 
   const snippet = `<script src="${apiBaseUrl()}/widget.js" data-key="YOUR_PUBLISHABLE_KEY" data-project="${projectId}"></script>`;
+
+  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || "http://localhost:4180";
+  function openTry() {
+    const key = tryKey.trim();
+    if (!key) return;
+    const dashboard = typeof window !== "undefined" ? window.location.origin : "";
+    const url =
+      `${landingUrl}/?api=${encodeURIComponent(apiBaseUrl())}` +
+      `&project=${encodeURIComponent(projectId)}` +
+      `&key=${encodeURIComponent(key)}` +
+      `&dashboard=${encodeURIComponent(dashboard)}`;
+    window.open(url, "_blank", "noopener");
+  }
 
   return (
     <div className="widget-studio">
@@ -132,6 +146,19 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
             <pre className="code-block">{snippet}</pre>
             <Button onClick={() => copy(snippet)}>
               {copied ? t("common.copied") : t("widget.copySnippet")}
+            </Button>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader title={t("widget.tryTitle")} />
+          <CardBody>
+            <p className="muted">{t("widget.tryHint")}</p>
+            <Field label={t("widget.tryKeyPlaceholder")}>
+              <Input value={tryKey} placeholder="pub_…" onChange={(e) => setTryKey(e.target.value)} />
+            </Field>
+            <Button variant="primary" disabled={!tryKey.trim()} onClick={openTry}>
+              {t("widget.tryButton")}
             </Button>
           </CardBody>
         </Card>
