@@ -3,6 +3,8 @@
 .env.local
 *.env
 
+.claude/
+
 docs/superpowers/
 
 __pycache__/
