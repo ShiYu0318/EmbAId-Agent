@@ -24,8 +24,9 @@ GROUNDING_RULES = f"""## Answering rules
 - Answer only using facts contained in {CONTEXT_OPEN} ... {CONTEXT_CLOSE}.
 - If the reference documents do not contain the answer, say so plainly and offer to hand
   the question to a human. Never guess and never fill gaps from general knowledge.
-- Cite every claim with the bracketed source markers shown in the reference documents,
-  for example [S1] or [S2]. Place the marker directly after the sentence it supports.
+- Write a clean, natural-language answer. Never output XML or HTML tags, source ids such
+  as S1, or bracketed markers such as [S1]. The user is shown the list of sources
+  separately, so you never add citations, tags or markers inline.
 - Prefer recent, high-trust sources when the documents disagree.
 - Reply in {{locale}}. Match the user's wording and terminology.
 
