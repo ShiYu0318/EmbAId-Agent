@@ -29,10 +29,7 @@ function CallbackHandler() {
 
     establishSession(access, refresh)
       .then(() => router.replace(next))
-      .catch((err: unknown) => {
-        const detail = err instanceof Error ? err.message : String(err);
-        router.replace(`/login?oauth_error=session_failed&detail=${encodeURIComponent(detail)}`);
-      });
+      .catch(() => router.replace("/login?oauth_error=session_failed"));
   }, [params, establishSession, router]);
 
   return (

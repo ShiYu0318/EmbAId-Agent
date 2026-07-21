@@ -42,7 +42,8 @@ export class ApiClient {
   constructor(options: ApiClientOptions) {
     this.baseUrl = options.baseUrl;
     this.tokens = options.tokens;
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    const baseFetch = options.fetchImpl ?? fetch;
+    this.fetchImpl = baseFetch.bind(globalThis);
     this.onAuthCleared = options.onAuthCleared;
   }
 
