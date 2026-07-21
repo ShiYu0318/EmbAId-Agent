@@ -1,11 +1,26 @@
 (() => {
+  const params = new URLSearchParams(window.location.search);
+  const apiUrl = params.get("api");
+  const projectId = params.get("project");
+  const publishableKey = params.get("key");
+  const live = Boolean(apiUrl && projectId && publishableKey);
+
   const nativeFetch = window.fetch.bind(window);
   const encoder = new TextEncoder();
 
-  const config = {
+  const liveConfig = {
     primary_color: "#7c3aed",
     greeting:
-      "嗨,我是 proprAI 智嵌的示範助理。試著問我檢索原理、如何嵌入,或資料安全。",
+      "嗨,我已連上你的知識庫。問我任何關於你剛上傳文件的問題吧。",
+    starter_questions: [],
+    bot_name: params.get("bot") || "知識助理",
+    theme: "dark",
+    locale: "zh-TW",
+  };
+
+  const demoConfig = {
+    primary_color: "#7c3aed",
+    greeting: "嗨,我是 proprAI 智嵌的示範助理。試著問我檢索原理、如何嵌入,或資料安全。",
     starter_questions: [
       "RAG 如何避免亂編答案?",
       "怎麼把助理嵌到我的網站?",
@@ -16,7 +31,9 @@
     locale: "zh-TW",
   };
 
-  const answers = [
+  const frame = (event, data) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+
+  const demoAnswers = [
     {
       match: ["檢索", "亂", "幻覺", "hallucin", "準", "來源", "信心", "出處", "rag"],
       text: "proprAI 用**混合檢索**同時比對語意向量與關鍵字,再以 cross-encoder 重排序挑出最相關的段落。當證據信心低於門檻時,助理會直接說「文件裡沒有」而不硬掰——所以每個答案都查得到出處。",
@@ -32,22 +49,18 @@
       text: "資料以**專案為界**完整隔離,API Key 分為 publishable、secret、sandbox 三種權限層級。你可以用雲端託管,也可以用開放原始碼版本自架,敏感資料完全不出你的伺服器。",
       cite: { title: "安全與多租戶", snippet: "project-scoped isolation, self-host" },
     },
-    {
-      match: ["定價", "價格", "多少", "費用", "免費", "pricing", "方案", "錢"],
-      text: "有**免費體驗**方案可直接開始,含一個專案與每月 500 則訊息;成長方案每月 20,000 則訊息並開放完整 API。自架版本永久免費、原始碼開放。(此為展示頁,價格僅供參考)",
-      cite: { title: "方案比較", snippet: "free / growth / enterprise" },
-    },
   ];
 
-  const fallback = {
-    text: "我是 proprAI 智嵌的示範助理。這個平台把你的文件變成會查證的問答助理:混合檢索、交叉重排序、對話式改寫、低信心自動婉拒,還有可稽核的檢索軌跡。試著問我「RAG 如何避免亂編」、「怎麼嵌到網站」或「資料安全嗎」。",
+  const demoFallback = {
+    text: "我是 proprAI 智嵌的示範助理。這個平台把你的文件變成會查證的問答助理:混合檢索、交叉重排序、對話式改寫、低信心自動婉拒,還有可稽核的檢索軌跡。想看真實效果,請登入上傳文件後從儀表板開啟試用連結。",
     cite: null,
   };
 
-  const pick = (message) => {
+  const pickDemo = (message) => {
     const lower = message.toLowerCase();
     return (
-      answers.find((a) => a.match.some((k) => lower.includes(k.toLowerCase()))) ?? fallback
+      demoAnswers.find((a) => a.match.some((k) => lower.includes(k.toLowerCase()))) ??
+      demoFallback
     );
   };
 
@@ -57,10 +70,29 @@
     return out;
   };
 
-  const frame = (event, data) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+  const streamResponse = (frames) => {
+    let index = 0;
+    const stream = new ReadableStream({
+      pull(controller) {
+        return new Promise((resolve) => {
+          if (index >= frames.length) {
+            controller.close();
+            resolve();
+            return;
+          }
+          const next = frames[index++];
+          window.setTimeout(() => {
+            controller.enqueue(encoder.encode(next.data));
+            resolve();
+          }, next.delay);
+        });
+      },
+    });
+    return new Response(stream, { headers: { "Content-Type": "text/event-stream" } });
+  };
 
-  const buildFrames = (message) => {
-    const answer = pick(message);
+  const demoFrames = (message) => {
+    const answer = pickDemo(message);
     const frames = [
       { delay: 160, data: frame("conversation", { conversation_id: "conv_demo", message_id: "msg_demo" }) },
     ];
@@ -87,52 +119,45 @@
     return frames;
   };
 
-  const streamResponse = (frames) => {
-    let index = 0;
-    const stream = new ReadableStream({
-      pull(controller) {
-        return new Promise((resolve) => {
-          if (index >= frames.length) {
-            controller.close();
-            resolve();
-            return;
-          }
-          const next = frames[index++];
-          window.setTimeout(() => {
-            controller.enqueue(encoder.encode(next.data));
-            resolve();
-          }, next.delay);
-        });
-      },
-    });
-    return new Response(stream, {
-      headers: { "Content-Type": "text/event-stream" },
-    });
-  };
-
   window.fetch = async (input, init) => {
     const url = String(typeof input === "string" ? input : input?.url ?? "");
 
     if (url.includes("/widget-config")) {
-      return new Response(JSON.stringify(config), {
+      return new Response(JSON.stringify(live ? liveConfig : demoConfig), {
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    if (url.endsWith("/v1/chat")) {
+    if (!live && url.endsWith("/v1/chat")) {
       let message = "";
       try {
         message = JSON.parse(init?.body ?? "{}").message ?? "";
       } catch {
         message = "";
       }
-      return streamResponse(buildFrames(message));
+      return streamResponse(demoFrames(message));
     }
 
-    if (url.includes("/feedback")) {
+    if (!live && url.includes("/feedback")) {
       return new Response(null, { status: 204 });
     }
 
     return nativeFetch(input, init);
   };
+
+  if (live) {
+    const banner = document.createElement("div");
+    banner.className = "live-banner";
+    banner.innerHTML =
+      '<span class="live-banner__dot"></span>已連上你的知識庫 · 這個助理正在讀取你上傳的文件';
+    document.body.appendChild(banner);
+    document.body.setAttribute("data-live", "true");
+  }
+
+  const widget = document.createElement("script");
+  widget.src = "./widget.js";
+  widget.setAttribute("data-key", live ? publishableKey : "pub_demo");
+  widget.setAttribute("data-project", live ? projectId : "proj_demo");
+  widget.setAttribute("data-api-url", live ? apiUrl : "https://demo.proprai.chat");
+  document.body.appendChild(widget);
 })();

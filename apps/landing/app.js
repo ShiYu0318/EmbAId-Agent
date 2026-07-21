@@ -1,6 +1,15 @@
 (() => {
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  const params = new URLSearchParams(window.location.search);
+  const dashboardUrl = (params.get("dashboard") || "http://localhost:3000").replace(/\/$/, "");
+  document.querySelectorAll("[data-login]").forEach((a) => {
+    a.href = `${dashboardUrl}/login`;
+  });
+  document.querySelectorAll("[data-signup]").forEach((a) => {
+    a.href = `${dashboardUrl}/login`;
+  });
+
   const nav = document.querySelector("[data-nav]");
   const onScroll = () => {
     if (nav) nav.setAttribute("data-scrolled", String(window.scrollY > 8));

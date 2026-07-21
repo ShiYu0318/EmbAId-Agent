@@ -41,8 +41,8 @@
         </nav>
 
         <div class="nav__actions">
-          <a class="btn btn--ghost" href="#demo">看實機展示</a>
-          <a class="btn btn--primary" href="#pricing">免費開始</a>
+          <a class="btn btn--ghost" href="#" data-login>登入</a>
+          <a class="btn btn--primary" href="#" data-signup>免費開始</a>
         </div>
 
         <button class="nav__toggle" type="button" aria-label="開啟選單" aria-expanded="false" data-nav-toggle>
@@ -54,7 +54,8 @@
         <a href="#how">運作原理</a>
         <a href="#developers">開發者</a>
         <a href="#pricing">定價</a>
-        <a class="btn btn--primary" href="#pricing">免費開始</a>
+        <a href="#" data-login>登入</a>
+        <a class="btn btn--primary" href="#" data-signup>免費開始</a>
       </div>
     </header>
 
@@ -79,7 +80,7 @@
               「會亂編的聊天機器人」變成「查得到出處的答案」。
             </p>
             <div class="hero__cta reveal">
-              <a class="btn btn--primary btn--lg" href="#pricing">免費開始建立助理</a>
+              <a class="btn btn--primary btn--lg" href="#" data-signup>免費開始建立助理</a>
               <a class="btn btn--ghost btn--lg" href="#demo">
                 看實機展示
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -375,7 +376,7 @@ for await (const token of stream) {
                 <li>可稽核檢索軌跡</li>
                 <li>Webhook 與知識缺口報表</li>
               </ul>
-              <a class="btn btn--primary btn--block" href="#demo">開始使用</a>
+              <a class="btn btn--primary btn--block" href="#" data-signup>開始使用</a>
             </article>
 
             <article class="plan reveal">
@@ -400,7 +401,7 @@ for await (const token of stream) {
           <h2>準備好讓你的內容開口了嗎?</h2>
           <p>上傳第一份文件,五分鐘後就能在自己的網站上看到會查證的助理。</p>
           <div class="cta__actions">
-            <a class="btn btn--primary btn--lg" href="#pricing">免費開始建立</a>
+            <a class="btn btn--primary btn--lg" href="#" data-signup>免費開始建立</a>
             <a class="btn btn--ghost btn--lg" href="#developers">閱讀開發者文件</a>
           </div>
         </div>
@@ -439,12 +440,6 @@ for await (const token of stream) {
       </div>
     </footer>
 
-    <script src="./demo.js"></script>
-    <script
-      src="./widget.js"
-      data-key="pub_demo"
-      data-project="proj_demo"
-      data-api-url="https://demo.proprai.chat"
-    ></script>
+    <script src="./boot.js"></script>
   </body>
 </html>

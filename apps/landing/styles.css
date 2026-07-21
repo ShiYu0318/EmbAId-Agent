@@ -1027,3 +1027,37 @@ svg {
     transform: none;
   }
 }
+
+/* Live mode banner */
+.live-banner {
+  position: fixed;
+  left: 20px;
+  bottom: 26px;
+  z-index: 90;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  max-width: calc(100vw - 130px);
+  padding: 10px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  background: rgba(18, 16, 32, 0.92);
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+.live-banner__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.2);
+  animation: pulse 2s infinite;
+}
+@media (max-width: 720px) {
+  .live-banner {
+    display: none;
+  }
+}
