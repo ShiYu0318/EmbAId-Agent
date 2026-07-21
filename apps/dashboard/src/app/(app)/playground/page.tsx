@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { PageHeader, RequireProject } from "@/components/page";
@@ -160,6 +161,11 @@ function Conversation({
                     </li>
                   ))}
                 </ul>
+              )}
+              {turn.role === "assistant" && turn.messageId && (
+                <Link className="playground-trace-link" href={`/trace?message=${turn.messageId}`}>
+                  {t("playground.viewTrace")}
+                </Link>
               )}
             </div>
           ))
