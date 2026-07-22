@@ -219,22 +219,26 @@ export class ChatWidget {
     return element;
   }
 
-  private icon(kind: "chat" | "close"): SVGElement {
+  private icon(kind: "chat" | "close" | "up" | "down", size = 22): SVGElement {
     const svg = this.doc.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("width", "22");
-    svg.setAttribute("height", "22");
+    svg.setAttribute("width", String(size));
+    svg.setAttribute("height", String(size));
     svg.setAttribute("fill", "none");
     svg.setAttribute("stroke", "currentColor");
-    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-width", kind === "up" || kind === "down" ? "1.7" : "2");
     svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
     svg.setAttribute("aria-hidden", "true");
 
+    const paths: Record<string, string> = {
+      chat: "M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z",
+      close: "M6 6l12 12M18 6 6 18",
+      up: "M7 10v12 M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z",
+      down: "M17 14V2 M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3 3.88Z",
+    };
     const path = this.doc.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute(
-      "d",
-      kind === "chat" ? "M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" : "M6 6l12 12M18 6 6 18",
-    );
+    path.setAttribute("d", paths[kind]);
     svg.appendChild(path);
     return svg;
   }
@@ -300,7 +304,7 @@ export class ChatWidget {
     for (const value of ["up", "down"] as const) {
       const button = this.doc.createElement("button");
       button.type = "button";
-      button.textContent = value === "up" ? "👍" : "👎";
+      button.appendChild(this.icon(value === "up" ? "up" : "down", 15));
       button.setAttribute("aria-label", this.t(value === "up" ? "feedbackUp" : "feedbackDown"));
       button.setAttribute("aria-pressed", "false");
       button.addEventListener("click", () => {
