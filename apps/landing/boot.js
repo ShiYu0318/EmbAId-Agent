@@ -9,7 +9,7 @@
   const encoder = new TextEncoder();
 
   const liveConfig = {
-    primary_color: "#7c3aed",
+    primary_color: "#4493f8",
     greeting:
       "嗨,我已連上你的知識庫。問我任何關於你剛上傳文件的問題吧。",
     starter_questions: [],
@@ -19,7 +19,7 @@
   };
 
   const demoConfig = {
-    primary_color: "#7c3aed",
+    primary_color: "#4493f8",
     greeting: "嗨,我是 proprAI 智嵌的示範助理。試著問我檢索原理、如何嵌入,或資料安全。",
     starter_questions: [
       "RAG 如何避免亂編答案?",
