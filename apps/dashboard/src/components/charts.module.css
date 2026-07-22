@@ -39,12 +39,12 @@
 .hbarList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .hbarRow {
   display: grid;
-  gap: 6px;
+  gap: 9px;
 }
 
 .hbarHead {
