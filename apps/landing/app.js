@@ -1,21 +1,33 @@
 (() => {
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const root = document.documentElement;
+
+  const stored = (() => {
+    try {
+      return localStorage.getItem("proprai-theme");
+    } catch {
+      return null;
+    }
+  })();
+  root.dataset.theme = stored || "dark";
+  const themeToggle = document.querySelector("[data-theme-toggle]");
+  if (themeToggle) {
+    themeToggle.addEventListener("click", () => {
+      const next = root.dataset.theme === "dark" ? "light" : "dark";
+      root.dataset.theme = next;
+      try {
+        localStorage.setItem("proprai-theme", next);
+      } catch {
+        void 0;
+      }
+    });
+  }
 
   const params = new URLSearchParams(window.location.search);
   const dashboardUrl = (params.get("dashboard") || "http://localhost:3000").replace(/\/$/, "");
-  document.querySelectorAll("[data-login]").forEach((a) => {
+  document.querySelectorAll("[data-login], [data-signup]").forEach((a) => {
     a.href = `${dashboardUrl}/login`;
   });
-  document.querySelectorAll("[data-signup]").forEach((a) => {
-    a.href = `${dashboardUrl}/login`;
-  });
-
-  const nav = document.querySelector("[data-nav]");
-  const onScroll = () => {
-    if (nav) nav.setAttribute("data-scrolled", String(window.scrollY > 8));
-  };
-  onScroll();
-  window.addEventListener("scroll", onScroll, { passive: true });
 
   const toggle = document.querySelector("[data-nav-toggle]");
   const mobile = document.querySelector("[data-nav-mobile]");
@@ -25,33 +37,29 @@
       toggle.setAttribute("aria-label", open ? "關閉選單" : "開啟選單");
       mobile.setAttribute("data-open", String(open));
     };
-    toggle.addEventListener("click", () => {
-      setOpen(toggle.getAttribute("aria-expanded") !== "true");
-    });
-    mobile.querySelectorAll("a").forEach((link) => {
-      link.addEventListener("click", () => setOpen(false));
-    });
+    toggle.addEventListener("click", () => setOpen(toggle.getAttribute("aria-expanded") !== "true"));
+    mobile.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => setOpen(false)));
   }
 
   const revealables = document.querySelectorAll(".reveal");
   if (reduceMotion || !("IntersectionObserver" in window)) {
-    revealables.forEach((el) => el.classList.add("in-view"));
+    revealables.forEach((el) => el.classList.add("in"));
   } else {
     const io = new IntersectionObserver(
       (entries, obs) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
-          entry.target.classList.add("in-view");
+          entry.target.classList.add("in");
           obs.unobserve(entry.target);
         });
       },
-      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" },
+      { threshold: 0.14, rootMargin: "0px 0px -8% 0px" },
     );
     revealables.forEach((el) => io.observe(el));
   }
 
-  const runCounters = (root) => {
-    root.querySelectorAll("[data-count]").forEach((el) => {
+  const runCounters = (rootEl) => {
+    rootEl.querySelectorAll("[data-count]").forEach((el) => {
       const target = Number(el.getAttribute("data-count"));
       const prefix = el.getAttribute("data-prefix") ?? "";
       const suffix = el.getAttribute("data-suffix") ?? "";
@@ -123,78 +131,4 @@
       }
     });
   });
-
-  const body = document.querySelector("[data-chat-body]");
-  if (body) startChatMock(body, reduceMotion);
-
-  function startChatMock(container, reduced) {
-    const script = [
-      { role: "user", text: "退款政策是什麼?可以退多久?" },
-      {
-        role: "bot",
-        text: "依 <strong>服務條款</strong>,商品到貨 <strong>14 天內</strong>可申請全額退款,退款會在核准後 3 至 5 個工作天退回原付款方式。",
-        cite: "服務條款 · 第 4 節",
-      },
-    ];
-
-    const render = () => {
-      container.innerHTML = "";
-      const user = document.createElement("div");
-      user.className = "mm mm--user";
-      user.textContent = script[0].text;
-      container.appendChild(user);
-
-      const bot = document.createElement("div");
-      bot.className = "mm mm--bot";
-      bot.style.animationDelay = "0.5s";
-      container.appendChild(bot);
-
-      if (reduced) {
-        bot.innerHTML = script[1].text + citeMarkup(script[1].cite);
-        return;
-      }
-
-      const typing = document.createElement("div");
-      typing.className = "typing";
-      typing.innerHTML = "<span></span><span></span><span></span>";
-      bot.appendChild(typing);
-
-      window.setTimeout(() => streamInto(bot, script[1].text, script[1].cite), 1500);
-    };
-
-    const citeMarkup = (cite) =>
-      `<div class="mm__cite">來源 · <b>${cite}</b></div>`;
-
-    const streamInto = (bot, html, cite) => {
-      bot.classList.add("caret");
-      bot.innerHTML = "";
-      const tokens = tokenize(html);
-      let i = 0;
-      const step = () => {
-        if (i >= tokens.length) {
-          bot.classList.remove("caret");
-          const cel = document.createElement("div");
-          cel.className = "mm__cite";
-          cel.innerHTML = `來源 · <b>${cite}</b>`;
-          bot.appendChild(cel);
-          window.setTimeout(render, 4200);
-          return;
-        }
-        bot.innerHTML = tokens.slice(0, i + 1).join("");
-        i += 1;
-        window.setTimeout(step, 45);
-      };
-      step();
-    };
-
-    const tokenize = (html) => {
-      const parts = [];
-      const regex = /(<\/?strong>)|(\s+)|([^\s<]+)/g;
-      let match;
-      while ((match = regex.exec(html)) !== null) parts.push(match[0]);
-      return parts;
-    };
-
-    render();
-  }
 })();
