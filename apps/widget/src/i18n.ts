@@ -13,6 +13,7 @@ const zhTW = {
   inputLabel: "輸入你的問題",
   inputPlaceholder: "輸入訊息…",
   send: "送出",
+  poweredBy: "Powered by",
   close: "關閉",
   thinking: "正在查詢資料…",
   citationsLabel: "參考資料",

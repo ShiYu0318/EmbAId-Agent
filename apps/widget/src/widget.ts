@@ -101,6 +101,7 @@ export class ChatWidget {
     this.panel.appendChild(this.status);
 
     this.panel.appendChild(this.buildComposer());
+    this.panel.appendChild(this.buildBranding());
 
     this.launcher = this.doc.createElement("button");
     this.launcher.className = "launcher";
@@ -162,11 +163,21 @@ export class ChatWidget {
     this.sendButton = this.doc.createElement("button");
     this.sendButton.className = "send";
     this.sendButton.type = "button";
-    this.sendButton.textContent = this.t("send");
+    this.sendButton.setAttribute("aria-label", this.t("send"));
+    this.sendButton.appendChild(this.icon("send", 18));
     this.sendButton.addEventListener("click", () => void this.submit());
 
     composer.append(this.input, this.sendButton);
     return composer;
+  }
+
+  private buildBranding(): HTMLElement {
+    const branding = this.el("div", "branding");
+    branding.append(this.doc.createTextNode(`${this.t("poweredBy")} `));
+    const brand = this.doc.createElement("strong");
+    brand.textContent = "proprAI";
+    branding.appendChild(brand);
+    return branding;
   }
 
   private renderGreeting(): void {
@@ -219,7 +230,7 @@ export class ChatWidget {
     return element;
   }
 
-  private icon(kind: "chat" | "close" | "up" | "down", size = 22): SVGElement {
+  private icon(kind: "chat" | "close" | "up" | "down" | "send", size = 22): SVGElement {
     const svg = this.doc.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("viewBox", "0 0 24 24");
     svg.setAttribute("width", String(size));
@@ -231,11 +242,12 @@ export class ChatWidget {
     svg.setAttribute("stroke-linejoin", "round");
     svg.setAttribute("aria-hidden", "true");
 
-    const paths: Record<string, string> = {
+    const paths: Record<typeof kind, string> = {
       chat: "M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z",
       close: "M6 6l12 12M18 6 6 18",
       up: "M7 10v12 M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z",
       down: "M17 14V2 M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3 3.88Z",
+      send: "M22 2 11 13 M22 2 15 22 11 13 2 9 22 2",
     };
     const path = this.doc.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", paths[kind]);
