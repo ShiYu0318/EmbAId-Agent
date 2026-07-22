@@ -73,6 +73,13 @@ const zhTW = {
     continueWithGoogle: "使用 Google 繼續",
     oauthError: "Google 登入失敗，請再試一次。",
     completingSignIn: "正在完成登入…",
+    asideTag: "智嵌 · Embedded",
+    asideTitle: "登入你的知識庫。",
+    asideSubtitle: "上傳文件、嵌入一段 script，幾分鐘就有一個查得到出處的 AI 助理。",
+    demoLabel: "智嵌助理 · embedded",
+    demoQuestion: "退款期限是幾天？",
+    demoAnswer: "購買後 21 天內，附來源。",
+    demoSource: "來源 · 光年書店政策 · 信心 0.92",
   },
   nav: {
     overview: "總覽",

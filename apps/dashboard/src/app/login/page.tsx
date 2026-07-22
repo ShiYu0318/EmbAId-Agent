@@ -81,9 +81,39 @@ function LoginForm() {
   const isLogin = mode === "login";
 
   return (
-    <main className="auth-shell">
-      <section className="auth-card">
-        <h1>{isLogin ? t("auth.loginTitle") : t("auth.signupTitle")}</h1>
+    <main className="auth-split">
+      <aside className="auth-aside" aria-hidden="true">
+        <span className="auth-aside__eyebrow">
+          {t("common.appName")} <span>· {t("auth.asideTag")}</span>
+        </span>
+        <div className="auth-aside__lead">
+          <h2 className="auth-aside__title">{t("auth.asideTitle")}</h2>
+          <p className="auth-aside__text">{t("auth.asideSubtitle")}</p>
+        </div>
+        <div className="auth-demo">
+          <div className="auth-demo__head">
+            <span className="auth-demo__avatar">智</span>
+            <span className="auth-demo__name">{t("auth.demoLabel")}</span>
+          </div>
+          <div className="auth-demo__bubble auth-demo__bubble--user">
+            {t("auth.demoQuestion")}
+          </div>
+          <div className="auth-demo__bubble auth-demo__bubble--bot">
+            {t("auth.demoAnswer")}
+          </div>
+          <div className="auth-demo__source">{t("auth.demoSource")}</div>
+        </div>
+      </aside>
+
+      <section className="auth-panel">
+        <div className="auth-brand">
+          <span className="auth-brand__mark">P</span>
+          <span className="auth-brand__name">{t("common.appName")}</span>
+        </div>
+
+        <h1 className="auth-panel__title">
+          {isLogin ? t("auth.loginTitle") : t("auth.signupTitle")}
+        </h1>
         <p className="auth-subtitle">
           {isLogin ? t("auth.loginSubtitle") : t("auth.signupSubtitle")}
         </p>

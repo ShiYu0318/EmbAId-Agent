@@ -75,6 +75,13 @@ const en: LocaleMessages = {
     continueWithGoogle: "Continue with Google",
     oauthError: "Google sign-in failed. Please try again.",
     completingSignIn: "Completing sign-in...",
+    asideTag: "Embedded RAG",
+    asideTitle: "Sign in to your knowledge base.",
+    asideSubtitle: "Upload documents, embed one script, and in minutes you have an AI assistant that cites its sources.",
+    demoLabel: "Assistant · embedded",
+    demoQuestion: "How long is the refund window?",
+    demoAnswer: "Within 21 days of purchase, with sources.",
+    demoSource: "Source · Lightyear Books policy · confidence 0.92",
   },
   nav: {
     overview: "Overview",
