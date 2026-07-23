@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import {
   IconBook,
@@ -14,6 +14,7 @@ import {
   IconSparkle,
   IconSun,
 } from "@/components/icons";
+import { ProjectWizard } from "@/components/project-wizard";
 import { IconButton, LoadingBlock, Select } from "@/components/ui";
 import { useAuth } from "@/lib/auth/context";
 import { LOCALES, LOCALE_LABELS, useI18n, type Locale } from "@/lib/i18n";
@@ -57,6 +58,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const { t, locale, setLocale } = useI18n();
   const { theme, toggle } = useTheme();
   const { projects, currentId, setCurrentId } = useProjects();
+  const [wizardOpen, setWizardOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -96,6 +98,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               ))
             )}
           </Select>
+          <button
+            type="button"
+            className="app-project-new"
+            aria-label={t("project.newProject")}
+            title={t("project.newProject")}
+            onClick={() => setWizardOpen(true)}
+          >
+            +
+          </button>
         </div>
 
         <nav className="app-nav">
@@ -144,6 +155,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <main className="app-main">{children}</main>
+
+      {wizardOpen && (
+        <ProjectWizard onClose={() => setWizardOpen(false)} onCreated={() => router.push("/")} />
+      )}
     </div>
   );
 }
