@@ -1,4 +1,23 @@
 const zhTW = {
+  onboarding: {
+    title: "上線進度",
+    subtitle: "完成這幾步，就能把助理嵌到你的網站。",
+    allDoneTitle: "全部完成，你的助理已可上線。",
+    allDoneText: "隨時可回來調整知識庫與樣式。",
+    done: "已完成",
+    todo: "待完成",
+    step1Title: "建立專案",
+    step1Text: "已建立這個專案。",
+    step2Title: "加入知識",
+    step2Text: "上傳文件，或貼上網址讓系統爬取整站內容並索引。",
+    step2Cta: "前往知識庫",
+    step3Title: "客製 ChatBot",
+    step3Text: "設定助理名稱、開場白、主題色與頭像。",
+    step3Cta: "前往元件工作室",
+    step4Title: "取得金鑰並嵌入",
+    step4Text: "建立可公開金鑰，複製一段 script 貼到你的網站即可上線。",
+    step4Cta: "前往嵌入設定",
+  },
   common: {
     appName: "proprAI Chat",
     tagline: "智嵌管理後台",

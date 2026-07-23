@@ -1,6 +1,25 @@
 import type { LocaleMessages } from "./schema";
 
 const en: LocaleMessages = {
+  onboarding: {
+    title: "Setup progress",
+    subtitle: "Finish these steps to embed the assistant on your site.",
+    allDoneTitle: "All set — your assistant is ready to go live.",
+    allDoneText: "Come back anytime to tune the knowledge base and styling.",
+    done: "Done",
+    todo: "To do",
+    step1Title: "Create a project",
+    step1Text: "This project has been created.",
+    step2Title: "Add knowledge",
+    step2Text: "Upload documents, or paste a URL to crawl and index a whole site.",
+    step2Cta: "Go to knowledge base",
+    step3Title: "Customize the chatbot",
+    step3Text: "Set the assistant name, greeting, accent color and avatar.",
+    step3Cta: "Go to widget studio",
+    step4Title: "Get a key and embed",
+    step4Text: "Create a publishable key and paste one script tag into your site.",
+    step4Cta: "Go to embed settings",
+  },
   common: {
     appName: "proprAI Chat",
     tagline: "Management console",

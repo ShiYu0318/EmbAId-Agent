@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { AreaChart, HBarList } from "@/components/charts";
+import { Onboarding } from "@/components/onboarding";
 import { PageHeader, RequireProject } from "@/components/page";
 import { Button, Card, CardBody, CardHeader, LoadingBlock, StateBlock } from "@/components/ui";
 import { useAuth } from "@/lib/auth/context";
@@ -23,6 +24,15 @@ function Metric({ label, value, caption }: { label: string; value: string; capti
 }
 
 function OverviewBody({ projectId, t, locale }: { projectId: string; t: TranslateFn; locale: Locale }) {
+  return (
+    <div className="overview">
+      <Onboarding projectId={projectId} t={t} />
+      <OverviewAnalytics projectId={projectId} t={t} locale={locale} />
+    </div>
+  );
+}
+
+function OverviewAnalytics({ projectId, t, locale }: { projectId: string; t: TranslateFn; locale: Locale }) {
   const { api } = useAuth();
   const { data, loading, error } = useAsyncData(
     () => api.analytics.get(projectId, 30, false),
@@ -41,7 +51,7 @@ function OverviewBody({ projectId, t, locale }: { projectId: string; t: Translat
     data.average_confidence === null ? t("common.none") : formatDecimal(data.average_confidence);
 
   return (
-    <div className="overview">
+    <>
       <div className="metric-grid">
         <Metric label={t("overview.conversations")} value={formatNumber(data.conversations, locale)} />
         <Metric label={t("overview.messages")} value={formatNumber(data.messages, locale)} />
@@ -107,7 +117,7 @@ function OverviewBody({ projectId, t, locale }: { projectId: string; t: Translat
           </div>
         </CardBody>
       </Card>
-    </div>
+    </>
   );
 }
 
