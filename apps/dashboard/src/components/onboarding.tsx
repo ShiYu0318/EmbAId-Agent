@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button, Card, CardBody, CardHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth/context";
 import { useAsyncData } from "@/lib/hooks";
-import { useI18n, type TranslateFn } from "@/lib/i18n";
+import { type TranslateFn } from "@/lib/i18n";
 
 interface Step {
   title: string;
