@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, File, Form, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, File, Form, UploadFile, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
@@ -79,7 +79,11 @@ async def _owned_source(session: SessionDep, user: CurrentUser, source_id: str) 
     status_code=status.HTTP_201_CREATED,
 )
 async def create_source(
-    project_id: str, payload: SourceCreate, session: SessionDep, user: CurrentUser
+    project_id: str,
+    payload: SourceCreate,
+    session: SessionDep,
+    user: CurrentUser,
+    background: BackgroundTasks,
 ) -> SourcePayload:
     project = await owned_project(session, user, project_id)
     if payload.type == "upload":
@@ -92,12 +96,13 @@ async def create_source(
         type=payload.type,
         config=payload.config,
         schedule=payload.schedule,
+        status="pending",
     )
     session.add(source)
     await session.commit()
-
-    await jobs.dispatch_source(source.id)
     await session.refresh(source)
+
+    background.add_task(jobs.dispatch_source, source.id)
     return _payload(source)
 
 
@@ -127,13 +132,15 @@ async def delete_source(source_id: str, session: SessionDep, user: CurrentUser) 
 
 
 @router.post("/sources/{source_id}/reindex", response_model=SourcePayload)
-async def reindex_source(source_id: str, session: SessionDep, user: CurrentUser) -> SourcePayload:
+async def reindex_source(
+    source_id: str, session: SessionDep, user: CurrentUser, background: BackgroundTasks
+) -> SourcePayload:
     source = await _owned_source(session, user, source_id)
     source.status = "pending"
     await session.commit()
-
-    await jobs.dispatch_source(source.id)
     await session.refresh(source)
+
+    background.add_task(jobs.dispatch_source, source.id)
     return _payload(source)
 
 
@@ -145,6 +152,7 @@ async def upload_document(
     project_id: str,
     session: SessionDep,
     user: CurrentUser,
+    background: BackgroundTasks,
     file: Annotated[UploadFile, File()],
     title: Annotated[str | None, Form()] = None,
 ) -> dict[str, str]:
@@ -171,14 +179,14 @@ async def upload_document(
     )
     await session.commit()
 
-    await jobs.dispatch_document(document.id)
+    background.add_task(jobs.dispatch_document, document.id)
     return {"document_id": document.id, "status": "queued"}
 
 
 @router.post("/projects/{project_id}/reindex")
 async def reindex_project(
-    project_id: str, session: SessionDep, user: CurrentUser
+    project_id: str, session: SessionDep, user: CurrentUser, background: BackgroundTasks
 ) -> dict[str, str]:
     project = await owned_project(session, user, project_id)
-    await jobs.dispatch_reindex(project.id)
+    background.add_task(jobs.dispatch_reindex, project.id)
     return {"project_id": project.id, "status": "queued"}
