@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AreaChart, HBarList } from "@/components/charts";
 import { Onboarding } from "@/components/onboarding";
 import { PageHeader, RequireProject } from "@/components/page";
-import { Button, Card, CardBody, CardHeader, LoadingBlock, StateBlock } from "@/components/ui";
+import { Button, Card, CardBody, CardHeader, SkeletonCards, StateBlock } from "@/components/ui";
 import { useAuth } from "@/lib/auth/context";
 import { errorMessage, useAsyncData } from "@/lib/hooks";
 import { useI18n, type Locale, type TranslateFn } from "@/lib/i18n";
@@ -39,7 +39,7 @@ function OverviewAnalytics({ projectId, t, locale }: { projectId: string; t: Tra
     [projectId],
   );
 
-  if (loading) return <LoadingBlock label={t("common.loading")} />;
+  if (loading) return <SkeletonCards count={8} />;
   if (error) return <StateBlock title={t("common.loadFailed")} text={errorMessage(t, error)} />;
   if (!data) return <StateBlock title={t("overview.noData")} />;
 

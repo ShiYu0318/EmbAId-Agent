@@ -15,14 +15,27 @@ import {
   Input,
   LoadingBlock,
   Select,
+  SkeletonLines,
+  SkeletonTable,
   Spinner,
   StateBlock,
   Tabs,
 } from "@/components/ui";
 import { useAuth } from "@/lib/auth/context";
 import type { SourceType } from "@/lib/api/types";
-import { errorMessage, useAsyncData } from "@/lib/hooks";
+import { errorMessage, useAsyncData, usePoll } from "@/lib/hooks";
 import { useI18n, type TranslateFn } from "@/lib/i18n";
+
+function IngestStatus({ status, t }: { status: string; t: TranslateFn }) {
+  if (status === "ready") return <Badge tone="success">{t("knowledge.statusReady")}</Badge>;
+  if (status === "failed") return <Badge tone="danger">{t("knowledge.statusFailed")}</Badge>;
+  return (
+    <Badge tone="info">
+      <Spinner size={11} />
+      {t("knowledge.statusProcessing")}
+    </Badge>
+  );
+}
 
 function ChunkViewer({
   documentId,
@@ -39,9 +52,7 @@ function ChunkViewer({
   return (
     <Dialog title={data?.title ?? t("knowledge.viewChunks")} onClose={onClose} closeLabel={t("common.close")} wide>
       {loading ? (
-        <div className="chunk-loading">
-          <Spinner />
-        </div>
+        <SkeletonLines count={6} />
       ) : error ? (
         <StateBlock title={t("common.loadFailed")} text={errorMessage(t, error)} />
       ) : !data || data.chunks.length === 0 ? (
@@ -72,6 +83,7 @@ type Tab = "sources" | "documents" | "tags";
 function Sources({ projectId, t }: { projectId: string; t: TranslateFn }) {
   const { api } = useAuth();
   const { data, loading, error, reload } = useAsyncData(() => api.sources.list(projectId), [projectId]);
+  usePoll(Boolean(data?.some((s) => s.status === "pending")), reload);
   const [type, setType] = useState<SourceType>("url_crawl");
   const [url, setUrl] = useState("");
   const [maxPages, setMaxPages] = useState(25);
@@ -137,7 +149,7 @@ function Sources({ projectId, t }: { projectId: string; t: TranslateFn }) {
         <CardHeader title={t("knowledge.sourceList")} />
         <CardBody>
           {loading ? (
-            <LoadingBlock label={t("common.loading")} />
+            <SkeletonTable rows={3} cols={4} />
           ) : error ? (
             <StateBlock title={t("common.loadFailed")} text={errorMessage(t, error)} />
           ) : !data || data.length === 0 ? (
@@ -157,9 +169,7 @@ function Sources({ projectId, t }: { projectId: string; t: TranslateFn }) {
                   <tr key={source.id}>
                     <td>{source.type}</td>
                     <td>
-                      <Badge tone={source.status === "ready" ? "success" : "neutral"}>
-                        {source.status}
-                      </Badge>
+                      <IngestStatus status={source.status} t={t} />
                     </td>
                     <td>{source.last_run_at ?? t("knowledge.neverRun")}</td>
                     <td>
@@ -185,6 +195,7 @@ function Documents({ projectId, t }: { projectId: string; t: TranslateFn }) {
     () => api.documents.list(projectId, { stale_only: staleOnly }),
     [projectId, staleOnly],
   );
+  usePoll(Boolean(data?.some((d) => d.status === "pending")), reload);
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [viewId, setViewId] = useState<string | null>(null);
@@ -240,7 +251,7 @@ function Documents({ projectId, t }: { projectId: string; t: TranslateFn }) {
         />
         <CardBody>
           {loading ? (
-            <LoadingBlock label={t("common.loading")} />
+            <SkeletonTable rows={5} cols={4} />
           ) : error ? (
             <StateBlock title={t("common.loadFailed")} text={errorMessage(t, error)} />
           ) : !data || data.length === 0 ? (
@@ -270,9 +281,13 @@ function Documents({ projectId, t }: { projectId: string; t: TranslateFn }) {
                     </td>
                     <td>{doc.chunk_count}</td>
                     <td>
-                      <Badge tone={doc.is_stale ? "warning" : "success"}>
-                        {doc.is_stale ? t("knowledge.stale") : t("knowledge.fresh")}
-                      </Badge>
+                      {doc.status === "pending" || doc.status === "failed" ? (
+                        <IngestStatus status={doc.status} t={t} />
+                      ) : (
+                        <Badge tone={doc.is_stale ? "warning" : "success"}>
+                          {doc.is_stale ? t("knowledge.stale") : t("knowledge.fresh")}
+                        </Badge>
+                      )}
                     </td>
                     <td className="row-actions">
                       {doc.is_stale && (

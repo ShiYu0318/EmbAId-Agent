@@ -67,6 +67,63 @@ export function Spinner({ size = 20 }: { size?: number }) {
   return <span className={styles.spinner} style={{ width: size, height: size }} aria-hidden />;
 }
 
+export function Skeleton({
+  width,
+  height = 14,
+  radius = 6,
+  className,
+}: {
+  width?: string | number;
+  height?: string | number;
+  radius?: number;
+  className?: string;
+}) {
+  return (
+    <span
+      className={[styles.skeleton, className ?? ""].join(" ")}
+      style={{ width, height, borderRadius: radius }}
+      aria-hidden
+    />
+  );
+}
+
+export function SkeletonTable({ rows = 5, cols = 3 }: { rows?: number; cols?: number }) {
+  return (
+    <div className={styles.skeletonTable} aria-hidden>
+      {Array.from({ length: rows }).map((_, r) => (
+        <div className={styles.skeletonRow} key={r}>
+          {Array.from({ length: cols }).map((_, c) => (
+            <Skeleton key={c} height={13} width={c === 0 ? "42%" : c === cols - 1 ? "12%" : "20%"} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonCards({ count = 6 }: { count?: number }) {
+  return (
+    <div className={styles.skeletonCards} aria-hidden>
+      {Array.from({ length: count }).map((_, i) => (
+        <div className={styles.skeletonCard} key={i}>
+          <Skeleton width="55%" height={12} />
+          <Skeleton width="45%" height={26} radius={8} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonLines({ count = 4 }: { count?: number }) {
+  return (
+    <div className={styles.skeletonLines} aria-hidden>
+      {Array.from({ length: count }).map((_, i) => (
+        <Skeleton key={i} height={12} width={i === count - 1 ? "60%" : "100%"} />
+      ))}
+    </div>
+  );
+}
+
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={[styles.card, className ?? ""].join(" ")}>{children}</div>;
 }

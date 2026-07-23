@@ -68,6 +68,16 @@ export function useAsyncData<T>(
   return { ...state, reload };
 }
 
+export function usePoll(active: boolean, fn: () => void, intervalMs = 3000): void {
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
+  useEffect(() => {
+    if (!active) return;
+    const id = setInterval(() => fnRef.current(), intervalMs);
+    return () => clearInterval(id);
+  }, [active, intervalMs]);
+}
+
 export function useDebounced<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
