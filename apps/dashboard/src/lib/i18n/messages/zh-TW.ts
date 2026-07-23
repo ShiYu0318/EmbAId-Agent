@@ -179,6 +179,8 @@ const zhTW = {
     sourceType: "來源類型",
     sourceConfig: "來源設定",
     crawlUrl: "起始網址",
+    maxPages: "最多爬取頁數",
+    maxPagesHint: "從起始網址同網域逐層爬取子頁面，直到達到此上限。",
     sitemapUrl: "Sitemap 網址",
     notionToken: "Notion 整合權杖",
     googleDocIds: "Google 文件 ID",

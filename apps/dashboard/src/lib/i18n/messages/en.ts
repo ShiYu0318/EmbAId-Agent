@@ -182,6 +182,8 @@ const en: LocaleMessages = {
     sourceType: "Source type",
     sourceConfig: "Source configuration",
     crawlUrl: "Start URL",
+    maxPages: "Max pages to crawl",
+    maxPagesHint: "Crawls subpages on the same domain from the start URL up to this limit.",
     sitemapUrl: "Sitemap URL",
     notionToken: "Notion integration token",
     googleDocIds: "Google document IDs",

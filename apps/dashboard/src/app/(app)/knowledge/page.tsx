@@ -74,14 +74,17 @@ function Sources({ projectId, t }: { projectId: string; t: TranslateFn }) {
   const { data, loading, error, reload } = useAsyncData(() => api.sources.list(projectId), [projectId]);
   const [type, setType] = useState<SourceType>("url_crawl");
   const [url, setUrl] = useState("");
+  const [maxPages, setMaxPages] = useState(25);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const crawls = type === "url_crawl" || type === "sitemap";
 
   async function addSource() {
     setBusy(true);
     setNotice(null);
     try {
-      const config = type === "url_crawl" || type === "sitemap" ? { url } : {};
+      const config = crawls ? { url, max_pages: maxPages } : {};
       await api.sources.create(projectId, { type, config });
       setUrl("");
       reload();
@@ -106,9 +109,20 @@ function Sources({ projectId, t }: { projectId: string; t: TranslateFn }) {
                 <option value="google_docs">{t("knowledge.sourceTypeGoogleDocs")}</option>
               </Select>
             </Field>
-            {(type === "url_crawl" || type === "sitemap") && (
+            {crawls && (
               <Field label={type === "sitemap" ? t("knowledge.sitemapUrl") : t("knowledge.crawlUrl")}>
                 <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" />
+              </Field>
+            )}
+            {crawls && (
+              <Field label={t("knowledge.maxPages")} hint={t("knowledge.maxPagesHint")}>
+                <Input
+                  type="number"
+                  min="1"
+                  max="500"
+                  value={maxPages}
+                  onChange={(e) => setMaxPages(Math.max(1, Number(e.target.value) || 1))}
+                />
               </Field>
             )}
           </div>

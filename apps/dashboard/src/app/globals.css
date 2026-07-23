@@ -747,6 +747,23 @@ select {
   word-break: break-word;
 }
 
+/* Suggested-questions editor */
+.question-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.question-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.question-row > :first-child {
+  flex: 1;
+}
+
 .app-nav {
   display: flex;
   flex-direction: column;

@@ -57,7 +57,10 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
   async function save() {
     setBusy(true);
     try {
-      await api.projects.putWidgetConfig(projectId, config);
+      await api.projects.putWidgetConfig(projectId, {
+        ...config,
+        suggested_questions: config.suggested_questions.map((q) => q.trim()).filter(Boolean),
+      });
       setSaved(true);
     } finally {
       setBusy(false);
@@ -116,6 +119,40 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
               placeholder={t("widget.avatarPlaceholder")}
               onChange={(e) => set("bot_avatar_url", e.target.value || null)}
             />
+          </Field>
+          <Field label={t("widget.suggestedQuestions")}>
+            <div className="question-editor">
+              {config.suggested_questions.map((q, i) => (
+                <div key={i} className="question-row">
+                  <Input
+                    value={q}
+                    placeholder={t("widget.questionPlaceholder")}
+                    onChange={(e) =>
+                      set(
+                        "suggested_questions",
+                        config.suggested_questions.map((item, j) => (j === i ? e.target.value : item)),
+                      )
+                    }
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      set(
+                        "suggested_questions",
+                        config.suggested_questions.filter((_, j) => j !== i),
+                      )
+                    }
+                  >
+                    {t("common.remove")}
+                  </Button>
+                </div>
+              ))}
+              {config.suggested_questions.length < 6 && (
+                <Button size="sm" onClick={() => set("suggested_questions", [...config.suggested_questions, ""])}>
+                  {t("widget.addQuestion")}
+                </Button>
+              )}
+            </div>
           </Field>
           {saved && <InlineSuccess>{t("widget.savedConfig")}</InlineSuccess>}
           <Button variant="primary" loading={busy} onClick={() => void save()}>
