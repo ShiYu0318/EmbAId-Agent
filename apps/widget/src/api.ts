@@ -69,10 +69,9 @@ export class ApiClient {
 
   async loadConfig(): Promise<WidgetConfig> {
     try {
-      const response = await fetch(
-        `${this.options.apiUrl}/v1/projects/${this.options.projectId}/widget-config`,
-        { headers: this.headers() },
-      );
+      const response = await fetch(`${this.options.apiUrl}/v1/widget-config`, {
+        headers: this.headers(),
+      });
       if (!response.ok) return { ...DEFAULT_CONFIG };
       return normalizeConfig((await response.json()) as Record<string, unknown>);
     } catch {

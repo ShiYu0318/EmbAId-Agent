@@ -201,3 +201,30 @@ async def test_refusal_does_not_call_the_model(
 
 async def test_refusal_text_is_locale_aware() -> None:
     assert pipeline.refusal_text("zh-TW") != pipeline.refusal_text("en")
+
+
+async def test_public_widget_config_maps_to_widget_shape(authed_client: AsyncClient) -> None:
+    project_id, raw_key = await _project_with_key(authed_client)
+    await authed_client.put(
+        f"/v1/projects/{project_id}/widget-config",
+        json={
+            "greeting": "hi there",
+            "accent_color": "#123456",
+            "suggested_questions": ["q1", "q2"],
+            "bot_name": "Helper",
+        },
+    )
+
+    response = await authed_client.get("/v1/widget-config", headers={"X-API-Key": raw_key})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["primary_color"] == "#123456"
+    assert body["greeting"] == "hi there"
+    assert body["starter_questions"] == ["q1", "q2"]
+    assert body["bot_name"] == "Helper"
+
+
+async def test_public_widget_config_requires_api_key(authed_client: AsyncClient) -> None:
+    response = await authed_client.get("/v1/widget-config")
+    assert response.status_code == 401

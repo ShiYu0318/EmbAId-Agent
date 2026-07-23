@@ -20,6 +20,22 @@ router = APIRouter(prefix="/v1", tags=["chat"])
 HISTORY_LIMIT = 10
 
 
+@router.get("/widget-config")
+async def public_widget_config(context: KeyDep) -> dict[str, object]:
+    project = context.project
+    config = project.widget_config or {}
+    return {
+        "primary_color": config.get("accent_color") or "#4493f8",
+        "greeting": config.get("greeting") or "",
+        "starter_questions": config.get("suggested_questions") or [],
+        "bot_name": config.get("bot_name") or "",
+        "bot_avatar_url": config.get("bot_avatar_url"),
+        "theme": config.get("theme") or "auto",
+        "position": config.get("position") or "bottom-right",
+        "locale": project.default_locale,
+    }
+
+
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     conversation_id: str | None = None
