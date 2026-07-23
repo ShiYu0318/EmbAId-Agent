@@ -687,6 +687,66 @@ select {
   margin-top: 2px;
 }
 
+/* Chunk viewer */
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.link-button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.link-button:disabled {
+  color: var(--text);
+  cursor: default;
+}
+
+.chunk-loading {
+  display: flex;
+  justify-content: center;
+  padding: 32px;
+}
+
+.chunk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chunk-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  padding: 12px 14px;
+}
+
+.chunk-item__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.chunk-item__content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .app-nav {
   display: flex;
   flex-direction: column;

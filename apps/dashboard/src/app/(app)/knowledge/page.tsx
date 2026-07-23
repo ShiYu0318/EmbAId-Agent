@@ -9,11 +9,13 @@ import {
   Card,
   CardBody,
   CardHeader,
+  Dialog,
   Field,
   InlineNotice,
   Input,
   LoadingBlock,
   Select,
+  Spinner,
   StateBlock,
   Tabs,
 } from "@/components/ui";
@@ -21,6 +23,49 @@ import { useAuth } from "@/lib/auth/context";
 import type { SourceType } from "@/lib/api/types";
 import { errorMessage, useAsyncData } from "@/lib/hooks";
 import { useI18n, type TranslateFn } from "@/lib/i18n";
+
+function ChunkViewer({
+  documentId,
+  onClose,
+  t,
+}: {
+  documentId: string;
+  onClose: () => void;
+  t: TranslateFn;
+}) {
+  const { api } = useAuth();
+  const { data, loading, error } = useAsyncData(() => api.documents.get(documentId), [documentId]);
+
+  return (
+    <Dialog title={data?.title ?? t("knowledge.viewChunks")} onClose={onClose} closeLabel={t("common.close")} wide>
+      {loading ? (
+        <div className="chunk-loading">
+          <Spinner />
+        </div>
+      ) : error ? (
+        <StateBlock title={t("common.loadFailed")} text={errorMessage(t, error)} />
+      ) : !data || data.chunks.length === 0 ? (
+        <StateBlock title={t("knowledge.noChunks")} />
+      ) : (
+        <div className="chunk-list">
+          {data.chunks.map((chunk) => (
+            <div key={chunk.id} className="chunk-item">
+              <div className="chunk-item__head">
+                <span className="chunk-item__ordinal">
+                  {t("knowledge.chunk")} #{chunk.ordinal + 1}
+                </span>
+                <span className="chunk-item__trust">
+                  {t("knowledge.chunkTrust")} {chunk.trust_score.toFixed(2)}
+                </span>
+              </div>
+              <div className="chunk-item__content">{chunk.content}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Dialog>
+  );
+}
 
 type Tab = "sources" | "documents" | "tags";
 
@@ -128,6 +173,7 @@ function Documents({ projectId, t }: { projectId: string; t: TranslateFn }) {
   );
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [viewId, setViewId] = useState<string | null>(null);
 
   async function onUpload(file: File) {
     setUploading(true);
@@ -198,7 +244,16 @@ function Documents({ projectId, t }: { projectId: string; t: TranslateFn }) {
               <tbody>
                 {data.map((doc) => (
                   <tr key={doc.id}>
-                    <td>{doc.title}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => setViewId(doc.id)}
+                        disabled={doc.chunk_count === 0}
+                      >
+                        {doc.title}
+                      </button>
+                    </td>
                     <td>{doc.chunk_count}</td>
                     <td>
                       <Badge tone={doc.is_stale ? "warning" : "success"}>
@@ -222,6 +277,8 @@ function Documents({ projectId, t }: { projectId: string; t: TranslateFn }) {
           )}
         </CardBody>
       </Card>
+
+      {viewId && <ChunkViewer documentId={viewId} onClose={() => setViewId(null)} t={t} />}
     </div>
   );
 }
