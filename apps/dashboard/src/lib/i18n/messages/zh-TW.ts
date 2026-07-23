@@ -422,6 +422,7 @@ const zhTW = {
     tabKeys: "API 金鑰",
     tabWebhooks: "Webhook",
     general: "專案設定",
+    dangerZone: "危險操作",
     generalSaved: "專案設定已儲存。",
     apiKeys: "API 金鑰",
     createKey: "建立金鑰",

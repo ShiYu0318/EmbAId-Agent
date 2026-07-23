@@ -28,7 +28,8 @@ type Tab = "general" | "keys" | "webhooks";
 
 function General({ project, t }: { project: Project; t: TranslateFn }) {
   const { api } = useAuth();
-  const { reload } = useProjects();
+  const { reload, remove } = useProjects();
+  const [name, setName] = useState(project.name);
   const [chatProvider, setChatProvider] = useState<ChatProvider>(project.chat_provider);
   const [embeddingProvider, setEmbeddingProvider] = useState<EmbeddingProvider>(
     project.embedding_provider,
@@ -38,11 +39,13 @@ function General({ project, t }: { project: Project; t: TranslateFn }) {
   const [systemPrompt, setSystemPrompt] = useState(project.system_prompt ?? "");
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function save() {
     setBusy(true);
     try {
       await api.projects.update(project.id, {
+        name: name.trim() || project.name,
         chat_provider: chatProvider,
         embedding_provider: embeddingProvider,
         confidence_threshold: threshold,
@@ -56,10 +59,24 @@ function General({ project, t }: { project: Project; t: TranslateFn }) {
     }
   }
 
+  async function onDelete() {
+    if (!window.confirm(t("project.deleteConfirm"))) return;
+    setDeleting(true);
+    try {
+      await remove(project.id);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
+    <div className="stack">
     <Card>
       <CardHeader title={t("settings.general")} />
       <CardBody>
+        <Field label={t("project.projectName")}>
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
         <Field label={t("project.chatProvider")}>
           <Select value={chatProvider} onChange={(e) => setChatProvider(e.target.value as ChatProvider)}>
             <option value="anthropic">{t("project.providerAnthropic")}</option>
@@ -107,6 +124,16 @@ function General({ project, t }: { project: Project; t: TranslateFn }) {
         </Button>
       </CardBody>
     </Card>
+
+    <Card>
+      <CardHeader title={t("settings.dangerZone")} subtitle={t("project.deleteConfirm")} />
+      <CardBody>
+        <Button variant="dangerSolid" loading={deleting} onClick={() => void onDelete()}>
+          {t("project.deleteProject")}
+        </Button>
+      </CardBody>
+    </Card>
+    </div>
   );
 }
 

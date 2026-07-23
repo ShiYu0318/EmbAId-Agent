@@ -426,6 +426,7 @@ const en: LocaleMessages = {
     tabKeys: "API keys",
     tabWebhooks: "Webhooks",
     general: "Project configuration",
+    dangerZone: "Danger zone",
     generalSaved: "Project configuration saved.",
     apiKeys: "API keys",
     createKey: "Create key",
