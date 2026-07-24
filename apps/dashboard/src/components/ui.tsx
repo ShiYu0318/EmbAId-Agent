@@ -222,13 +222,25 @@ export function Toggle({
   checked,
   onChange,
   label,
+  ariaLabel,
+  disabled,
 }: {
   checked: boolean;
   onChange: (value: boolean) => void;
-  label: ReactNode;
+  label?: ReactNode;
+  ariaLabel?: string;
+  disabled?: boolean;
 }) {
   return (
-    <button type="button" className={styles.toggle} onClick={() => onChange(!checked)} role="switch" aria-checked={checked}>
+    <button
+      type="button"
+      className={styles.toggle}
+      onClick={() => onChange(!checked)}
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      disabled={disabled}
+    >
       <span className={[styles.toggleTrack, checked ? styles.toggleOn : ""].join(" ")}>
         <span className={[styles.toggleThumb, checked ? styles.toggleThumbOn : ""].join(" ")} />
       </span>
