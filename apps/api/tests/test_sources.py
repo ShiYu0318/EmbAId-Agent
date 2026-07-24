@@ -155,6 +155,67 @@ async def test_source_config_secrets_are_redacted(
     assert response.json()["config"]["token"] == "***"
 
 
+async def test_delete_source_cascades_to_documents_and_vectors(
+    authed_client: AsyncClient, ingestion_env: FakeSearchBackend
+) -> None:
+    from src.db.models import Document, DocumentChunk, IngestionSource
+    from src.db.session import session_scope
+    from src.search.base import IndexedChunk
+
+    project_id = await _project(authed_client)
+
+    async with session_scope() as session:
+        source = IngestionSource(
+            project_id=project_id,
+            type="url_crawl",
+            config={"url": "https://example.com"},
+            status="ready",
+        )
+        session.add(source)
+        await session.flush()
+        source_id = source.id
+
+        document = Document(
+            project_id=project_id,
+            source_id=source.id,
+            title="page",
+            url="https://example.com/a",
+            status="ready",
+        )
+        session.add(document)
+        await session.flush()
+        document_id = document.id
+
+        chunk = DocumentChunk(
+            document_id=document.id,
+            project_id=project_id,
+            content="爬取到的子頁內容。",
+            ordinal=0,
+        )
+        session.add(chunk)
+        await session.flush()
+        await ingestion_env.upsert(
+            [
+                IndexedChunk(
+                    chunk_id=chunk.id,
+                    project_id=project_id,
+                    document_id=document.id,
+                    text=chunk.content,
+                    embedding=FakeEmbeddings().embed_query(chunk.content),
+                )
+            ]
+        )
+
+    assert ingestion_env.chunks
+
+    response = await authed_client.delete(f"/v1/sources/{source_id}")
+    assert response.status_code == 204
+
+    async with session_scope() as session:
+        assert await session.get(Document, document_id) is None
+    assert ingestion_env.chunks == {}
+
+
 async def test_documents_are_scoped_to_owner(
     authed_client: AsyncClient, client: AsyncClient, ingestion_env: FakeSearchBackend
 ) -> None:

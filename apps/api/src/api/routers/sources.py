@@ -10,6 +10,7 @@ from ...ingestion import jobs
 from ...storage import get_storage
 from ..deps import CurrentUser, SessionDep, owned_project
 from ..errors import ApiError, NotFound
+from .documents import purge_document
 
 router = APIRouter(prefix="/v1", tags=["ingestion"])
 
@@ -127,6 +128,9 @@ async def get_source(source_id: str, session: SessionDep, user: CurrentUser) -> 
 @router.delete("/sources/{source_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_source(source_id: str, session: SessionDep, user: CurrentUser) -> None:
     source = await _owned_source(session, user, source_id)
+    result = await session.execute(select(Document).where(Document.source_id == source.id))
+    for document in result.scalars().all():
+        await purge_document(session, document)
     await session.delete(source)
     await session.commit()
 
