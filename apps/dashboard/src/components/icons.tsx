@@ -196,6 +196,42 @@ export const IconArrowLeft = (p: IconProps) => (
   </svg>
 );
 
+export const IconArrowRight = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M5 12h14M12 5l7 7-7 7" />
+  </svg>
+);
+
+export const IconMenu = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M3 6h18M3 12h18M3 18h18" />
+  </svg>
+);
+
+export const IconGlobe = (p: IconProps) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18" />
+    <path d="M12 3c2.6 2.6 2.6 15.4 0 18M12 3c-2.6 2.6-2.6 15.4 0 18" />
+  </svg>
+);
+
+export const IconLogOut = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <path d="M16 17l5-5-5-5M21 12H9" />
+  </svg>
+);
+
+export const IconSwitch = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M17 3l4 4-4 4" />
+    <path d="M21 7H8a4 4 0 0 0-4 4" />
+    <path d="M7 21l-4-4 4-4" />
+    <path d="M3 17h13a4 4 0 0 0 4-4" />
+  </svg>
+);
+
 export const IconDocument = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
