@@ -201,6 +201,7 @@ class Retriever:
                 DocumentChunk.id.in_(chunk_ids),
                 DocumentChunk.project_id == self.project.id,
                 Document.project_id == self.project.id,
+                Document.enabled.isnot(False),
             )
         )
         return {chunk.id: (chunk, document) for chunk, document in result.all()}

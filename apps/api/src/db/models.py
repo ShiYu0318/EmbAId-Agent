@@ -131,6 +131,7 @@ class Document(Base):
     content_hash: Mapped[str | None] = mapped_column(String(64), default=None, index=True)
     status: Mapped[str] = mapped_column(String(20), default="pending")
     error: Mapped[str | None] = mapped_column(Text, default=None)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     last_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     created_at: Mapped[datetime] = _now_column()
     updated_at: Mapped[datetime] = _now_column(onupdate=func.now())

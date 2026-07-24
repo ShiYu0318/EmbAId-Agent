@@ -199,6 +199,35 @@ async def test_refusal_does_not_call_the_model(
     assert stub_providers.prompts == []
 
 
+async def test_disabled_document_is_excluded_from_retrieval(
+    authed_client: AsyncClient, backend: FakeSearchBackend, stub_providers: FakeChatModel
+) -> None:
+    project_id, raw_key = await _project_with_key(authed_client)
+    await _seed_chunk(backend, authed_client, project_id)
+
+    from sqlalchemy import select
+
+    from src.db.models import Document
+    from src.db.session import session_scope
+
+    async with session_scope() as session:
+        document = (
+            await session.execute(select(Document).where(Document.project_id == project_id))
+        ).scalars().first()
+        assert document is not None
+        document.enabled = False
+
+    response = await authed_client.post(
+        "/v1/chat",
+        json={"message": "請問退貨政策是什麼？"},
+        headers={"X-API-Key": raw_key},
+    )
+    events = dict(parse_sse(response.text))
+
+    assert events["done"]["answered"] is False
+    assert stub_providers.prompts == []
+
+
 async def test_refusal_text_is_locale_aware() -> None:
     assert pipeline.refusal_text("zh-TW") != pipeline.refusal_text("en")
 
