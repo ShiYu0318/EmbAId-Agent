@@ -3,7 +3,6 @@
 import Link from "next/link";
 
 import { AreaChart, HBarList } from "@/components/charts";
-import { Onboarding } from "@/components/onboarding";
 import { PageHeader, RequireProject } from "@/components/page";
 import { Button, Card, CardBody, CardHeader, SkeletonCards, StateBlock } from "@/components/ui";
 import { useAuth } from "@/lib/auth/context";
@@ -26,7 +25,6 @@ function Metric({ label, value, caption }: { label: string; value: string; capti
 function OverviewBody({ projectId, t, locale }: { projectId: string; t: TranslateFn; locale: Locale }) {
   return (
     <div className="overview">
-      <Onboarding projectId={projectId} t={t} />
       <OverviewAnalytics projectId={projectId} t={t} locale={locale} />
     </div>
   );
