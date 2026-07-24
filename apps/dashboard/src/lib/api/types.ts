@@ -150,11 +150,18 @@ export interface DocumentSummary {
   url: string | null;
   status: string;
   error: string | null;
+  enabled: boolean;
   chunk_count: number;
+  token_count: number;
   is_stale: boolean;
   last_verified_at: string | null;
   created_at: string;
   tags: string[];
+}
+
+export interface DocumentUpdateBody {
+  title?: string;
+  enabled?: boolean;
 }
 
 export interface DocumentChunk {

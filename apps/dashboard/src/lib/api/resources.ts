@@ -10,6 +10,7 @@ import type {
   ConversationQuery,
   DocumentDetail,
   DocumentSummary,
+  DocumentUpdateBody,
   KnowledgeGap,
   GapApproved,
   GapDraft,
@@ -79,6 +80,8 @@ export function createApi(client: ApiClient) {
         query?: { status?: string; stale_only?: boolean; limit?: number; offset?: number },
       ) => client.get<DocumentSummary[]>(`/v1/projects/${projectId}/documents`, query),
       get: (id: string) => client.get<DocumentDetail>(`/v1/documents/${id}`),
+      update: (id: string, body: DocumentUpdateBody) =>
+        client.patch<DocumentSummary>(`/v1/documents/${id}`, body),
       remove: (id: string) => client.delete<void>(`/v1/documents/${id}`),
       verify: (id: string) => client.post<DocumentSummary>(`/v1/documents/${id}/verify`),
       setTags: (id: string, tagIds: string[]) =>
