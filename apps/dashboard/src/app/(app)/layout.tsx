@@ -16,22 +16,20 @@ import {
   IconBook,
   IconChart,
   IconChat,
-  IconCheck,
   IconGap,
-  IconGlobe,
   IconLogOut,
   IconMenu,
   IconMoon,
   IconSettings,
   IconSparkle,
   IconSun,
-  IconSwitch,
+  IconTranslate,
 } from "@/components/icons";
 import { OnboardingBar } from "@/components/onboarding-bar";
 import { ProjectWizard } from "@/components/project-wizard";
 import { IconButton, LoadingBlock, Select } from "@/components/ui";
 import { useAuth } from "@/lib/auth/context";
-import { LOCALES, LOCALE_LABELS, useI18n } from "@/lib/i18n";
+import { LOCALES, useI18n } from "@/lib/i18n";
 import { useProjects } from "@/lib/project-context";
 import { useTheme } from "@/lib/theme";
 
@@ -73,103 +71,34 @@ const DEFAULT_WIDTH = 248;
 const WIDTH_KEY = "proprai.sidebar.width";
 const COLLAPSED_KEY = "proprai.sidebar.collapsed";
 
-function LangMenu() {
-  const { t, locale, setLocale } = useI18n();
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (wrapRef.current?.contains(target) || menuRef.current?.contains(target)) return;
-      setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  const toggle = () => {
-    const rect = wrapRef.current?.getBoundingClientRect();
-    if (rect) setPos({ left: rect.left, bottom: window.innerHeight - rect.top + 6 });
-    setOpen((value) => !value);
-  };
-
-  return (
-    <div className="app-lang" ref={wrapRef}>
-      <IconButton label={t("nav.language")} onClick={toggle} aria-haspopup="menu" aria-expanded={open}>
-        <IconGlobe size={16} />
-      </IconButton>
-      {open && pos ? (
-        <div
-          ref={menuRef}
-          className="app-lang-menu"
-          role="menu"
-          style={{ position: "fixed", left: pos.left, bottom: pos.bottom }}
-        >
-          {LOCALES.map((code) => (
-            <button
-              key={code}
-              type="button"
-              role="menuitemradio"
-              aria-checked={code === locale}
-              className={code === locale ? "app-lang-item is-active" : "app-lang-item"}
-              onClick={() => {
-                setLocale(code);
-                setOpen(false);
-              }}
-            >
-              <span>{LOCALE_LABELS[code]}</span>
-              {code === locale ? <IconCheck size={14} /> : null}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function AccountBlock() {
   const { user, logout } = useAuth();
-  const { t } = useI18n();
+  const { t, locale, setLocale } = useI18n();
   const { theme, toggle } = useTheme();
-  const router = useRouter();
 
   const name = user?.display_name?.trim() || user?.email || "";
   const initial = (name.charAt(0) || "?").toUpperCase();
+  const avatar = user?.avatar_url ?? null;
 
-  const switchAccount = () => {
-    logout();
-    router.push("/login");
+  const cycleLocale = () => {
+    const index = LOCALES.indexOf(locale);
+    setLocale(LOCALES[(index + 1) % LOCALES.length]);
   };
 
   return (
     <div className="app-account">
-      <div className="app-account__top">
-        <span className="app-account__avatar" aria-hidden>
-          {initial}
-        </span>
-        <span className="app-account__name" title={name}>
-          {name}
-        </span>
-        <span className="app-account__plan">{t("nav.planFree")}</span>
-      </div>
+      <span className="app-account__avatar" aria-hidden>
+        {avatar ? <img src={avatar} alt="" referrerPolicy="no-referrer" /> : initial}
+      </span>
+      <span className="app-account__name" title={name}>
+        {name}
+      </span>
       <div className="app-account__actions">
         <IconButton label={t("nav.theme")} onClick={toggle}>
           {theme === "dark" ? <IconSun size={16} /> : <IconMoon size={16} />}
         </IconButton>
-        <LangMenu />
-        <IconButton label={t("nav.switchAccount")} onClick={switchAccount}>
-          <IconSwitch size={16} />
+        <IconButton label={t("nav.language")} onClick={cycleLocale}>
+          <IconTranslate size={16} />
         </IconButton>
         <IconButton label={t("auth.logout")} onClick={() => logout()}>
           <IconLogOut size={16} />

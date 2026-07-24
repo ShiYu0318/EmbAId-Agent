@@ -963,19 +963,12 @@ select {
 /* Sidebar account block */
 .app-account {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-}
-
-.app-account__top {
-  display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  margin-top: 4px;
+  padding: 12px 2px 0;
+  border-top: 1px solid var(--border);
 }
 
 .app-account__avatar {
@@ -983,6 +976,7 @@ select {
   width: 28px;
   height: 28px;
   border-radius: 999px;
+  overflow: hidden;
   display: grid;
   place-items: center;
   background: var(--accent);
@@ -990,6 +984,12 @@ select {
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
+}
+
+.app-account__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .app-account__name {
@@ -1003,71 +1003,11 @@ select {
   text-overflow: ellipsis;
 }
 
-.app-account__plan {
-  flex: none;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  padding: 2px 6px;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  color: var(--text-muted);
-}
-
 .app-account__actions {
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 4px;
-}
-
-.app-account__actions > * {
-  flex: 1 1 0;
-  display: flex;
-  justify-content: center;
-}
-
-.app-lang {
-  position: relative;
-}
-
-.app-lang-menu {
-  z-index: 50;
-  min-width: 148px;
-  display: flex;
-  flex-direction: column;
   gap: 2px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
-
-.app-lang-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 7px 10px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--text);
-  font: inherit;
-  font-size: 14px;
-  text-align: left;
-  cursor: pointer;
-  transition: background 120ms ease;
-}
-
-.app-lang-item:hover {
-  background: var(--surface-2);
-}
-
-.app-lang-item.is-active {
-  color: var(--accent);
 }
 
 /* Collapsed icon rail (desktop only) */
@@ -1107,24 +1047,17 @@ select {
   }
 
   .app-sidebar.is-collapsed .app-account {
-    padding: 8px;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 0 0;
   }
 
-  .app-sidebar.is-collapsed .app-account__top {
-    justify-content: center;
-  }
-
-  .app-sidebar.is-collapsed .app-account__name,
-  .app-sidebar.is-collapsed .app-account__plan {
+  .app-sidebar.is-collapsed .app-account__name {
     display: none;
   }
 
   .app-sidebar.is-collapsed .app-account__actions {
     flex-direction: column;
-  }
-
-  .app-sidebar.is-collapsed .app-account__actions > * {
-    flex: none;
   }
 }
 
