@@ -1,24 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
+import { IconArrowRight } from "@/components/icons";
 import { PageHeader, RequireProject } from "@/components/page";
 import {
   Button,
   Card,
   CardBody,
   CardHeader,
+  Dialog,
   Field,
   InlineSuccess,
   Input,
   LoadingBlock,
+  Select,
   StateBlock,
   Textarea,
 } from "@/components/ui";
 import { useAuth } from "@/lib/auth/context";
-import { apiBaseUrl } from "@/lib/api/config";
-import type { WidgetConfig } from "@/lib/api/types";
-import { errorMessage, useAsyncData, useCopy } from "@/lib/hooks";
+import type { ProjectTemplate, WidgetConfig } from "@/lib/api/types";
+import { errorMessage, useAsyncData } from "@/lib/hooks";
 import { useI18n, type TranslateFn } from "@/lib/i18n";
 
 const DEFAULT_CONFIG: WidgetConfig = {
@@ -32,19 +35,37 @@ const DEFAULT_CONFIG: WidgetConfig = {
 
 function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
   const { api } = useAuth();
+  const router = useRouter();
   const { data, loading, error } = useAsyncData(
     () => api.projects.getWidgetConfig(projectId),
     [projectId],
   );
   const [config, setConfig] = useState<WidgetConfig>(DEFAULT_CONFIG);
+  const [templates, setTemplates] = useState<ProjectTemplate[]>([]);
+  const [templateKey, setTemplateKey] = useState("");
+  // Template picked from the selector, held until the overwrite dialog is confirmed.
+  const [pendingTemplate, setPendingTemplate] = useState<ProjectTemplate | null>(null);
+  // system_prompt from an applied template, PATCHed onto the project when saved.
+  const [appliedSystemPrompt, setAppliedSystemPrompt] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [copied, copy] = useCopy();
-  const [tryKey, setTryKey] = useState("");
 
   useEffect(() => {
     if (data) setConfig({ ...DEFAULT_CONFIG, ...data });
   }, [data]);
+
+  useEffect(() => {
+    let active = true;
+    api.projects
+      .templates()
+      .then((list) => {
+        if (active) setTemplates(list);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [api]);
 
   if (loading) return <LoadingBlock label={t("common.loading")} />;
   if (error) return <StateBlock title={t("common.loadFailed")} text={errorMessage(t, error)} />;
@@ -54,6 +75,32 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
     setSaved(false);
   }
 
+  function onTemplatePick(key: string) {
+    if (!key) {
+      setTemplateKey("");
+      return;
+    }
+    // Confirm before overwriting — the Select value only moves on confirm, so a
+    // cancelled dialog leaves the dropdown on its previous selection.
+    const tpl = templates.find((item) => item.key === key);
+    if (tpl) setPendingTemplate(tpl);
+  }
+
+  function applyTemplate(tpl: ProjectTemplate) {
+    // Full overwrite of the appearance fields the template controls (§4 decision).
+    setConfig((prev) => ({
+      ...prev,
+      bot_name: tpl.bot_name,
+      greeting: tpl.greeting,
+      persona: tpl.persona,
+      suggested_questions: [...tpl.suggested_questions],
+    }));
+    setAppliedSystemPrompt(tpl.system_prompt);
+    setTemplateKey(tpl.key);
+    setSaved(false);
+    setPendingTemplate(null);
+  }
+
   async function save() {
     setBusy(true);
     try {
@@ -61,34 +108,50 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
         ...config,
         suggested_questions: config.suggested_questions.map((q) => q.trim()).filter(Boolean),
       });
+      // Applying a template also updates the project's system prompt on save.
+      if (appliedSystemPrompt !== null) {
+        await api.projects.update(projectId, { system_prompt: appliedSystemPrompt });
+        setAppliedSystemPrompt(null);
+      }
       setSaved(true);
     } finally {
       setBusy(false);
     }
   }
 
-  const snippet = `<script src="${apiBaseUrl()}/widget.js" data-key="YOUR_PUBLISHABLE_KEY" data-project="${projectId}"></script>`;
-
-  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || "http://localhost:4180";
-  function openTry() {
-    const key = tryKey.trim();
-    if (!key) return;
-    const dashboard = typeof window !== "undefined" ? window.location.origin : "";
-    const url =
-      `${landingUrl}/?api=${encodeURIComponent(apiBaseUrl())}` +
-      `&project=${encodeURIComponent(projectId)}` +
-      `&key=${encodeURIComponent(key)}` +
-      `&dashboard=${encodeURIComponent(dashboard)}`;
-    window.open(url, "_blank", "noopener");
-  }
+  const botName = config.bot_name || t("common.appName");
+  const greeting = config.greeting || t("widget.previewGreetingFallback");
+  const chips = config.suggested_questions.map((q) => q.trim()).filter(Boolean);
+  const avatarStyle = config.bot_avatar_url
+    ? {
+        backgroundImage: `url("${config.bot_avatar_url}")`,
+        backgroundSize: "cover" as const,
+        backgroundPosition: "center" as const,
+      }
+    : undefined;
 
   return (
     <div className="widget-studio">
       <Card>
         <CardHeader title={t("widget.appearance")} />
         <CardBody>
+          <Field label={t("project.template")} hint={t("widget.templateHint")}>
+            <Select value={templateKey} onChange={(e) => onTemplatePick(e.target.value)}>
+              <option value="">{t("project.noTemplate")}</option>
+              {templates.map((tpl) => (
+                <option key={tpl.key} value={tpl.key}>
+                  {tpl.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
           <Field label={t("widget.botName")}>
-            <Input value={config.bot_name} onChange={(e) => set("bot_name", e.target.value)} />
+            <Input
+              value={config.bot_name}
+              placeholder={t("widget.botNamePlaceholder")}
+              onChange={(e) => set("bot_name", e.target.value)}
+            />
           </Field>
           <Field label={t("widget.greeting")}>
             <Textarea
@@ -154,52 +217,89 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
               )}
             </div>
           </Field>
+
           {saved && <InlineSuccess>{t("widget.savedConfig")}</InlineSuccess>}
-          <Button variant="primary" loading={busy} onClick={() => void save()}>
-            {t("widget.saveConfig")}
-          </Button>
+          <div className="row-actions">
+            <Button variant="primary" loading={busy} onClick={() => void save()}>
+              {t("widget.saveConfig")}
+            </Button>
+            {saved && (
+              // TODO: point at the dedicated embed-settings page once it ships (§5);
+              // for now the API keys + embed snippet live under /settings.
+              <Button variant="secondary" onClick={() => router.push("/settings")}>
+                {t("widget.goToEmbed")}
+              </Button>
+            )}
+          </div>
         </CardBody>
       </Card>
 
-      <div className="stack">
-        <Card>
-          <CardHeader title={t("widget.preview")} />
-          <CardBody>
-            <div className="widget-preview" style={{ borderColor: config.accent_color }}>
-              <div className="widget-preview-header" style={{ background: config.accent_color }}>
-                {config.bot_name || t("common.appName")}
-              </div>
-              <div className="widget-preview-body">
-                {config.greeting || t("widget.previewGreetingFallback")}
+      <Card>
+        <CardHeader title={t("widget.preview")} />
+        <CardBody>
+          <div className="widget-chat">
+            <div className="widget-chat__header" style={{ background: config.accent_color }}>
+              <span className="widget-chat__avatar" style={avatarStyle}>
+                {config.bot_avatar_url ? null : botName.slice(0, 1).toUpperCase()}
+              </span>
+              <span className="widget-chat__name">{botName}</span>
+            </div>
+
+            <div className="widget-chat__log">
+              <div className="widget-chat__bubble">{greeting}</div>
+            </div>
+
+            <div className="widget-chat__footer">
+              {chips.length > 0 && (
+                <div className="widget-chat__starters">
+                  {chips.map((q, i) => (
+                    <span key={i} className="widget-chat__starter">
+                      {q}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="widget-chat__composer">
+                <input
+                  className="widget-chat__input"
+                  placeholder={t("widget.previewInputPlaceholder")}
+                  disabled
+                  aria-hidden
+                />
+                <span
+                  className="widget-chat__send"
+                  style={{ background: config.accent_color }}
+                  aria-hidden
+                >
+                  <IconArrowRight size={18} />
+                </span>
               </div>
             </div>
-          </CardBody>
-        </Card>
 
-        <Card>
-          <CardHeader title={t("widget.embed")} />
-          <CardBody>
-            <p className="muted">{t("widget.embedHint")}</p>
-            <pre className="code-block">{snippet}</pre>
-            <Button onClick={() => copy(snippet)}>
-              {copied ? t("common.copied") : t("widget.copySnippet")}
-            </Button>
-          </CardBody>
-        </Card>
+            <div className="widget-chat__branding">
+              {t("widget.poweredBy")} <strong>proprAI</strong>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
 
-        <Card>
-          <CardHeader title={t("widget.tryTitle")} />
-          <CardBody>
-            <p className="muted">{t("widget.tryHint")}</p>
-            <Field label={t("widget.tryKeyPlaceholder")}>
-              <Input value={tryKey} placeholder="pub_…" onChange={(e) => setTryKey(e.target.value)} />
-            </Field>
-            <Button variant="primary" disabled={!tryKey.trim()} onClick={openTry}>
-              {t("widget.tryButton")}
-            </Button>
-          </CardBody>
-        </Card>
-      </div>
+      {pendingTemplate && (
+        <Dialog
+          title={t("widget.templateOverwriteTitle")}
+          onClose={() => setPendingTemplate(null)}
+          closeLabel={t("common.close")}
+          footer={
+            <>
+              <Button onClick={() => setPendingTemplate(null)}>{t("common.cancel")}</Button>
+              <Button variant="primary" onClick={() => applyTemplate(pendingTemplate)}>
+                {t("widget.templateOverwriteCta")}
+              </Button>
+            </>
+          }
+        >
+          <p className="muted">{t("widget.templateOverwriteConfirm")}</p>
+        </Dialog>
+      )}
     </div>
   );
 }
