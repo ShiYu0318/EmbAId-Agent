@@ -38,6 +38,7 @@ class UserPayload(BaseModel):
     id: str
     email: str
     display_name: str | None
+    avatar_url: str | None = None
     locale: str
 
 
@@ -56,6 +57,7 @@ def _tokens_for(user: User) -> TokenPayload:
             id=user.id,
             email=user.email,
             display_name=user.display_name,
+            avatar_url=user.avatar_url,
             locale=user.locale,
         ),
     )
@@ -124,7 +126,11 @@ async def refresh(payload: RefreshRequest, session: SessionDep) -> TokenPayload:
 @router.get("/me", response_model=UserPayload)
 async def me(user: CurrentUser) -> UserPayload:
     return UserPayload(
-        id=user.id, email=user.email, display_name=user.display_name, locale=user.locale
+        id=user.id,
+        email=user.email,
+        display_name=user.display_name,
+        avatar_url=user.avatar_url,
+        locale=user.locale,
     )
 
 
