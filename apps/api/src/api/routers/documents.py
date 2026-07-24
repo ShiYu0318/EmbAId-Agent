@@ -1,3 +1,4 @@
+import math
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Query, Response, status
@@ -119,7 +120,9 @@ class DocumentPayload(BaseModel):
     url: str | None
     status: str
     error: str | None
+    enabled: bool
     chunk_count: int
+    token_count: int
     is_stale: bool
     last_verified_at: datetime | None
     created_at: datetime
@@ -143,8 +146,24 @@ def _is_stale(document: Document, cutoff: datetime) -> bool:
     return verified < cutoff
 
 
+def _estimate_tokens(char_count: int) -> int:
+    return math.ceil(char_count / 4)
+
+
+async def _chunk_stats(session: AsyncSession, document_id: str) -> tuple[int, int]:
+    row = (
+        await session.execute(
+            select(
+                func.count(DocumentChunk.id),
+                func.coalesce(func.sum(func.length(DocumentChunk.content)), 0),
+            ).where(DocumentChunk.document_id == document_id)
+        )
+    ).one()
+    return int(row[0]), int(row[1])
+
+
 def _document_payload(
-    document: Document, chunk_count: int, cutoff: datetime, tags: list[str]
+    document: Document, chunk_count: int, char_count: int, cutoff: datetime, tags: list[str]
 ) -> DocumentPayload:
     return DocumentPayload(
         id=document.id,
@@ -154,7 +173,9 @@ def _document_payload(
         url=document.url,
         status=document.status,
         error=document.error,
+        enabled=document.enabled,
         chunk_count=chunk_count,
+        token_count=_estimate_tokens(char_count),
         is_stale=_is_stale(document, cutoff),
         last_verified_at=document.last_verified_at,
         created_at=document.created_at,
@@ -210,20 +231,30 @@ async def list_documents(
     )
     documents = list(result.scalars().all())
 
-    counts = dict(
-        (
-            await session.execute(
-                select(DocumentChunk.document_id, func.count(DocumentChunk.id))
-                .where(DocumentChunk.document_id.in_([d.id for d in documents]))
-                .group_by(DocumentChunk.document_id)
+    stats = (
+        await session.execute(
+            select(
+                DocumentChunk.document_id,
+                func.count(DocumentChunk.id),
+                func.coalesce(func.sum(func.length(DocumentChunk.content)), 0),
             )
-        ).all()
-    )
+            .where(DocumentChunk.document_id.in_([d.id for d in documents]))
+            .group_by(DocumentChunk.document_id)
+        )
+    ).all()
+    counts = {document_id: int(count) for document_id, count, _ in stats}
+    chars = {document_id: int(char_count) for document_id, _, char_count in stats}
     tags = await _tags_for(session, [d.id for d in documents])
     cutoff = _staleness_cutoff(project)
 
     payloads = [
-        _document_payload(document, counts.get(document.id, 0), cutoff, tags.get(document.id, []))
+        _document_payload(
+            document,
+            counts.get(document.id, 0),
+            chars.get(document.id, 0),
+            cutoff,
+            tags.get(document.id, []),
+        )
         for document in documents
     ]
     if stale_only:
@@ -245,9 +276,10 @@ async def get_document(document_id: str, user: CurrentUser, session: SessionDep)
     )
     chunks = list(result.scalars().all())
     tags = await _tags_for(session, [document.id])
+    char_count = sum(len(chunk.content) for chunk in chunks)
 
     base = _document_payload(
-        document, len(chunks), _staleness_cutoff(project), tags.get(document.id, [])
+        document, len(chunks), char_count, _staleness_cutoff(project), tags.get(document.id, [])
     )
     return DocumentDetail(
         **base.model_dump(),
@@ -263,12 +295,43 @@ async def get_document(document_id: str, user: CurrentUser, session: SessionDep)
     )
 
 
-@router.delete("/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_document(document_id: str, user: CurrentUser, session: SessionDep) -> Response:
+class DocumentUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=500)
+    enabled: bool | None = None
+
+
+@router.patch("/documents/{document_id}", response_model=DocumentPayload)
+async def update_document(
+    document_id: str, payload: DocumentUpdate, user: CurrentUser, session: SessionDep
+) -> DocumentPayload:
     document = await _owned_document(session, user, document_id)
+    project = await session.get(Project, document.project_id)
+    if project is None:
+        raise NotFound("project not found")
+
+    if payload.title is not None:
+        document.title = payload.title
+    if payload.enabled is not None:
+        document.enabled = payload.enabled
+    await session.commit()
+
+    chunk_count, char_count = await _chunk_stats(session, document.id)
+    tags = await _tags_for(session, [document.id])
+    return _document_payload(
+        document, chunk_count, char_count, _staleness_cutoff(project), tags.get(document.id, [])
+    )
+
+
+async def purge_document(session: AsyncSession, document: Document) -> None:
     await get_search_backend().delete_document(document.project_id, document.id)
     await session.execute(delete(DocumentChunk).where(DocumentChunk.document_id == document.id))
     await session.delete(document)
+
+
+@router.delete("/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_document(document_id: str, user: CurrentUser, session: SessionDep) -> Response:
+    document = await _owned_document(session, user, document_id)
+    await purge_document(session, document)
     await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -285,12 +348,10 @@ async def verify_document(
     document.last_verified_at = datetime.now(UTC)
     await session.commit()
 
-    count = await session.scalar(
-        select(func.count(DocumentChunk.id)).where(DocumentChunk.document_id == document.id)
-    )
+    chunk_count, char_count = await _chunk_stats(session, document.id)
     tags = await _tags_for(session, [document.id])
     return _document_payload(
-        document, count or 0, _staleness_cutoff(project), tags.get(document.id, [])
+        document, chunk_count, char_count, _staleness_cutoff(project), tags.get(document.id, [])
     )
 
 
@@ -322,10 +383,8 @@ async def set_document_tags(
     )
     await session.commit()
 
-    count = await session.scalar(
-        select(func.count(DocumentChunk.id)).where(DocumentChunk.document_id == document.id)
-    )
+    chunk_count, char_count = await _chunk_stats(session, document.id)
     tags = await _tags_for(session, [document.id])
     return _document_payload(
-        document, count or 0, _staleness_cutoff(project), tags.get(document.id, [])
+        document, chunk_count, char_count, _staleness_cutoff(project), tags.get(document.id, [])
     )
