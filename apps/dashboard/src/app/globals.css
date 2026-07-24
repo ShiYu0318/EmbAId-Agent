@@ -467,7 +467,7 @@ select {
 /* App shell */
 .app-shell {
   display: grid;
-  grid-template-columns: var(--app-sidebar-w, 248px) 1fr;
+  grid-template-columns: var(--app-sidebar-w, 300px) 1fr;
   min-height: 100vh;
   transition: grid-template-columns 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
