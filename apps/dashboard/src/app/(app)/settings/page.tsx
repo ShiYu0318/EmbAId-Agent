@@ -4,7 +4,6 @@ import { useState } from "react";
 
 import { PageHeader, RequireProject } from "@/components/page";
 import {
-  Badge,
   Button,
   Card,
   CardBody,
@@ -19,12 +18,12 @@ import {
   Tabs,
 } from "@/components/ui";
 import { useAuth } from "@/lib/auth/context";
-import type { ApiKeyType, ChatProvider, EmbeddingProvider, Project } from "@/lib/api/types";
-import { errorMessage, useAsyncData, useCopy } from "@/lib/hooks";
+import type { ChatProvider, EmbeddingProvider, Project } from "@/lib/api/types";
+import { errorMessage, useAsyncData } from "@/lib/hooks";
 import { useI18n, type TranslateFn } from "@/lib/i18n";
 import { useProjects } from "@/lib/project-context";
 
-type Tab = "general" | "keys" | "webhooks";
+type Tab = "general" | "webhooks";
 
 function General({ project, t }: { project: Project; t: TranslateFn }) {
   const { api } = useAuth();
@@ -133,111 +132,6 @@ function General({ project, t }: { project: Project; t: TranslateFn }) {
         </Button>
       </CardBody>
     </Card>
-    </div>
-  );
-}
-
-function Keys({ projectId, t }: { projectId: string; t: TranslateFn }) {
-  const { api } = useAuth();
-  const { data, loading, error, reload } = useAsyncData(() => api.apiKeys.list(projectId), [projectId]);
-  const [type, setType] = useState<ApiKeyType>("publishable");
-  const [name, setName] = useState("");
-  const [rawKey, setRawKey] = useState<string | null>(null);
-  const [copied, copy] = useCopy();
-
-  async function create() {
-    const created = await api.apiKeys.create(projectId, { type, name: name || "default" });
-    setRawKey(created.key);
-    setName("");
-    reload();
-  }
-
-  return (
-    <div className="stack">
-      <Card>
-        <CardHeader title={t("settings.createKey")} />
-        <CardBody>
-          <div className="form-row">
-            <Field label={t("settings.keyType")}>
-              <Select value={type} onChange={(e) => setType(e.target.value as ApiKeyType)}>
-                <option value="publishable">{t("settings.keyTypePublishable")}</option>
-                <option value="secret">{t("settings.keyTypeSecret")}</option>
-                <option value="sandbox">{t("settings.keyTypeSandbox")}</option>
-              </Select>
-            </Field>
-            <Field label={t("settings.keyName")}>
-              <Input
-                value={name}
-                placeholder={t("settings.keyNamePlaceholder")}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </Field>
-          </div>
-          <Button variant="primary" onClick={() => void create()}>
-            {t("settings.createKey")}
-          </Button>
-
-          {rawKey && (
-            <div className="key-reveal">
-              <strong>{t("settings.keyShownOnceTitle")}</strong>
-              <InlineNotice>{t("settings.keyShownOnce")}</InlineNotice>
-              <pre className="code-block">{rawKey}</pre>
-              <Button onClick={() => copy(rawKey)}>
-                {copied ? t("common.copied") : t("settings.copyKey")}
-              </Button>
-            </div>
-          )}
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader title={t("settings.apiKeys")} />
-        <CardBody>
-          {loading ? (
-            <LoadingBlock label={t("common.loading")} />
-          ) : error ? (
-            <StateBlock title={t("common.loadFailed")} text={errorMessage(t, error)} />
-          ) : !data || data.length === 0 ? (
-            <StateBlock title={t("settings.noKeys")} />
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>{t("common.name")}</th>
-                  <th>{t("settings.keyType")}</th>
-                  <th>{t("settings.keyPrefix")}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((key) => (
-                  <tr key={key.id}>
-                    <td>{key.name}</td>
-                    <td>
-                      <Badge tone={key.type === "secret" ? "danger" : "neutral"}>{key.type}</Badge>
-                    </td>
-                    <td>
-                      <code>{key.key_prefix}</code>
-                    </td>
-                    <td>
-                      {key.revoked_at ? (
-                        <Badge tone="neutral">{t("settings.revoked")}</Badge>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => void api.apiKeys.revoke(projectId, key.id).then(reload)}
-                        >
-                          {t("settings.revoke")}
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </CardBody>
-      </Card>
     </div>
   );
 }
@@ -368,12 +262,10 @@ function ProjectSettings({
         onChange={setTab}
         options={[
           { value: "general", label: t("settings.tabGeneral") },
-          { value: "keys", label: t("settings.tabKeys") },
           { value: "webhooks", label: t("settings.tabWebhooks") },
         ]}
       />
       {tab === "general" && current && <General project={current} t={t} />}
-      {tab === "keys" && <Keys projectId={projectId} t={t} />}
       {tab === "webhooks" && <Webhooks projectId={projectId} t={t} />}
     </>
   );

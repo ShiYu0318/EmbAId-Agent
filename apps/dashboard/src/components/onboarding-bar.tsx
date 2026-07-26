@@ -51,7 +51,7 @@ export function OnboardingBar({ projectId }: { projectId: string }) {
     {
       title: t("onboarding.stepEmbed"),
       cta: t("onboarding.ctaEmbed"),
-      href: "/settings",
+      href: "/embed",
       done: data.hasPublishableKey,
     },
   ];

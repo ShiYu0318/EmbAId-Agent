@@ -1809,6 +1809,73 @@ button.kb-name__label:disabled {
   align-items: start;
 }
 
+/* Embed settings — keys on the left, snippet and deploy on the right (§5) */
+.embed-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.key-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.key-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface-2);
+}
+
+.key-card.is-revoked {
+  opacity: 0.55;
+}
+
+.key-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.key-card__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.key-card__prefix {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.key-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.key-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 /* Live chat-window preview — mirrors the real embedded widget (apps/widget) */
 .widget-chat {
   display: flex;
@@ -2011,7 +2078,8 @@ button.kb-name__label:disabled {
     flex-direction: row;
     flex-wrap: wrap;
   }
-  .widget-studio {
+  .widget-studio,
+  .embed-layout {
     grid-template-columns: 1fr;
   }
   .app-main {

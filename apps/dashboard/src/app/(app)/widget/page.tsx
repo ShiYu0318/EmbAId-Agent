@@ -224,9 +224,7 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
               {t("widget.saveConfig")}
             </Button>
             {saved && (
-              // TODO: point at the dedicated embed-settings page once it ships (§5);
-              // for now the API keys + embed snippet live under /settings.
-              <Button variant="secondary" onClick={() => router.push("/settings")}>
+              <Button variant="secondary" onClick={() => router.push("/embed")}>
                 {t("widget.goToEmbed")}
               </Button>
             )}

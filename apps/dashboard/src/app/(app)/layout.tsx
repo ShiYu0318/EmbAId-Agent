@@ -17,6 +17,7 @@ import {
   IconChart,
   IconChat,
   IconGap,
+  IconKey,
   IconLogOut,
   IconMenu,
   IconMoon,
@@ -60,6 +61,7 @@ const NAV: { sectionKey: string; items: NavItem[] }[] = [
     sectionKey: "nav.sectionConfig",
     items: [
       { href: "/widget", labelKey: "nav.widgetStudio", icon: <IconSparkle size={17} /> },
+      { href: "/embed", labelKey: "nav.embed", icon: <IconKey size={17} /> },
       { href: "/settings", labelKey: "nav.settings", icon: <IconSettings size={17} /> },
     ],
   },
