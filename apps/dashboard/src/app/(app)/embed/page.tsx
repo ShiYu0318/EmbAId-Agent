@@ -37,6 +37,13 @@ function buildSnippet(projectId: string, key: string): string {
   return `<script src="${WIDGET_SRC}"\n${attrs.join("\n")}></script>`;
 }
 
+interface KeysStore {
+  data: ApiKey[] | null;
+  loading: boolean;
+  error: unknown;
+  reload: () => void;
+}
+
 type EditMode = "rename" | "origins";
 
 interface Editing {
@@ -120,15 +127,17 @@ function KeyEditor({
 
 function KeysPanel({
   projectId,
+  keys,
   onCreated,
   t,
 }: {
   projectId: string;
+  keys: KeysStore;
   onCreated: (key: string) => void;
   t: TranslateFn;
 }) {
   const { api } = useAuth();
-  const { data, loading, error, reload } = useAsyncData(() => api.apiKeys.list(projectId), [projectId]);
+  const { data, loading, error, reload } = keys;
   const [type, setType] = useState<ApiKeyType>("publishable");
   const [name, setName] = useState("");
   const [rawKey, setRawKey] = useState<string | null>(null);
@@ -267,18 +276,23 @@ function KeysPanel({
 
 function SnippetPanel({
   projectId,
+  keys,
   candidateKey,
   t,
 }: {
   projectId: string;
+  keys: KeysStore;
   candidateKey: string | null;
   t: TranslateFn;
 }) {
+  const { api } = useAuth();
   // The deployed key doubles as the "is this project live?" flag that unlocks the
   // floating dashboard bot — see DashboardBot.
   const { key: deployedKey, setKey, clearKey } = useProjectKey(projectId, "embed");
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [copied, copy] = useCopy();
 
   // A key minted on the left lands here so the user never has to copy it by hand.
@@ -289,14 +303,49 @@ function SnippetPanel({
     }
   }, [candidateKey]);
 
-  function deploy() {
+  /**
+   * The floating bot calls /v1/chat from the dashboard's own origin. If the key is
+   * scoped to specific origins, the dashboard must be one of them or the bot gets a
+   * 403 (§7.6).
+   *
+   * An empty list already allows every origin, so it is left untouched on purpose:
+   * appending here would turn "allow anywhere" into "allow only the dashboard" and
+   * lock out the customer's own site.
+   */
+  async function allowDashboardOrigin(fullKey: string) {
+    const match = keys.data?.find((k) => !k.revoked_at && fullKey.startsWith(k.key_prefix));
+    if (!match || match.allowed_origins.length === 0) return;
+
+    const origin = window.location.origin;
+    if (match.allowed_origins.includes(origin)) return;
+
+    try {
+      await api.apiKeys.update(projectId, match.id, {
+        allowed_origins: [...match.allowed_origins, origin],
+      });
+      setNotice(t("embed.originAdded", { origin }));
+      keys.reload();
+    } catch {
+      // Deploying still succeeds; the bot just may not reach the API from here.
+      setNotice(t("embed.originAddFailed", { origin }));
+    }
+  }
+
+  async function deploy() {
     const value = draft.trim();
     if (!value.startsWith("pub_")) {
       setError(t("embed.keyMustBePublishable"));
       return;
     }
     setError(null);
-    setKey(value);
+    setNotice(null);
+    setBusy(true);
+    try {
+      await allowDashboardOrigin(value);
+      setKey(value);
+    } finally {
+      setBusy(false);
+    }
   }
 
   const snippet = deployedKey ? buildSnippet(projectId, deployedKey) : null;
@@ -318,7 +367,12 @@ function SnippetPanel({
         {error && <InlineNotice>{error}</InlineNotice>}
 
         <div className="row-actions">
-          <Button variant="primary" disabled={!draft.trim()} onClick={deploy}>
+          <Button
+            variant="primary"
+            loading={busy}
+            disabled={!draft.trim()}
+            onClick={() => void deploy()}
+          >
             {deployedKey ? t("embed.redeploy") : t("embed.deploy")}
           </Button>
           {deployedKey && (
@@ -326,12 +380,15 @@ function SnippetPanel({
               onClick={() => {
                 clearKey();
                 setDraft("");
+                setNotice(null);
               }}
             >
               {t("embed.clearDeploy")}
             </Button>
           )}
         </div>
+
+        {notice && <InlineNotice>{notice}</InlineNotice>}
 
         {snippet ? (
           <div className="stack">
@@ -351,14 +408,18 @@ function SnippetPanel({
 }
 
 function EmbedSettings({ projectId, t }: { projectId: string; t: TranslateFn }) {
+  const { api } = useAuth();
+  // Both panels work off one key list: the left one edits it, and the right one
+  // needs it to find the key being deployed so it can widen its allowed origins.
+  const keys = useAsyncData(() => api.apiKeys.list(projectId), [projectId]);
   // Full keys exist only at creation time, so hand the freshly minted one straight
   // to the snippet panel instead of asking the user to keep it somewhere.
   const [freshKey, setFreshKey] = useState<string | null>(null);
 
   return (
     <div className="embed-layout">
-      <KeysPanel projectId={projectId} onCreated={setFreshKey} t={t} />
-      <SnippetPanel projectId={projectId} candidateKey={freshKey} t={t} />
+      <KeysPanel projectId={projectId} keys={keys} onCreated={setFreshKey} t={t} />
+      <SnippetPanel projectId={projectId} keys={keys} candidateKey={freshKey} t={t} />
     </div>
   );
 }

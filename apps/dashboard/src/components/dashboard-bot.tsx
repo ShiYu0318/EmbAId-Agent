@@ -6,6 +6,7 @@ import { IconArrowRight, IconChat, IconRefresh, IconX } from "@/components/icons
 import { IconButton } from "@/components/ui";
 import { streamChat } from "@/lib/api/chat";
 import { apiBaseUrl } from "@/lib/api/config";
+import { ApiError } from "@/lib/api/errors";
 import { useAuth } from "@/lib/auth/context";
 import { errorMessage, useAsyncData } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
@@ -91,9 +92,15 @@ export function DashboardBot({ projectId }: { projectId: string }) {
         },
       );
     } catch (err) {
+      // A 403 here is almost always an origin-scoped key that does not list this
+      // dashboard, so name the actual fix instead of a generic permission error.
+      const message =
+        err instanceof ApiError && err.status === 403
+          ? t("bot.originBlocked", { origin: window.location.origin })
+          : errorMessage(t, err);
       setTurns((prev) => {
         const next = [...prev];
-        next[next.length - 1] = { role: "assistant", content: errorMessage(t, err) };
+        next[next.length - 1] = { role: "assistant", content: message };
         return next;
       });
     } finally {

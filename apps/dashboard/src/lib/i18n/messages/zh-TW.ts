@@ -499,6 +499,8 @@ const zhTW = {
     copySnippet: "複製程式碼",
     clearDeploy: "取消部署",
     keyMustBePublishable: "嵌入用的金鑰必須是可公開（pub_）金鑰。",
+    originAdded: "已把 {origin} 加入這把金鑰的允許來源，右下角的測試機器人才連得上。",
+    originAddFailed: "無法自動把 {origin} 加入允許來源。請在左側手動加入，否則測試機器人會被擋下。",
   },
   bot: {
     open: "開啟測試機器人",
@@ -510,6 +512,7 @@ const zhTW = {
     send: "送出",
     thinking: "思考中",
     newChat: "開新對話",
+    originBlocked: "這把金鑰的允許來源不包含 {origin}，所以請求被擋下了。請到嵌入設定的「允許來源」把它加進去。",
   },
   settings: {
     title: "設定",

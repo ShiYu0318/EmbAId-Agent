@@ -503,6 +503,8 @@ const en: LocaleMessages = {
     copySnippet: "Copy snippet",
     clearDeploy: "Undeploy",
     keyMustBePublishable: "The embed key must be a publishable (pub_) key.",
+    originAdded: "Added {origin} to this key's allowed origins so the test bot can reach the API.",
+    originAddFailed: "Could not add {origin} to the allowed origins automatically. Add it on the left, or the test bot will be blocked.",
   },
   bot: {
     open: "Open test bot",
@@ -514,6 +516,7 @@ const en: LocaleMessages = {
     send: "Send",
     thinking: "Thinking",
     newChat: "New chat",
+    originBlocked: "This key's allowed origins do not include {origin}, so the request was blocked. Add it under Allowed origins on the Embed page.",
   },
   settings: {
     title: "Settings",
