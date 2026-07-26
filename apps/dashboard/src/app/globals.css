@@ -211,7 +211,7 @@ select {
 }
 
 .auth-subtitle {
-  margin: 0 0 24px;
+  margin-block: 0 24px;
   color: var(--text-muted);
   font-size: 14px;
   line-height: 1.5;
@@ -221,7 +221,7 @@ select {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 20px 0;
+  margin-block: 20px;
   color: var(--text-faint);
   font-size: 13px;
 }
@@ -256,7 +256,7 @@ select {
 }
 
 .auth-switch {
-  margin: 20px 0 0;
+  margin-block: 20px 0;
   text-align: center;
   font-size: 14px;
   color: var(--text-muted);
@@ -396,6 +396,9 @@ select {
   background: var(--bg);
 }
 
+/* Every child shares one 380px column. Children must not set inline margins via
+   the `margin` shorthand — it resets left/right to 0 and drops the row out of
+   this column. Use `margin-block` for vertical spacing instead. */
 .auth-panel > * {
   width: 100%;
   max-width: 380px;
@@ -435,7 +438,7 @@ select {
 }
 
 .auth-panel__title {
-  margin: 0 0 6px;
+  margin-block: 0 6px;
   font-size: 26px;
   letter-spacing: -0.02em;
   color: var(--text);
