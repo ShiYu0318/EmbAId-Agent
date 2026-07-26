@@ -26,6 +26,7 @@ import {
   IconSun,
   IconTranslate,
 } from "@/components/icons";
+import { DashboardBot } from "@/components/dashboard-bot";
 import { OnboardingBar } from "@/components/onboarding-bar";
 import { ProjectWizard } from "@/components/project-wizard";
 import { IconButton, LoadingBlock, Select } from "@/components/ui";
@@ -277,6 +278,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {current ? <OnboardingBar key={current.id} projectId={current.id} /> : null}
         {children}
       </main>
+
+      {/* Keyed on the project so switching projects resets the conversation and
+          re-reads that project's deployed key and widget config. */}
+      {current ? <DashboardBot key={current.id} projectId={current.id} /> : null}
 
       {wizardOpen && (
         <ProjectWizard onClose={() => setWizardOpen(false)} onCreated={() => router.push("/")} />

@@ -2014,6 +2014,77 @@ button.kb-name__label:disabled {
   font-weight: 600;
 }
 
+/* Floating dashboard bot (§6) — reuses the widget-chat shell above so what the
+   user tests here matches what visitors see on their site. */
+.dashboard-bot {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 60;
+}
+
+.dashboard-bot__launcher {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: #fff;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.dashboard-bot__launcher:disabled {
+  cursor: not-allowed;
+  color: var(--text-faint);
+}
+
+.dashboard-bot__launcher img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dashboard-bot.is-open .widget-chat {
+  margin-inline: 0;
+  width: min(384px, calc(100vw - 48px));
+  height: min(560px, calc(100vh - 96px));
+}
+
+/* The live bot adds an outgoing bubble; the studio preview only ever shows the
+   incoming greeting. */
+.widget-chat__bubble.is-user {
+  align-self: flex-end;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 4px;
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.widget-chat__starter.is-clickable {
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.widget-chat__input.is-live {
+  color: var(--text);
+}
+
+.widget-chat__send {
+  border: none;
+  cursor: pointer;
+}
+
+.widget-chat__send:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Trace viewer */
 .trace-viewer {
   display: flex;

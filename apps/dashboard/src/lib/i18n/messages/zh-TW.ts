@@ -500,6 +500,17 @@ const zhTW = {
     clearDeploy: "取消部署",
     keyMustBePublishable: "嵌入用的金鑰必須是可公開（pub_）金鑰。",
   },
+  bot: {
+    open: "開啟測試機器人",
+    close: "關閉測試機器人",
+    locked: "部署後即可測試",
+    lockedHint: "先到「嵌入設定」部署一把可公開金鑰，就能在這裡直接測試。",
+    title: "測試機器人",
+    inputPlaceholder: "輸入訊息…",
+    send: "送出",
+    thinking: "思考中",
+    newChat: "開新對話",
+  },
   settings: {
     title: "設定",
     subtitle: "管理專案設定與 Webhook。",

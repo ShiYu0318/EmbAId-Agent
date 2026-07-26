@@ -504,6 +504,17 @@ const en: LocaleMessages = {
     clearDeploy: "Undeploy",
     keyMustBePublishable: "The embed key must be a publishable (pub_) key.",
   },
+  bot: {
+    open: "Open test bot",
+    close: "Close test bot",
+    locked: "Available after deploying",
+    lockedHint: "Deploy a publishable key on the Embed page to test right here.",
+    title: "Test bot",
+    inputPlaceholder: "Type a message...",
+    send: "Send",
+    thinking: "Thinking",
+    newChat: "New chat",
+  },
   settings: {
     title: "Settings",
     subtitle: "Manage project configuration and webhooks.",
