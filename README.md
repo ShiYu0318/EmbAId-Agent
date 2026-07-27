@@ -1,20 +1,17 @@
 <div align="center">
 
-# EmbAId Chat 智嵌
+# EmbAId Chat
 
-**EmbAId Chat** is a full-stack, open-source, API-first platform that turns any body of
-content into an answerable knowledge base: upload documents or point it at a website, and it
-serves grounded, streaming, cited answers over a REST + SSE API that a one-line embeddable
-widget, a mobile app, or any backend can call — multi-tenant, Traditional-Chinese-first,
-Postgres+pgvector in production or SQLite+FAISS for local development.
+**Turn your own content into an embeddable AI assistant that cites its sources — and stays quiet when it does not know.**
+
+A self-hosted, API-first RAG platform: ingest documents and websites, retrieve with hybrid search,
+answer with citations, and drop the whole thing onto any page with one `<script>` tag.
 
 [![CI](https://github.com/ShiYu0318/EmbAId-Chat/actions/workflows/ci.yml/badge.svg)](https://github.com/ShiYu0318/EmbAId-Chat/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/)
-[![React](https://img.shields.io/badge/react-19-61dafb.svg)](https://react.dev/)
-[![FastAPI](https://img.shields.io/badge/api-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
-[![Tests](https://img.shields.io/badge/tests-99%20passing-brightgreen.svg)](#testing)
-[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
-[![Package manager: uv](https://img.shields.io/badge/deps-uv-purple.svg)](https://github.com/astral-sh/uv)
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.13-black.svg)](https://www.python.org/)
+[![Node](https://img.shields.io/badge/Node-20%2B-black.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-black.svg)](https://www.typescriptlang.org/)
 
 </div>
 
@@ -23,524 +20,864 @@ Postgres+pgvector in production or SQLite+FAISS for local development.
 ## Table of contents
 
 - [Overview](#overview)
-- [Features](#features)
-- [Web dashboard](#web-dashboard)
-- [RAG design](#rag-design)
+- [Design principles](#design-principles)
 - [Architecture](#architecture)
+- [How answering works](#how-answering-works)
+- [How ingestion works](#how-ingestion-works)
+- [Features](#features)
 - [Tech stack](#tech-stack)
 - [Project structure](#project-structure)
-- [Quick start](#quick-start)
+- [Getting started](#getting-started)
+- [Your first assistant](#your-first-assistant)
 - [Configuration](#configuration)
-- [Usage](#usage)
+- [Embedding the widget](#embedding-the-widget)
+- [Using the SDK](#using-the-sdk)
 - [API reference](#api-reference)
-- [Database schema](#database-schema)
-- [Security](#security)
+- [Data model](#data-model)
+- [Security model](#security-model)
+- [Observability](#observability)
+- [Deployment](#deployment)
 - [Testing](#testing)
 - [Contributing](#contributing)
 - [License](#license)
 
+---
+
 ## Overview
 
-EmbAId Chat lets you stand up a grounded question-answering service over your own content
-without wiring a RAG pipeline yourself. Upload PDFs, Word, Markdown, or plain text, crawl a
-website, expand a sitemap, or import from Notion and Google Docs; the platform chunks,
-contextualizes, embeds, and indexes everything, then answers questions from it with inline
-source citations. Answers stream token by token over Server-Sent Events, and every answer
-keeps an auditable retrieval trace you can read back through the API.
+Most "chat with your docs" tools fail in the same two ways: they answer confidently when the
+knowledge base has nothing useful, and they give you no way to check where an answer came from.
+Both problems are fatal for customer-facing support, where a wrong answer is worse than no answer.
 
-Because the product is **API-first**, the same knowledge base is reachable three ways: a
-one-line embeddable JavaScript widget, the official `@embaid/sdk-js` client, or a direct
-`POST /v1/chat` call from any backend, mobile app, or bot. The widget is only the first
-official client, not the whole product.
+EmbAId Chat is built around the opposite default. Every answer is assembled only from retrieved
+passages, every answer carries citations back to the source document, and when retrieval
+confidence falls below a per-project threshold the assistant declines instead of guessing — and
+records the question so you can see exactly what your content is missing.
 
-The platform is **multi-tenant SaaS**: anyone can sign up, and each account owns isolated
-projects, each with its own knowledge base, API keys, model providers, and widget
-appearance. It is **Traditional-Chinese-first** — the widget and dashboard default to zh-TW
-with an i18n layer built in from the start, and Chinese content is segmented and normalized
-before indexing.
+**What it does**
 
-Retrieval runs on free, local components where possible — SQLite + FAISS and local embedding
-or reranker models — and swaps to Postgres + pgvector for deployment behind a single storage
-interface. Heavier pieces (cross-encoder reranking, contextual embedding, LLM providers)
-degrade gracefully when their services or keys are unavailable.
+1. **Ingests** your knowledge — file uploads, website crawls, sitemaps, Notion, Google Docs.
+2. **Indexes** it — recursive chunking, optional LLM-generated context per chunk, vector plus
+   full-text indexes.
+3. **Answers** questions — hybrid retrieval, reciprocal rank fusion, cross-encoder reranking, a
+   confidence gate, then a streamed answer with citations.
+4. **Ships** as a widget — one script tag, Shadow DOM isolated, zero runtime dependencies.
+5. **Reports** back — retrieval traces, analytics, and a knowledge-gap queue of unanswered questions.
 
-## EmbAId = propri + AI
+**Who it is for**
 
-> Embed EmbAId Chat, inlAId intelligence for your website.
+- Teams who want a support assistant grounded in their own content, self-hosted, without sending
+  their corpus to a third-party SaaS.
+- Developers who want a RAG reference implementation where every stage is inspectable and swappable.
+- Anyone who needs the answer path to be auditable after the fact, not just plausible in the moment.
 
-源自拉丁文 proprius，意為「屬於自己的」，作為詞根：proprietary, property, appropriate，在此代表客製化 AI 形象與資料庫的理念。
+**Runs with no external services.** The default configuration uses SQLite, FAISS and an inline job
+runner, so a full instance starts with one command and no Docker.
 
-透過 RAG 技術可讓使用者在屬於自己的向量資料庫中 Embedding（詞嵌入）專屬文件提供 AI 根據資料回覆。
+---
 
-於是在 propri 中嵌入 AI 形成 EmbAId，就如同在網站中嵌入 EmbAId 一般，將智慧鑲嵌（inlaid）在其中。
+## Design principles
 
-> Fun Fact: 鑲嵌 (inlaid) 本身也正好鑲嵌了 AI 在其中。
+| Principle | What it means in practice |
+| --- | --- |
+| **Grounded or silent** | Answers are built only from retrieved chunks. Below `confidence_threshold` the assistant refuses in the user's language and logs the question as a knowledge gap. |
+| **Auditable by default** | Every answer emits a `RetrievalTrace`: rewritten query, per-backend hits and ranks, fusion scores, trust weighting, confidence, and per-stage timings. |
+| **Swappable everything** | Search backend, chat model, embedding model, and reranker sit behind narrow interfaces. Switching SQLite+FAISS to Postgres+pgvector is one environment variable. |
+| **Not all content is equal** | Chunks carry a trust score and documents carry a verification date. Stale and low-trust passages are down-weighted at retrieval time, not silently treated as fact. |
+| **Multi-tenant from day one** | Organizations, projects, scoped API keys, per-key origin allowlists, and per-key rate limits are in the core data model, not bolted on later. |
+| **The widget is a guest** | The embeddable widget renders in a Shadow DOM with zero runtime dependencies, so it cannot leak styles into, or inherit styles from, the host page. |
+
+---
+
+## Architecture
+
+Four deployable surfaces share one API. The API is stateless; all durable state lives in the
+relational store, the search index, and object storage.
+
+```mermaid
+flowchart TB
+    subgraph clients["Client surfaces"]
+        widget["Embeddable widget<br/>Shadow DOM, vanilla TS"]
+        dash["Management dashboard<br/>Next.js 15 + React 19"]
+        sdk["TypeScript SDK<br/>or direct HTTP"]
+    end
+
+    subgraph api["FastAPI service"]
+        mw["Middleware<br/>CORS · security headers · rate limit"]
+        auth["Auth layer<br/>JWT sessions · API key context"]
+        routers["Routers<br/>projects · content · chat · analytics"]
+        rag["RAG pipeline<br/>rewrite → retrieve → fuse → rerank → gate"]
+        jobs["Ingestion jobs<br/>load → chunk → contextualize → embed"]
+    end
+
+    subgraph stores["State"]
+        rdb[("Relational store<br/>SQLite or Postgres")]
+        idx[("Search index<br/>FAISS+FTS5 or pgvector+tsvector")]
+        obj[("Object storage<br/>filesystem or S3/MinIO")]
+        queue[("Job queue<br/>Redis via arq, or inline")]
+    end
+
+    subgraph providers["Model providers"]
+        chat["Chat model<br/>Anthropic · OpenAI · Ollama"]
+        embed["Embeddings<br/>OpenAI · Ollama"]
+        rerank["Cross-encoder reranker<br/>sentence-transformers"]
+    end
+
+    widget -->|"publishable key"| mw
+    sdk -->|"secret key"| mw
+    dash -->|"JWT"| mw
+    mw --> auth --> routers
+    routers --> rag
+    routers --> jobs
+    rag --> rdb
+    rag --> idx
+    rag --> chat
+    rag --> embed
+    rag --> rerank
+    jobs --> queue
+    jobs --> obj
+    jobs --> rdb
+    jobs --> idx
+    jobs --> embed
+```
+
+| Component | Responsibility |
+| --- | --- |
+| **API** (`apps/api`) | The only writer of durable state. Owns auth, tenancy, ingestion orchestration, retrieval, and answer generation. |
+| **Dashboard** (`apps/dashboard`) | Operator console: knowledge base, widget studio, embed settings, conversations, analytics, knowledge gaps. Talks to the API with a JWT. |
+| **Widget** (`apps/widget`) | What end users see on your site. Reads its configuration from the API at boot using a publishable key. |
+| **SDK** (`packages/sdk-js`) | Typed client for both the chat surface and the management surface, with streaming helpers. |
+| **Landing** (`apps/landing`) | Static marketing site that embeds the real widget as a live demo. |
+
+---
+
+## How answering works
+
+A single `POST /v1/chat` request runs this pipeline. Stages marked optional are toggled by
+configuration; everything is timed and recorded in the trace.
+
+```mermaid
+flowchart TD
+    q["Incoming question<br/>+ conversation history"] --> cache{"Semantic cache<br/><i>optional</i>"}
+    cache -->|"cosine ≥ threshold"| hit["Return cached answer<br/>+ original citations"]
+    cache -->|"miss"| rewrite["Query rewrite<br/>resolve pronouns and ellipsis<br/>against recent turns"]
+
+    rewrite --> fan{{"Parallel retrieval"}}
+    fan --> vec["Vector search<br/>embedding kNN"]
+    fan --> lex["Lexical search<br/>FTS5 / tsvector"]
+
+    vec --> fuse["Reciprocal rank fusion<br/>score = Σ 1/(k + rank), k=60<br/>normalized so a top hit in<br/>every list scores 1.0"]
+    lex --> fuse
+
+    fuse --> weight["Trust weighting<br/>w = 0.5 + 0.5·trust<br/>w ×= 0.6 if document is stale<br/>final = rrf × w"]
+    weight --> rr["Cross-encoder rerank<br/><i>optional</i>"]
+    rr --> topk["Take top K<br/>default 6"]
+
+    topk --> gate{"max score ≥<br/>confidence_threshold?"}
+    gate -->|"no"| refuse["Refuse in the user's language<br/>log a knowledge gap<br/>answered = false"]
+    gate -->|"yes"| prompt["Build grounded prompt<br/>numbered passages + persona<br/>+ citation instructions"]
+
+    prompt --> stream["Stream tokens over SSE"]
+    stream --> emit["Emit citations, trace, done"]
+    emit --> store["Persist message + trace<br/>warm the semantic cache"]
+```
+
+**Why fusion instead of vector-only.** Dense retrieval is strong on paraphrase and weak on exact
+identifiers — product codes, error strings, proper nouns. Lexical search is the mirror image.
+Reciprocal rank fusion combines the two by rank rather than by score, so the two backends do not
+need comparable score scales. The normalization step divides by `n_lists / (k + 1)`, which keeps
+the fused score interpretable: a passage ranked first in every list scores exactly `1.0`, which is
+what makes a single global `confidence_threshold` meaningful across projects.
+
+**Why weight before the gate.** A passage from a document nobody has verified in six months should
+not clear the same bar as a freshly reviewed one. Trust weighting is applied to the fused score
+*before* the confidence gate reads it, so freshness and provenance actually change whether the
+assistant answers at all — not just the ordering.
+
+**What refusal costs.** Nothing is thrown away. The question is normalized and recorded as a
+`FlaggedQuestion` with an occurrence counter, so repeated misses surface in the dashboard ranked by
+demand. That queue is the intended feedback loop: it tells you which document to write next.
+
+### Streamed response format
+
+`POST /v1/chat` returns Server-Sent Events:
+
+| Event | Payload | Emitted |
+| --- | --- | --- |
+| `conversation` | `{ conversation_id, message_id }` | Once, immediately |
+| `token` | `{ text }` | Repeatedly while generating |
+| `citations` | `{ items: [...] }` | Once, after retrieval |
+| `trace` | Full `RetrievalTrace` | Once, before completion |
+| `done` | `{ answered: boolean }` | Once, last |
+
+---
+
+## How ingestion works
+
+Ingestion is asynchronous. API calls return as soon as work is queued, and the dashboard polls
+document status, so a large crawl never blocks a request.
+
+```mermaid
+flowchart LR
+    subgraph sources["Sources"]
+        up["File upload<br/>PDF · DOCX · Markdown · text"]
+        crawl["Website crawl<br/>same-origin BFS"]
+        sm["Sitemap"]
+        conn["Notion · Google Docs"]
+    end
+
+    subgraph expand["Discovery"]
+        robots["Honor robots.txt<br/>rate-limited fetch"]
+        readable["Strip nav, header, footer<br/>extract readable text"]
+        play["Playwright fallback<br/>when static HTML is thin"]
+    end
+
+    subgraph process["Processing"]
+        parse["Parse and decode<br/>utf-8 · big5 · gb18030"]
+        chunkit["Recursive chunking<br/>800 chars / 120 overlap"]
+        ctx["Contextual embedding<br/><i>optional</i><br/>LLM writes a locating<br/>sentence per chunk"]
+        emb["Embed in batches of 64"]
+    end
+
+    subgraph out["Persist"]
+        docrow["Document row<br/>digest · token count · status"]
+        chunks["Chunk rows<br/>+ trust score"]
+        index[("Vector + lexical index")]
+        hook["webhook: document.indexed"]
+    end
+
+    up --> parse
+    crawl --> robots --> readable --> parse
+    sm --> readable
+    conn --> parse
+    readable -.->|"thin page"| play -.-> parse
+    parse --> chunkit --> ctx --> emb
+    emb --> docrow --> chunks --> index --> hook
+```
+
+**Contextual embedding.** Retrieval fails on chunks that are locally meaningless — a paragraph
+saying "it must be returned within 30 days" is unfindable if the surrounding document never repeats
+what "it" is. When enabled, the ingestion job asks the chat model to write one short locating
+sentence per chunk given the document summary, and prepends it to the text that gets embedded. The
+stored chunk text is unchanged, so citations still show the original passage. Requests run with a
+concurrency cap of 4 to bound cost.
+
+**Crawling behaviour.** The crawler stays on the origin it was given, honors `robots.txt`, applies a
+delay between requests, and stops at a configurable page budget (default 25) — a cost and noise
+control, since every page costs an embedding call. Pages whose static HTML yields too little text
+fall back to a headless render when the optional Playwright extra is installed.
+
+**Deletion is cascading.** Removing an ingestion source removes the documents it produced and their
+vectors, so a crawl can be cleanly undone in one action.
+
+---
 
 ## Features
 
 ### Ingestion and indexing
-- **Multi-source ingestion** — file upload (PDF, DOCX, TXT, Markdown), single-URL fetch,
-  same-origin bounded website crawl with robots.txt respect, sitemap.xml expansion, and
-  Notion / Google Docs connectors.
-- **JavaScript-rendered pages** — optional Playwright fallback when a static fetch yields too
-  little text.
-- **Chinese-aware chunking** — recursive splitting that respects CJK punctuation, since
-  Chinese has no word spaces.
-- **Contextual chunk embedding** — each chunk is situated within its document before
-  embedding (Anthropic Contextual Retrieval), improving recall; falls back to plain chunk
-  text if the model call fails.
-- **Content freshness** — documents carry a last-verified timestamp and a derived stale flag;
-  stale or low-trust chunks are down-weighted at retrieval time and can be re-verified from
-  the dashboard.
-- **Background processing** — crawling, chunking, and embedding run on an arq + Redis queue,
-  or inline when the queue is disabled (local dev and tests).
 
-### Retrieval and question-answering
-- **Hybrid retrieval** — dense vector similarity (pgvector or FAISS) fused with lexical
-  search (Postgres tsvector or SQLite FTS5) via Reciprocal Rank Fusion.
-- **Cross-encoder reranking** — optional second-stage precision reranking; passes results
-  through unchanged when the model is unavailable.
-- **Conversational query rewriting** — follow-up questions are rewritten into standalone
-  questions against prior turns before retrieval.
-- **Low-confidence refusal** — when the top score falls below the project threshold, the
-  model is never called; the system replies "not found" and records a knowledge gap.
-- **Semantic answer cache** — near-duplicate questions short-circuit to a stored answer.
-- **Auditable retrieval trace** — every answer records the rewritten query, per-stage vector
-  and lexical scores, fused and reranked rankings, confidence vs threshold, cache-hit status,
-  and stage timings, readable through the API and dashboard.
-- **Streaming, cited answers** — tokens stream over SSE with inline source citations.
+- File upload (PDF, DOCX, Markdown, plain text) with 25 MB per-file limit and format sniffing by
+  both content type and extension
+- Website crawling with same-origin BFS, `robots.txt` compliance, readable-content extraction, and
+  an optional headless-browser fallback for JavaScript-rendered pages
+- Sitemap expansion with nested sitemap support
+- Notion and Google Docs connectors
+- Recursive chunking tuned for mixed CJK and Latin text
+- Optional per-chunk contextual embedding
+- Background jobs via Redis and arq, with an inline runner when no queue is configured
+- Re-index a single source or an entire project
+- Cascading deletes across documents, chunks, and vectors
+
+### Retrieval and answering
+
+- Hybrid dense plus lexical retrieval, executed in parallel
+- Reciprocal rank fusion with normalized scores
+- Trust weighting and staleness penalties applied pre-gate
+- Optional cross-encoder reranking
+- Per-project confidence threshold with multilingual refusal
+- Conversation-aware query rewriting
+- Semantic answer cache with a cosine-similarity threshold
+- Citations resolved back to document title and URL
+- Token-by-token SSE streaming
+- Chinese-aware text handling (jieba segmentation, OpenCC normalization)
 
 ### Multi-tenant platform
-- **Self-serve accounts** — email + password (argon2, JWT access/refresh) with per-account
-  organizations and projects.
-- **Per-project configuration** — chat provider and model, embedding provider and model,
-  default locale, confidence threshold, staleness window, and system prompt.
-- **Persona templates** — seed a new project as a support, sales, documentation, or internal
-  knowledge assistant with a zh-TW system prompt and starter questions.
-- **Three API key types** — `publishable` (browser/app safe, chat only, origin-allowlisted),
-  `secret` (server-side, full access), and `sandbox` (test traffic kept out of production
-  analytics); raw keys are shown exactly once.
-- **Provider switching** — Anthropic, OpenAI, and Ollama for generation; OpenAI and Ollama
-  for embeddings, per project.
 
-### Operations and developer experience
-- **Conversation history** — searchable, filterable transcripts with per-message feedback
-  and CSV export.
-- **Two-way knowledge loop** — unanswered questions surface as ranked knowledge gaps; draft
-  an answer with the model, edit it, and approve it straight into the knowledge base.
-- **Analytics** — conversation and message volume over time, refusal rate, thumbs
-  up/down satisfaction, cache-hit rate, average confidence, token usage, top questions, and
-  stale-document count.
-- **Webhooks** — subscribe to `document.indexed`, `source.failed`, `conversation.started`,
-  and `knowledge_gap.created` with HMAC-signed deliveries and a delivery log.
-- **Official SDK** — `@embaid/sdk-js`, a zero-dependency, browser/Node/edge TypeScript
-  client with streaming and non-streaming chat, retries, and full types.
+- Organizations, users, and projects
+- Three API key types with distinct capabilities and prefixes
+- Per-key origin allowlists and rate limits
+- Per-project model providers, thresholds, staleness windows, and system prompt
+- Persona templates that seed a project's prompt and widget configuration
+- Document-level enable and disable, excluded from retrieval when off
+- Tagging with filtering and per-tag statistics
+
+### Operations
+
+- Retrieval trace persisted per message and viewable in the dashboard
+- Analytics: conversation and message volume, satisfaction, refusal rate, cache hit rate, average
+  confidence, stale documents, token usage
+- Knowledge-gap queue with occurrence counts, LLM-drafted answers, and one-click promotion into
+  the knowledge base
+- Message-level thumbs up and down feedback
+- Conversation browsing and export
+- Outbound webhooks with HMAC signatures, delivery log, retries, and a test trigger
+- Optional Sentry error tracking
 
 ### Embeddable widget
-- **One-line embed** — a single `<script>` tag with a publishable key.
-- **Shadow DOM isolation** — styles are fully encapsulated so host-page CSS and widget CSS
-  never bleed into each other.
-- **Safe rendering** — model output is rendered as Markdown by building DOM nodes, never
-  `innerHTML`, and `javascript:` / `data:` URLs are stripped; a hostile document cannot run
-  script on the host page.
-- **Customizable** — colour, launcher position, greeting, starter-question chips, bot name
-  and avatar, and dark mode that can follow the host page.
-- **Accessible and bilingual** — focus trap, keyboard controls, ARIA roles, reduced-motion
-  support, and a zh-TW / en translation dictionary.
 
-## Web dashboard
+- One `<script>` tag, configured with data attributes
+- Shadow DOM isolation, no runtime dependencies
+- Configuration fetched from the API by publishable key, so appearance changes need no redeploy
+- Themeable accent colour, avatar, greeting, persona, and starter questions
+- Streaming answers with inline citations and Markdown rendering
+- Light, dark, and automatic themes; multilingual UI
 
-| Page | What it does |
-| --- | --- |
-| **Overview** | Project picker with headline metrics and recent activity |
-| **Knowledge base** | Drag-drop upload, add crawl / sitemap / Notion / Google Docs sources, source status and reindex, document list with stale badges and verify, tag management |
-| **Playground** | Token-streamed chat (SSE) over a project with inline citations |
-| **Trace viewer** | Readable retrieval provenance: rewritten query, vector vs lexical hits with scores, fused ranking, rerank order, confidence vs threshold, cache-hit status, and stage timings |
-| **Conversations** | Searchable, filterable transcripts with per-message feedback, a link into the trace viewer, and CSV export |
-| **Knowledge gaps** | Ranked unanswered questions, model-drafted answers, edit, approve into the knowledge base, or dismiss |
-| **Analytics** | Volume over time, satisfaction, refusal rate, cache-hit rate, token usage, and top questions |
-| **Widget studio** | Live-preview appearance editor and a copy-to-clipboard embed snippet |
-| **Settings** | Project config (providers, models, locale, threshold, staleness, system prompt, persona), API keys shown once on creation, and webhook management |
-
-Design notes:
-
-- **zh-TW first** — every user-facing string flows through a translation dictionary; zh-TW is
-  the default and complete locale, with en alongside.
-- **Streaming** — `/v1/chat` streams over Server-Sent Events; the client reads `fetch`
-  streams (POST + `X-API-Key` header) rather than `EventSource`.
-- **Light and dark** — a considered typography, spacing, and colour system with full light
-  and dark support, and charts legible in both.
-- **Auto docs** — the API self-documents at `/docs` (Swagger UI) and `/redoc` (ReDoc).
-
-## RAG design
-
-EmbAId Chat composes the retrieval-augmented generation stages as swappable modules behind
-one storage interface, so the same behavior runs on SQLite + FAISS locally and Postgres +
-pgvector in deployment:
-
-| Concern | Where |
-| --- | --- |
-| Advanced RAG | hybrid retrieval, conversational query rewriting, cross-encoder reranking, contextual chunk embedding, semantic answer cache, traceable citations |
-| Modular RAG | `rag/pipeline.py` composes cache → rewrite → retrieve → rerank → confidence gate → generate into one configurable flow |
-| Corrective / refusal | low-confidence questions are refused instead of hallucinated, and recorded as knowledge gaps |
-| Trust weighting | stale documents and low-trust chunks are down-weighted during fusion |
-| Two-way loop | knowledge gaps are drafted, reviewed, and folded back into the index |
-
-The retrieval flow for a question:
-
-```
-question
-  -> semantic cache lookup (short-circuit on a near-duplicate)
-  -> conversational rewrite (follow-up -> standalone question, when history exists)
-  -> hybrid retrieval: pgvector/FAISS vectors + tsvector/FTS5 lexical, fused with RRF
-     (Chinese content segmented and normalized; stale / low-trust chunks down-weighted)
-  -> cross-encoder rerank (optional; pass-through when unavailable)
-  -> confidence gate: below the project threshold -> refuse, flag a knowledge gap
-                      otherwise -> stream a grounded, cited answer over SSE, cache it
-  -> every stage written to the message retrieval trace
-```
-
-## Architecture
-
-```
-  Widget (Shadow DOM, vanilla TS)   Dashboard (Next.js, React)   Any client via @embaid/sdk-js
-             \                              |                          /
-              \        X-API-Key / SSE      |     Bearer JWT          /
-               v                            v                        v
-                        FastAPI (apps/api: routers -> services)
-                                          |
-              shared core (src/): auth, RAG pipeline, ingestion, providers, webhooks
-                                          |
-                        Store interface (search/ + db/)
-                          |-- SqliteFaissBackend    : SQLite + FAISS (local default)
-                          |-- PostgresBackend        : Postgres + pgvector (deployment)
-                                          ^
-              arq + Redis worker: crawl / chunk / contextual-embed / index / deliver webhooks
-                                          ^
-              MinIO / S3 object storage for uploaded files
-```
-
-- The **storage interface** hides the relational and vector stores behind one contract; the
-  same test suite runs against both backends.
-- LLM and embedding providers sit behind a small **provider registry**, so Anthropic, OpenAI,
-  and Ollama are swapped by configuration, not code.
-- Heavy work runs on the **queue**; with the queue disabled the same jobs run inline, so the
-  API works without Redis in local development and tests.
-- Every query is scoped by `project_id`; cross-tenant access is treated as a security defect.
+---
 
 ## Tech stack
 
 | Concern | Choice |
 | --- | --- |
-| API | FastAPI + Uvicorn, SSE streaming, auto Swagger / ReDoc |
-| LLM / RAG layer | LangChain provider integrations (Anthropic, OpenAI, Ollama) |
-| Embeddings | OpenAI or Ollama, per project |
+| API | FastAPI, Uvicorn, SSE streaming, auto-generated Swagger and ReDoc |
+| Model orchestration | LangChain provider integrations |
+| Chat models | Anthropic, OpenAI, Ollama — selectable per project |
+| Embeddings | OpenAI or Ollama — selectable per project |
 | Reranker | `sentence-transformers` cross-encoder (optional `rerank` extra) |
-| Vector store | FAISS locally; pgvector on Postgres |
-| Lexical search | SQLite FTS5 locally; Postgres tsvector in deployment |
-| Relational store | SQLite (default) or Postgres, behind a store interface |
-| Chinese NLP | jieba segmentation + OpenCC normalization |
-| Auth | argon2 password hashing + PyJWT access/refresh |
-| Queue | arq + Redis (inline fallback when disabled) |
-| Object storage | MinIO / S3 (local filesystem fallback) |
-| Crawling | httpx + BeautifulSoup, optional Playwright (`crawl` extra) |
-| Dashboard | Next.js, React 19, TypeScript |
+| Vector search | FAISS locally, pgvector on Postgres |
+| Lexical search | SQLite FTS5 locally, Postgres `tsvector` in deployment |
+| Relational store | SQLAlchemy 2 async over SQLite or Postgres |
+| Chinese NLP | jieba segmentation, OpenCC normalization |
+| Auth | argon2 password hashing, PyJWT access and refresh tokens, Google OAuth |
+| Queue | arq over Redis, with an inline fallback |
+| Object storage | S3 or MinIO, with a local filesystem fallback |
+| Crawling | httpx and BeautifulSoup, optional Playwright (`crawl` extra) |
+| Dashboard | Next.js 15, React 19, TypeScript, CSS custom properties |
 | Widget | Vanilla TypeScript, esbuild, Shadow DOM, zero runtime dependencies |
 | SDK | TypeScript, tsup (ESM + CJS + types), zero runtime dependencies |
-| Error tracking | Sentry (optional) |
-| Package managers / deploy | uv (Python), pnpm (workspaces); Docker Compose; GitHub Actions CI |
+| Tooling | uv (Python), pnpm workspaces, ruff, mypy, ESLint, Vitest, pytest |
+| CI/CD | GitHub Actions, Docker Compose |
+
+---
 
 ## Project structure
 
 ```
 EmbAId-Chat/
-  apps/
-    api/                 FastAPI backend (run uv commands from here)
-      src/
-        main.py          App factory, middleware, router registration
-        config.py        Settings from environment
-        db/              SQLAlchemy models, session, id helpers
-        search/          Store interface: base, sqlite_faiss, postgres, factory
-        rag/             pipeline, retriever, rerank, rewrite, cache, prompt, text, types
-        ingestion/       loaders, web crawl, connectors, chunking, contextual, jobs, runtime
-        providers/       LLM and embedding provider registry
-        security/        argon2 passwords, JWT tokens, API key hashing and HMAC
-        api/             routers/ (auth, projects, api_keys, sources, documents, chat,
-                         conversations, messages, knowledge_gaps, analytics, webhooks),
-                         services/ (templates, events), deps, errors, middleware
-        tasks/           arq queue and worker
-      tests/             Offline test suite (fakes for search, embeddings, and chat model)
-    dashboard/           Next.js management dashboard
-    widget/              Embeddable Shadow DOM chat widget + esbuild build + demo.html
-    landing/             Marketing site with an embedded live widget demo (static + esbuild)
-  packages/
-    sdk-js/              @embaid/sdk-js official TypeScript client
-  docker/                docker-compose.yml + Dockerfiles
-  .github/workflows/     CI: API tests, workspace build and test
+├── apps/
+│   ├── api/                     FastAPI backend — run uv commands from here
+│   │   ├── src/
+│   │   │   ├── main.py          App factory, middleware, router registration
+│   │   │   ├── config.py        Environment-backed settings
+│   │   │   ├── db/              SQLAlchemy models, async session, id helpers
+│   │   │   ├── search/          Backend protocol + sqlite_faiss, postgres, factory
+│   │   │   ├── rag/             pipeline, retriever, rerank, rewrite, cache, prompt
+│   │   │   ├── ingestion/       loaders, web crawl, connectors, chunking, contextual, jobs
+│   │   │   ├── providers/       Chat and embedding provider registry
+│   │   │   ├── security/        argon2, JWT, API key hashing, HMAC signing
+│   │   │   ├── api/             routers/, services/, deps, errors, middleware
+│   │   │   └── tasks/           arq queue and worker
+│   │   └── tests/               Offline suite with fakes for search, embeddings, chat
+│   ├── dashboard/               Next.js management console
+│   ├── widget/                  Embeddable Shadow DOM widget + demo page
+│   └── landing/                 Static marketing site with a live widget demo
+├── packages/
+│   └── sdk-js/                  @embaid/sdk-js official TypeScript client
+├── docker/                      docker-compose.yml and Dockerfiles
+└── .github/workflows/           CI: API tests, workspace build and test
 ```
 
-Backend and frontend are separated; the root holds workspace and Docker orchestration only.
-`apps/api` is a standalone Python project (uv); the JavaScript packages are a pnpm workspace.
+`apps/api` is a standalone Python project managed by uv. Everything else is a pnpm workspace. The
+repository root holds only workspace and orchestration config.
 
-## Quick start
+---
+
+## Getting started
 
 ### Prerequisites
 
-- Python 3.13 + [`uv`](https://github.com/astral-sh/uv)
-- Node.js 20+ and pnpm 10 (for the widget, SDK, and dashboard)
-- At least one LLM provider key (Anthropic or OpenAI), or a local Ollama, for live answers
-- Docker (optional, for the full stack with Postgres, Redis, and MinIO)
+- Python 3.13 and [uv](https://github.com/astral-sh/uv)
+- Node.js 20+ and pnpm 10
+- One model provider: an Anthropic or OpenAI key, or a local [Ollama](https://ollama.com)
+- Docker (optional — only for the full Postgres, Redis, and MinIO stack)
 
 ### Backend
 
 ```bash
 cd apps/api
 uv sync --extra dev
-cp .env.example .env          # fill in a provider key and a JWT secret
+cp .env.example .env          # set JWT_SECRET and one provider key
 uv run uvicorn src.main:app --reload
-# API at http://localhost:8000, docs at http://localhost:8000/docs
 ```
 
-The default configuration uses SQLite + FAISS and an inline job runner, so the API runs with
-no external services. Run the tests with `uv run pytest`.
+The API is at `http://localhost:8000`, interactive docs at `/docs`. The default configuration uses
+SQLite, FAISS, and an inline job runner, so nothing else needs to be running.
+
+Optional extras:
+
+```bash
+uv sync --extra dev --extra rerank    # cross-encoder reranking
+uv sync --extra dev --extra crawl     # Playwright fallback for JS-heavy pages
+```
 
 ### Frontend workspaces
 
 ```bash
 pnpm install
-pnpm -r build                 # build widget, SDK, and dashboard
+pnpm -r build                 # widget, SDK, dashboard
 pnpm -r test
 ```
 
-Build just the widget and open its isolation demo:
+Run the dashboard in development:
+
+```bash
+pnpm --filter @embaid/dashboard dev    # http://localhost:3000
+```
+
+Build the widget and open its isolation demo:
 
 ```bash
 pnpm --filter @embaid/widget build
-# open apps/widget/demo.html in a browser
+# then open apps/widget/demo.html
 ```
 
-Build and serve the marketing site with the live floating widget demo:
+Serve the marketing site with the live embedded widget:
 
 ```bash
-cd apps/landing
-npm run serve                 # builds the widget, assembles dist/, serves on :4180
+cd apps/landing && pnpm serve          # builds the widget, serves on :4180
 ```
 
 ### Full stack with Docker
 
 ```bash
 docker compose -f docker/docker-compose.yml up --build
-# api :8000, dashboard :3000, postgres :5432, redis :6379, minio :9000
+# api :8000 · dashboard :3000 · postgres :5432 · redis :6379 · minio :9000
 ```
 
-Postgres + pgvector, Redis, and MinIO come up as services; the API switches to the Postgres
+Postgres with pgvector, Redis, and MinIO come up as services and the API switches to the Postgres
 backend automatically. Add `--profile ollama` to run a local model alongside.
+
+---
+
+## Your first assistant
+
+End to end, from an empty database to a working embed:
+
+1. **Create an account** at `http://localhost:3000` and create a project. Optionally pick a persona
+   template to seed the system prompt and widget copy.
+2. **Add knowledge** on the knowledge base page — drag in a PDF or Markdown file, or add a website
+   and let the crawler expand it. Documents appear immediately and flip from processing to ready as
+   indexing completes.
+3. **Customize the widget** in the widget studio: bot name, greeting, persona, accent colour,
+   avatar, and starter questions, with a live preview of the real chat window.
+4. **Create a publishable key** on the embed page and press deploy. You get a ready-to-paste script
+   tag, and the floating test bot in the dashboard unlocks so you can try the assistant without
+   leaving the console.
+5. **Paste the snippet** before `</body>` on your site.
+6. **Watch the gaps.** Questions the assistant declined to answer collect in the knowledge-gap
+   queue, ranked by how often they were asked. That list is your content backlog.
+
+---
 
 ## Configuration
 
-Backend settings live in `apps/api/.env` (never committed). The minimum working setup for
-live answers:
+Backend settings come from `apps/api/.env`. A minimal working file:
 
 ```bash
 ENVIRONMENT=development
 JWT_SECRET=                       # openssl rand -hex 32
 DATABASE_URL=sqlite+aiosqlite:///./data/embaid.sqlite
 SEARCH_BACKEND=sqlite_faiss       # or postgres
-QUEUE_ENABLED=true                # false runs jobs inline (no Redis)
+QUEUE_ENABLED=false               # true requires Redis
 ANTHROPIC_API_KEY=                # or OPENAI_API_KEY, or run Ollama
 DEFAULT_CHAT_PROVIDER=anthropic
 DEFAULT_EMBEDDING_PROVIDER=openai
 ```
 
-Everything else is optional and safely skipped when unset — object storage (MinIO / S3),
-Redis, the reranker model, Sentry, and per-project overrides. In production the app refuses
-to start with a weak `JWT_SECRET` or a wildcard CORS origin.
+### Retrieval tuning
 
-## Usage
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `RETRIEVAL_CANDIDATES` | `30` | Candidates pulled from each backend before fusion. Higher recall, higher cost. |
+| `RETRIEVAL_TOP_K` | `6` | Passages passed to the model after reranking. |
+| `CONFIDENCE_THRESHOLD` | `0.35` | Global default for the refusal gate; overridable per project. |
+| `RERANK_ENABLED` | `true` | Cross-encoder reranking. Requires the `rerank` extra. |
+| `RERANK_MODEL` | `BAAI/bge-reranker-v2-m3` | Multilingual cross-encoder. |
+| `SEMANTIC_CACHE_ENABLED` | `true` | Reuse answers for near-identical questions. |
+| `SEMANTIC_CACHE_THRESHOLD` | `0.95` | Cosine similarity required for a cache hit. |
+| `CONTEXTUAL_EMBEDDING_ENABLED` | `true` | LLM-generated locating sentence per chunk at index time. |
+| `DOCUMENT_STALENESS_DAYS` | `180` | Age after which a document is treated as stale and down-weighted. |
+| `EMBEDDING_DIMENSIONS` | `1536` | Must match the embedding model. Changing it requires a re-index. |
 
-1. Sign up (`POST /auth/signup`) — this creates your organization.
-2. Create a project, optionally from a persona template (`POST /v1/projects`).
-3. Add content — upload a file or add a crawl / sitemap / Notion / Google Docs source.
-4. Create a `publishable` key and embed the widget, or a `secret` key for server-side calls.
-5. Ask questions over `POST /v1/chat` and read the retrieval trace for any answer.
+### Infrastructure
 
-Embed the widget on any site:
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `SEARCH_BACKEND` | `sqlite_faiss` | `sqlite_faiss` for local, `postgres` for pgvector plus `tsvector`. |
+| `QUEUE_ENABLED` | `true` | `false` runs ingestion inline — convenient locally, not for production. |
+| `STORAGE_ENDPOINT_URL` | unset | Set for S3 or MinIO; falls back to the local filesystem. |
+| `RATE_LIMIT_PUBLISHABLE` | `20` | Requests per minute for browser-facing keys. |
+| `RATE_LIMIT_SECRET` | `200` | Requests per minute for server-side keys. |
+| `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated. Wildcards are rejected in production. |
+
+In production the application refuses to start with a default `JWT_SECRET` or a wildcard CORS
+origin. Everything not listed is optional and safely skipped when unset.
+
+---
+
+## Embedding the widget
 
 ```html
-<script src="https://cdn.embaid.chat/widget.js"
-        data-key="pub_xxx" data-project="proj_xxx"></script>
+<script
+  src="https://cdn.embaid.chat/widget.js"
+  data-key="pub_xxxxxxxx"
+  data-project="proj_xxxxxxxx"
+></script>
 ```
 
-Call the API from TypeScript with the SDK:
+| Attribute | Required | Purpose |
+| --- | --- | --- |
+| `data-key` | yes | Publishable key. Safe to expose — see [Security model](#security-model). |
+| `data-project` | yes | Project the widget answers for. |
+| `data-api-url` | no | Point at your own API. Defaults to `https://api.embaid.chat`. |
+
+The widget fetches appearance and starter questions from `GET /v1/widget-config` at boot, so
+changes made in the dashboard take effect on reload without touching the host page. It renders
+entirely inside a Shadow DOM, so no host CSS leaks in and none of its styles leak out.
+
+**Before going live**, set the key's allowed origins to your domain. An origin-scoped key is
+rejected with `403` when presented from anywhere else.
+
+---
+
+## Using the SDK
+
+```bash
+npm install @embaid/sdk-js
+```
+
+Streaming a grounded answer. Both `apiKey` and `projectId` are required; the key type is detected
+from its prefix:
 
 ```ts
 import { EmbAId } from "@embaid/sdk-js";
 
-const client = new EmbAId({ apiKey: "sk_xxx", projectId: "proj_xxx" });
-for await (const event of client.chat.stream({ message: "退貨政策是什麼？" })) {
+const client = new EmbAId({
+  apiKey: process.env.EMBAID_KEY!,          // pub_… or sbx_…
+  projectId: process.env.EMBAID_PROJECT_ID!,
+});
+
+for await (const event of client.chat.stream({ message: "What is the refund window?" })) {
   if (event.type === "token") process.stdout.write(event.text);
+  if (event.type === "citations") console.log("\nSources:", event.citations.map((c) => c.title));
+  if (event.type === "done" && event.refusalReason) {
+    console.log(`\nDeclined (${event.refusalReason}) — logged as a knowledge gap.`);
+  }
 }
 ```
 
+The stream is a typed `AsyncGenerator` over a discriminated union — `conversation`, `token`,
+`citations`, `trace`, `done`, `error`, plus an `unknown` variant so a future server-side event
+does not break existing clients. Use `chat.send()` instead when you want the collected result
+rather than the stream.
+
+Management calls require a secret key and must run server-side:
+
+```ts
+const admin = new EmbAId({
+  apiKey: process.env.EMBAID_SECRET_KEY!,   // sk_…
+  projectId: process.env.EMBAID_PROJECT_ID!,
+});
+
+await admin.sources.create({
+  type: "url_crawl",
+  config: { url: "https://example.com/docs", max_pages: 50 },
+});
+```
+
+Project-scoped resources (`sources`, `documents`, `apiKeys`, `tags`, `knowledgeGaps`,
+`analytics`, `webhooks`) read the project from the constructor, so they take no project argument.
+Reaching for any of them with a non-secret key throws `EmbAIdPermissionError` at the call site
+rather than sending a request that the server would reject — the client refuses to leak a
+management call through a browser-safe key.
+
+The SDK ships ESM, CJS, and type declarations with no runtime dependencies.
+
+---
+
 ## API reference
 
-All endpoints are browsable at `/docs` (Swagger UI) and `/redoc`. Owner endpoints take a
-bearer JWT; runtime endpoints take an `X-API-Key`. Streaming endpoints return Server-Sent
-Events (`event: <name>\ndata: {json}\n\n`).
+Interactive documentation is served at `/docs` (Swagger) and `/redoc`. All errors share the
+envelope `{"detail": {"code": "...", "message": "..."}}`.
 
-### Auth (`/auth`)
+### Authentication
 
-| Method | Path | Description |
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/auth/signup` | none | Create a user and organization |
+| `POST` | `/auth/login` | none | Exchange credentials for tokens |
+| `POST` | `/auth/refresh` | refresh token | Rotate the access token |
+| `GET` | `/auth/me` | JWT | Current user |
+| `GET` | `/auth/providers` | none | Which login methods are configured |
+| `GET` | `/auth/oauth/google` | none | Start Google OAuth |
+| `GET` | `/auth/oauth/google/callback` | none | Complete Google OAuth |
+
+### Projects and keys
+
+| Method | Path | Purpose |
 | --- | --- | --- |
-| POST | `/auth/signup` | Create an account and organization, returns tokens |
-| POST | `/auth/login` | Sign in, returns access and refresh tokens |
-| POST | `/auth/refresh` | Exchange a refresh token for a new access token |
-| GET | `/auth/me` | Current user profile |
+| `GET` | `/v1/project-templates` | Built-in persona templates |
+| `POST` `GET` | `/v1/projects` | Create and list projects |
+| `GET` `PATCH` `DELETE` | `/v1/projects/{id}` | Read, update, delete |
+| `GET` `PUT` | `/v1/projects/{id}/widget-config` | Widget appearance |
+| `POST` `GET` | `/v1/projects/{id}/api-keys` | Mint and list keys |
+| `PATCH` `DELETE` | `/v1/projects/{id}/api-keys/{key_id}` | Rename or revoke |
 
-### Projects, keys, and templates (`/v1`)
+### Content
 
-| Method | Path | Description |
+| Method | Path | Purpose |
 | --- | --- | --- |
-| GET/POST | `/v1/projects` | List or create projects (optional persona `template`) |
-| GET/PATCH/DELETE | `/v1/projects/{id}` | Read, update, or delete a project |
-| GET/PUT | `/v1/projects/{id}/widget-config` | Read or update widget appearance |
-| GET | `/v1/project-templates` | List persona templates |
-| POST/GET | `/v1/projects/{id}/api-keys` | Create (raw key shown once) or list keys |
-| PATCH/DELETE | `/v1/api-keys/{id}` | Update or revoke a key |
+| `POST` `GET` | `/v1/projects/{id}/sources` | Add and list ingestion sources |
+| `GET` `DELETE` | `/v1/sources/{source_id}` | Inspect or remove, cascading to documents |
+| `POST` | `/v1/sources/{source_id}/reindex` | Re-run one source |
+| `POST` | `/v1/projects/{id}/reindex` | Re-run every source |
+| `POST` | `/v1/projects/{id}/documents/upload` | Upload a file |
+| `GET` | `/v1/projects/{id}/documents` | List with filters |
+| `GET` `PATCH` `DELETE` | `/v1/documents/{doc_id}` | Detail with chunks, rename, enable, delete |
+| `POST` | `/v1/documents/{doc_id}/verify` | Mark verified, clearing staleness |
+| `PUT` | `/v1/documents/{doc_id}/tags` | Assign tags |
+| `POST` `GET` | `/v1/projects/{id}/tags` | Create and list tags |
+| `PATCH` `DELETE` | `/v1/tags/{tag_id}` | Rename or delete |
 
-### Content (`/v1`)
+### Chat and history
 
-| Method | Path | Description |
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/v1/chat` | API key | Ask a question, SSE stream back |
+| `GET` | `/v1/widget-config` | publishable key | Widget bootstrap configuration |
+| `GET` | `/v1/conversations` | JWT | Browse conversations |
+| `GET` `DELETE` | `/v1/conversations/{id}` | JWT | Read or delete a transcript |
+| `GET` | `/v1/conversations/export` | JWT | Bulk export |
+| `POST` | `/v1/messages/{id}/feedback` | API key | Thumbs up or down |
+| `GET` | `/v1/messages/{id}/trace` | JWT | Full retrieval trace |
+
+### Insights and integrations
+
+| Method | Path | Purpose |
 | --- | --- | --- |
-| POST/GET | `/v1/projects/{id}/sources` | Add or list ingestion sources |
-| GET/DELETE | `/v1/sources/{id}` | Read or delete a source |
-| POST | `/v1/sources/{id}/reindex` | Re-run a source |
-| POST | `/v1/projects/{id}/documents/upload` | Upload a file (multipart) |
-| POST | `/v1/projects/{id}/reindex` | Re-embed the whole project |
-| GET | `/v1/projects/{id}/documents` | List documents (status, stale, tags) |
-| GET/DELETE | `/v1/documents/{id}` | Read a document with chunks, or delete it |
-| POST | `/v1/documents/{id}/verify` | Clear a document's stale status |
-| PUT | `/v1/documents/{id}/tags` | Set a document's tags |
-| GET/POST | `/v1/projects/{id}/tags` | List or create tags |
-| PATCH/DELETE | `/v1/tags/{id}` | Rename or delete a tag |
+| `GET` | `/v1/projects/{id}/analytics` | Volume, satisfaction, refusal and cache rates, tokens |
+| `GET` | `/v1/projects/{id}/knowledge-gaps` | Unanswered questions by frequency |
+| `POST` | `/v1/knowledge-gaps/{id}/draft-answer` | LLM-drafted answer for review |
+| `POST` | `/v1/knowledge-gaps/{id}/approve` | Promote the answer into the knowledge base |
+| `DELETE` | `/v1/knowledge-gaps/{id}` | Dismiss |
+| `GET` | `/v1/webhook-events` | Subscribable event types |
+| `POST` `GET` | `/v1/projects/{id}/webhooks` | Register and list endpoints |
+| `PATCH` `DELETE` | `/v1/webhooks/{id}` | Update or remove |
+| `POST` | `/v1/webhooks/{id}/test` | Send a test delivery |
+| `GET` | `/v1/webhooks/{id}/deliveries` | Delivery log with status codes |
 
-### Chat, conversations, and trace (`/v1`)
+---
 
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/v1/chat` | **SSE** streamed answer; events `conversation`, `token`, `citations`, `trace`, `done` |
-| GET | `/v1/conversations` | List and search conversations |
-| GET/DELETE | `/v1/conversations/{id}` | Read a transcript or delete it |
-| GET | `/v1/conversations/export` | Export conversations as CSV |
-| POST | `/v1/messages/{id}/feedback` | Thumbs up/down (publishable key) |
-| GET | `/v1/messages/{id}/trace` | Full retrieval trace (secret key or owner) |
+## Data model
 
-### Knowledge, analytics, and webhooks (`/v1`)
+```mermaid
+erDiagram
+    ORGANIZATION ||--o{ USER : "has members"
+    ORGANIZATION ||--o{ PROJECT : owns
+    PROJECT ||--o{ API_KEY : issues
+    PROJECT ||--o{ INGESTION_SOURCE : "pulls from"
+    PROJECT ||--o{ DOCUMENT : contains
+    PROJECT ||--o{ TAG : defines
+    PROJECT ||--o{ CONVERSATION : serves
+    PROJECT ||--o{ FLAGGED_QUESTION : "collects gaps"
+    PROJECT ||--o{ SEMANTIC_CACHE_ENTRY : caches
+    PROJECT ||--o{ WEBHOOK_ENDPOINT : notifies
 
-| Method | Path | Description |
-| --- | --- | --- |
-| GET | `/v1/projects/{id}/knowledge-gaps` | Ranked unanswered questions |
-| POST | `/v1/knowledge-gaps/{id}/draft-answer` | Draft an answer with the model |
-| POST | `/v1/knowledge-gaps/{id}/approve` | Approve an answer into the knowledge base |
-| DELETE | `/v1/knowledge-gaps/{id}` | Dismiss a gap |
-| GET | `/v1/projects/{id}/analytics` | Volume, refusal, satisfaction, cache, token metrics |
-| GET/POST | `/v1/projects/{id}/webhooks` | List or create webhooks (secret shown once) |
-| PATCH/DELETE | `/v1/webhooks/{id}` | Update or delete a webhook |
-| POST | `/v1/webhooks/{id}/test` | Send a test delivery |
-| GET | `/v1/webhooks/{id}/deliveries` | List recent deliveries |
+    INGESTION_SOURCE ||--o{ DOCUMENT : produces
+    DOCUMENT ||--o{ DOCUMENT_CHUNK : "split into"
+    DOCUMENT }o--o{ TAG : "labelled by"
+    CONVERSATION ||--o{ MESSAGE : records
+    MESSAGE }o--o{ DOCUMENT_CHUNK : cites
+    WEBHOOK_ENDPOINT ||--o{ WEBHOOK_DELIVERY : logs
 
-## Database schema
-
-One set of models runs on both backends (SQLite + FAISS locally, Postgres + pgvector in
-deployment) behind the store interface. Every content and conversation row is scoped by
-`project_id`.
-
+    PROJECT {
+        string id PK
+        string name
+        string chat_provider
+        string embedding_provider
+        float confidence_threshold
+        int staleness_days
+        string system_prompt
+        json widget_config
+    }
+    API_KEY {
+        string id PK
+        string type "publishable, secret or sandbox"
+        string key_prefix
+        string key_hash "sha-256"
+        json allowed_origins
+        int rate_limit_per_minute
+        datetime revoked_at
+    }
+    DOCUMENT {
+        string id PK
+        string title
+        string url
+        string status
+        bool enabled
+        int token_count
+        string content_digest
+        datetime last_verified_at
+    }
+    DOCUMENT_CHUNK {
+        string id PK
+        text content
+        int position
+        float trust_score
+    }
+    MESSAGE {
+        string id PK
+        string role
+        text content
+        bool answered
+        float confidence
+        json trace
+        int feedback
+    }
+    FLAGGED_QUESTION {
+        string id PK
+        text question_text
+        string normalized_text
+        int occurrence_count
+        string status
+    }
 ```
-users                organizations         projects
-  id                   id                    id
-  email (unique)       name                  org_id (FK)
-  password_hash        owner_user_id (FK)     name / template / system_prompt
-  display_name                                chat_provider / chat_model
-  locale                                      embedding_provider / embedding_model
-                                              default_locale / widget_config (json)
-api_keys                                      confidence_threshold / staleness_days
-  id
-  project_id (FK)     ingestion_sources     documents
-  type                  id                    id
-  key_hash / prefix     project_id (FK)       project_id (FK) / source_id (FK)
-  allowed_origins       type                  title / url / storage_key / content_hash
-  rate_limit            config (json)         status / error / last_verified_at
-  revoked_at            schedule / status
-                        last_run_at           document_chunks
-tags                                            id
-  id                  document_tags             document_id (FK) / project_id
-  project_id (FK)       document_id (FK)         ordinal / content
-  name (unique/proj)    tag_id (FK)              contextual_content / trust_score
-                                                 embedding (vector) / metadata (json)
-conversations         messages              flagged_questions
-  id                    id                    id
-  project_id (FK)       conversation_id (FK)  project_id (FK)
-  channel / visitor_id  role / content        question_text / normalized_text
-  is_sandbox            citations (json)      occurrence_count / draft_answer
-  locale                confidence_score      status
-  started_at            retrieval_trace (json)
-                        feedback              semantic_cache
-webhook_endpoints       prompt/completion_tokens  id
-  id                                              project_id (FK)
-  project_id (FK)     webhook_deliveries          question / answer
-  url / secret          id                        citations (json) / hit_count
-  subscribed_events     endpoint_id (FK)
-  active                event / payload (json)
-                        status_code / attempts / error
+
+Sixteen tables in total; the diagram shows the ones you interact with. Identifiers are prefixed,
+sortable strings (`proj_`, `doc_`, `msg_`) rather than integers, so they are safe to expose in URLs
+and logs. Every tenant-scoped row carries `project_id` and queries filter on it explicitly.
+
+---
+
+## Security model
+
+### Three key types
+
+| Type | Prefix | Belongs in | Can do |
+| --- | --- | --- | --- |
+| **Publishable** | `pub_` | Browser, public HTML | Chat endpoints only, for one project, subject to the origin allowlist |
+| **Secret** | `sk_` | Your backend only | Full management access |
+| **Sandbox** | `sbx_` | Testing | Same as publishable, but conversations are marked as tests |
+
+Keys are generated server-side and stored only as a SHA-256 hash alongside a short display prefix.
+The plaintext is returned exactly once, at creation. A lost key cannot be recovered — it is revoked
+and replaced. A database leak therefore yields hashes, not usable credentials.
+
+### Why a publishable key in public HTML is safe
+
+The same reasoning as a Stripe publishable key or a Google Maps browser key:
+
+1. It reaches only the chat endpoints, and only for the project it was minted for. It cannot read
+   raw documents or change any configuration.
+2. It is constrained by an origin allowlist. Copied to another site, requests are rejected with
+   `403`.
+3. It is rate limited per minute, independently from server-side keys.
+
+The worst case is somebody sending chat messages from a domain you already approved, at a bounded
+rate. The `sk_` key that can actually change things never reaches a browser.
+
+### Other controls
+
+- argon2id password hashing; short-lived JWT access tokens with rotating refresh tokens
+- Security headers and strict CORS; wildcard origins rejected outside development
+- Webhook payloads signed with HMAC-SHA256 so receivers can verify origin and integrity
+- Crawling honours `robots.txt` and identifies itself with a descriptive user agent
+- Uploads capped at 25 MB with format validation before parsing
+- Tenant isolation enforced in query construction, not by convention
+
+---
+
+## Observability
+
+**Retrieval traces.** Every answer stores the query as rewritten, per-backend hits with ranks and
+scores, fused and trust-weighted scores, final confidence against the threshold, whether the
+assistant answered, and per-stage timings (cache lookup, rewrite, embed, search, fuse, rerank,
+load, generate). The dashboard renders this as a trace viewer, so "why did it say that" is a
+question with a concrete answer.
+
+**Analytics.** Conversation and message volume, satisfaction from thumbs up and down, refusal rate,
+cache hit rate, average confidence, stale document count, and token usage — per project over a
+selectable window.
+
+**Knowledge gaps.** Refused questions are normalized, deduplicated, and counted. High-frequency
+gaps rise to the top, can be answered by the model for a human to review, and approved answers are
+written straight back into the knowledge base.
+
+**Webhooks.** Subscribe to events such as `document.indexed` and `knowledge_gap.created` to drive
+your own automation. Deliveries are signed, retried with backoff, and logged with response codes.
+
+---
+
+## Deployment
+
+The API is stateless and horizontally scalable; state lives in Postgres, the search index, object
+storage, and Redis.
+
+A production-shaped configuration:
+
+```bash
+ENVIRONMENT=production
+DATABASE_URL=postgresql+asyncpg://user:pass@host/embaid
+SEARCH_BACKEND=postgres           # pgvector + tsvector
+QUEUE_ENABLED=true                # run workers separately
+REDIS_URL=redis://host:6379
+STORAGE_ENDPOINT_URL=https://s3.example.com
+JWT_SECRET=<32+ random bytes>
+CORS_ORIGINS=https://console.example.com
 ```
 
-## Security
+Run at least one worker alongside the API so ingestion does not compete with request handling:
 
-Designed against the OWASP LLM Top 10 items relevant to a retrieval chatbot:
+```bash
+uv run arq src.tasks.worker.WorkerSettings
+```
 
-- **Prompt injection (LLM01)** — the system prompt and retrieved context are structurally
-  separated from user input; retrieved chunks are wrapped as untrusted reference data so they
-  cannot override instructions, and the model is told never to reveal its system prompt.
-- **Insecure output handling (LLM02)** — the widget renders answers by building DOM nodes,
-  never `innerHTML`, and strips `javascript:` / `data:` URLs, so a hostile document cannot run
-  script on a host page.
-- **Sensitive information disclosure (LLM06)** — every query is scoped by `project_id`, so
-  retrieval and history never cross tenants; `secret` keys are server-side only and never
-  returned after creation.
-- **Model denial of service (LLM04)** — all keys are rate-limited, with stricter limits on
-  publishable and sandbox keys; low-confidence questions are refused before the model is
-  called.
+`docker/docker-compose.yml` brings up the whole stack — API, dashboard, Postgres with pgvector,
+Redis, and MinIO — and is a reasonable starting point for a single-host deployment.
 
-Production startup refuses a weak `JWT_SECRET` or wildcard CORS, and responses carry standard
-security headers.
+---
 
 ## Testing
 
-The backend suite is fully offline and deterministic: fakes stand in for the search backend,
-embeddings, and the chat model, so no keys, network, or Redis are needed. The Postgres store
-tests skip cleanly unless `TEST_DATABASE_URL` is set. The widget suite covers SSE frame
-parsing and the Markdown renderer's XSS defenses.
-
 ```bash
-cd apps/api && uv run pytest          # 99 passing (Postgres store tests skip locally)
-pnpm --filter @embaid/widget test    # SSE parsing + Markdown safety
+cd apps/api
+uv run pytest              # backend suite
+uv run ruff check .        # lint
+uv run mypy src            # type check
+
+pnpm -r test               # widget, SDK, dashboard
+pnpm -r typecheck
+pnpm -r lint
 ```
 
-CI runs the API suite against a pgvector service container and builds and tests the
-workspace packages.
+The backend suite runs fully offline: search backends, embeddings, and the chat model are replaced
+with deterministic fakes, so retrieval logic, fusion maths, refusal behaviour, and tenancy rules are
+tested without network access or API keys. CI runs both suites on every push.
+
+---
 
 ## Contributing
 
-1. Fork and create a feature branch: `git checkout -b feat/your-change`
-2. Make changes with tests (offline fakes; see `apps/api/tests` for patterns)
-3. Run the checks locally:
-   ```bash
-   cd apps/api && uv run ruff check . && uv run pytest -q
-   pnpm -r build && pnpm -r test
-   ```
-4. Commit with a Conventional Commits message (`feat(scope): ...`)
-5. Open a pull request; CI must pass
+Issues and pull requests are welcome.
+
+1. Fork and branch from `main`.
+2. Keep changes focused; one concern per pull request.
+3. Add tests for behaviour changes — especially anything touching retrieval, fusion, or tenancy.
+4. Run the full check set above before opening the PR.
+5. Follow the existing style: `ruff` and `mypy` for Python, ESLint and `tsc` for TypeScript,
+   Conventional Commits for messages.
+
+---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Released under the [MIT License](LICENSE).
