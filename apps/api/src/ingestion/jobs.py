@@ -32,10 +32,10 @@ ERROR_MAX_CHARS = 2000
 WEBHOOK_MAX_ATTEMPTS = 3
 WEBHOOK_BACKOFF_SECONDS = 1.0
 WEBHOOK_TIMEOUT_SECONDS = 15.0
-WEBHOOK_USER_AGENT = "proprAI-Chat-Webhooks/0.1"
-SIGNATURE_HEADER = "x-proprai-signature"
-EVENT_HEADER = "x-proprai-event"
-DELIVERY_HEADER = "x-proprai-delivery"
+WEBHOOK_USER_AGENT = "EmbAId-Chat-Webhooks/0.1"
+SIGNATURE_HEADER = "x-embaid-signature"
+EVENT_HEADER = "x-embaid-event"
+DELIVERY_HEADER = "x-embaid-delivery"
 
 
 def utcnow() -> datetime:

@@ -1,7 +1,7 @@
 import { ChatWidget } from "./widget";
 import type { EmbedOptions } from "./types";
 
-const DEFAULT_API_URL = "https://api.proprai.chat";
+const DEFAULT_API_URL = "https://api.embaid.chat";
 
 function readOptions(): EmbedOptions | null {
   const script =

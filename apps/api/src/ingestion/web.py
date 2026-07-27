@@ -6,7 +6,7 @@ from urllib.robotparser import RobotFileParser
 
 from bs4 import BeautifulSoup
 
-USER_AGENT = "proprAI-Chat-Ingest/0.1 (+https://proprai.chat/bot)"
+USER_AGENT = "EmbAId-Chat-Ingest/0.1 (+https://embaid.chat/bot)"
 DEFAULT_MAX_PAGES = 25
 DEFAULT_DELAY_SECONDS = 0.5
 DEFAULT_TIMEOUT_SECONDS = 20.0

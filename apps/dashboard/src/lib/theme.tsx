@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 export type Theme = "light" | "dark";
 
-const STORAGE_KEY = "proprai.theme";
+const STORAGE_KEY = "embaid.theme";
 
 interface ThemeContextValue {
   theme: Theme;

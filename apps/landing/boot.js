@@ -20,7 +20,7 @@
 
   const demoConfig = {
     primary_color: "#4493f8",
-    greeting: "嗨,我是 proprAI 智嵌的示範助理。試著問我檢索原理、如何嵌入,或資料安全。",
+    greeting: "嗨,我是 EmbAId 智嵌的示範助理。試著問我檢索原理、如何嵌入,或資料安全。",
     starter_questions: [
       "RAG 如何避免亂編答案?",
       "怎麼把助理嵌到我的網站?",
@@ -36,7 +36,7 @@
   const demoAnswers = [
     {
       match: ["檢索", "亂", "幻覺", "hallucin", "準", "來源", "信心", "出處", "rag"],
-      text: "proprAI 用**混合檢索**同時比對語意向量與關鍵字,再以 cross-encoder 重排序挑出最相關的段落。當證據信心低於門檻時,助理會直接說「文件裡沒有」而不硬掰——所以每個答案都查得到出處。",
+      text: "EmbAId 用**混合檢索**同時比對語意向量與關鍵字,再以 cross-encoder 重排序挑出最相關的段落。當證據信心低於門檻時,助理會直接說「文件裡沒有」而不硬掰——所以每個答案都查得到出處。",
       cite: { title: "檢索管線設計", snippet: "hybrid retrieval + cross-encoder rerank" },
     },
     {
@@ -52,7 +52,7 @@
   ];
 
   const demoFallback = {
-    text: "我是 proprAI 智嵌的示範助理。這個平台把你的文件變成會查證的問答助理:混合檢索、交叉重排序、對話式改寫、低信心自動婉拒,還有可稽核的檢索軌跡。想看真實效果,請登入上傳文件後從儀表板開啟試用連結。",
+    text: "我是 EmbAId 智嵌的示範助理。這個平台把你的文件變成會查證的問答助理:混合檢索、交叉重排序、對話式改寫、低信心自動婉拒,還有可稽核的檢索軌跡。想看真實效果,請登入上傳文件後從儀表板開啟試用連結。",
     cite: null,
   };
 
@@ -158,6 +158,6 @@
   widget.src = "./widget.js";
   widget.setAttribute("data-key", live ? publishableKey : "pub_demo");
   widget.setAttribute("data-project", live ? projectId : "proj_demo");
-  widget.setAttribute("data-api-url", live ? apiUrl : "https://demo.proprai.chat");
+  widget.setAttribute("data-api-url", live ? apiUrl : "https://demo.embaid.chat");
   document.body.appendChild(widget);
 })();

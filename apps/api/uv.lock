@@ -1678,7 +1678,7 @@ wheels = [
 ]
 
 [[package]]
-name = "proprai-api"
+name = "embaid-api"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

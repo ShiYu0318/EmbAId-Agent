@@ -31,7 +31,7 @@ export function createTranslator(locale: Locale): TranslateFn {
   return (path, params) => translate(asTrees, locale, FALLBACK_LOCALE, path, params);
 }
 
-const STORAGE_KEY = "proprai.locale";
+const STORAGE_KEY = "embaid.locale";
 
 interface I18nContextValue {
   locale: Locale;

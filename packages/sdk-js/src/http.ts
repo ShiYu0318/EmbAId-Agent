@@ -1,11 +1,11 @@
 import {
   createErrorFromResponse,
-  ProprAIAbortError,
-  ProprAIConnectionError,
-  ProprAIError,
-  ProprAIRateLimitError,
-  ProprAIServerError,
-  ProprAITimeoutError,
+  EmbAIdAbortError,
+  EmbAIdConnectionError,
+  EmbAIdError,
+  EmbAIdRateLimitError,
+  EmbAIdServerError,
+  EmbAIdTimeoutError,
 } from "./errors";
 import type { RequestOptions } from "./types/common";
 
@@ -39,7 +39,7 @@ function backoffDelay(attempt: number, retryAfter?: number): number {
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
-      reject(new ProprAIAbortError("request aborted", { status: 0 }));
+      reject(new EmbAIdAbortError("request aborted", { status: 0 }));
       return;
     }
     const timer = setTimeout(() => {
@@ -48,7 +48,7 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
     }, ms);
     const onAbort = () => {
       clearTimeout(timer);
-      reject(new ProprAIAbortError("request aborted", { status: 0 }));
+      reject(new EmbAIdAbortError("request aborted", { status: 0 }));
     };
     signal?.addEventListener("abort", onAbort, { once: true });
   });
@@ -73,7 +73,7 @@ export class HttpClient {
   constructor(private readonly options: HttpClientOptions) {
     const globalFetch = options.fetch ?? (globalThis.fetch as FetchLike | undefined);
     if (!globalFetch) {
-      throw new ProprAIError("no fetch implementation available", { status: 0 });
+      throw new EmbAIdError("no fetch implementation available", { status: 0 });
     }
     this.fetchImpl = globalFetch.bind(globalThis);
     this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
@@ -116,17 +116,17 @@ export class HttpClient {
         clearTimeout(timer);
         config.signal?.removeEventListener("abort", onOuterAbort);
         if (config.signal?.aborted) {
-          throw new ProprAIAbortError("request aborted", { status: 0 });
+          throw new EmbAIdAbortError("request aborted", { status: 0 });
         }
         if (controller.signal.aborted) {
-          throw new ProprAITimeoutError("request timed out", { status: 0 });
+          throw new EmbAIdTimeoutError("request timed out", { status: 0 });
         }
         if (attempt < maxRetries) {
           await sleep(backoffDelay(attempt), config.signal);
           attempt += 1;
           continue;
         }
-        throw new ProprAIConnectionError((error as Error).message, { status: 0 });
+        throw new EmbAIdConnectionError((error as Error).message, { status: 0 });
       } finally {
         clearTimeout(timer);
         config.signal?.removeEventListener("abort", onOuterAbort);
@@ -180,4 +180,4 @@ export class HttpClient {
   }
 }
 
-export { ProprAIRateLimitError, ProprAIServerError };
+export { EmbAIdRateLimitError, EmbAIdServerError };

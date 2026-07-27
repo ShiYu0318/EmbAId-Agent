@@ -15,7 +15,7 @@ const en: LocaleMessages = {
     ctaEmbed: "Go to embed settings",
   },
   common: {
-    appName: "proprAI Chat",
+    appName: "EmbAId Chat",
     tagline: "Management console",
     loading: "Loading",
     loadFailed: "Failed to load",
@@ -62,7 +62,7 @@ const en: LocaleMessages = {
   },
   auth: {
     loginTitle: "Sign in to the console",
-    loginSubtitle: "Manage your proprAI Chat projects, knowledge base and conversations.",
+    loginSubtitle: "Manage your EmbAId Chat projects, knowledge base and conversations.",
     signupTitle: "Create an account",
     signupSubtitle: "Sign up to start building your own RAG-powered assistant.",
     email: "Email",
@@ -529,7 +529,7 @@ const en: LocaleMessages = {
     webhooks: "Webhooks",
     addWebhook: "Add webhook",
     webhookUrl: "Endpoint URL",
-    webhookUrlPlaceholder: "https://example.com/webhooks/proprai",
+    webhookUrlPlaceholder: "https://example.com/webhooks/embaid",
     events: "Subscribed events",
     webhookSecretTitle: "Save your signing secret",
     webhookSecretOnce: "This secret is shown once and is used to verify webhook signatures.",

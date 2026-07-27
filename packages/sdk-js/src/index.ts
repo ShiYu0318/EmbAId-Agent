@@ -1,20 +1,20 @@
-export { ProprAI, type ProprAIOptions } from "./client";
+export { EmbAId, type EmbAIdOptions } from "./client";
 export {
-  ProprAIError,
-  ProprAIBadRequestError,
-  ProprAIUnauthorizedError,
-  ProprAIForbiddenError,
-  ProprAINotFoundError,
-  ProprAIConflictError,
-  ProprAIRateLimitError,
-  ProprAIProviderUnavailableError,
-  ProprAIServerError,
-  ProprAIConnectionError,
-  ProprAITimeoutError,
-  ProprAIAbortError,
-  ProprAIStreamError,
-  ProprAIPermissionError,
-  type ProprAIErrorCode,
+  EmbAIdError,
+  EmbAIdBadRequestError,
+  EmbAIdUnauthorizedError,
+  EmbAIdForbiddenError,
+  EmbAIdNotFoundError,
+  EmbAIdConflictError,
+  EmbAIdRateLimitError,
+  EmbAIdProviderUnavailableError,
+  EmbAIdServerError,
+  EmbAIdConnectionError,
+  EmbAIdTimeoutError,
+  EmbAIdAbortError,
+  EmbAIdStreamError,
+  EmbAIdPermissionError,
+  type EmbAIdErrorCode,
 } from "./errors";
 
 export type {

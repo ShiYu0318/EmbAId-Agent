@@ -1,6 +1,6 @@
 import type { KeyType } from "./types/common.js";
 
-export type ProprAIErrorCode =
+export type EmbAIdErrorCode =
   | "error"
   | "not_found"
   | "unauthorized"
@@ -15,21 +15,21 @@ export type ProprAIErrorCode =
   | "stream_error"
   | "permission_denied";
 
-export interface ProprAIErrorOptions {
+export interface EmbAIdErrorOptions {
   status?: number;
-  code?: ProprAIErrorCode;
+  code?: EmbAIdErrorCode;
   requestId?: string;
   body?: unknown;
   cause?: unknown;
 }
 
-export class ProprAIError extends Error {
+export class EmbAIdError extends Error {
   readonly status: number | undefined;
-  readonly code: ProprAIErrorCode;
+  readonly code: EmbAIdErrorCode;
   readonly requestId: string | undefined;
   readonly body: unknown;
 
-  constructor(message: string, options: ProprAIErrorOptions = {}) {
+  constructor(message: string, options: EmbAIdErrorOptions = {}) {
     super(message, options.cause === undefined ? undefined : { cause: options.cause });
     this.name = new.target.name;
     this.status = options.status;
@@ -39,49 +39,49 @@ export class ProprAIError extends Error {
   }
 }
 
-export class ProprAIBadRequestError extends ProprAIError {}
-export class ProprAIUnauthorizedError extends ProprAIError {}
-export class ProprAIForbiddenError extends ProprAIError {}
-export class ProprAINotFoundError extends ProprAIError {}
-export class ProprAIConflictError extends ProprAIError {}
+export class EmbAIdBadRequestError extends EmbAIdError {}
+export class EmbAIdUnauthorizedError extends EmbAIdError {}
+export class EmbAIdForbiddenError extends EmbAIdError {}
+export class EmbAIdNotFoundError extends EmbAIdError {}
+export class EmbAIdConflictError extends EmbAIdError {}
 
-export class ProprAIRateLimitError extends ProprAIError {
+export class EmbAIdRateLimitError extends EmbAIdError {
   readonly retryAfter: number | undefined;
 
-  constructor(message: string, options: ProprAIErrorOptions & { retryAfter?: number } = {}) {
+  constructor(message: string, options: EmbAIdErrorOptions & { retryAfter?: number } = {}) {
     super(message, options);
     this.retryAfter = options.retryAfter;
   }
 }
 
-export class ProprAIProviderUnavailableError extends ProprAIError {}
-export class ProprAIServerError extends ProprAIError {}
+export class EmbAIdProviderUnavailableError extends EmbAIdError {}
+export class EmbAIdServerError extends EmbAIdError {}
 
-export class ProprAIConnectionError extends ProprAIError {
-  constructor(message: string, options: ProprAIErrorOptions = {}) {
+export class EmbAIdConnectionError extends EmbAIdError {
+  constructor(message: string, options: EmbAIdErrorOptions = {}) {
     super(message, { code: "connection_error", ...options });
   }
 }
 
-export class ProprAITimeoutError extends ProprAIConnectionError {
-  constructor(message = "request timed out", options: ProprAIErrorOptions = {}) {
+export class EmbAIdTimeoutError extends EmbAIdConnectionError {
+  constructor(message = "request timed out", options: EmbAIdErrorOptions = {}) {
     super(message, { code: "timeout", ...options });
   }
 }
 
-export class ProprAIAbortError extends ProprAIError {
-  constructor(message = "request was aborted", options: ProprAIErrorOptions = {}) {
+export class EmbAIdAbortError extends EmbAIdError {
+  constructor(message = "request was aborted", options: EmbAIdErrorOptions = {}) {
     super(message, { code: "aborted", ...options });
   }
 }
 
-export class ProprAIStreamError extends ProprAIError {
-  constructor(message: string, options: ProprAIErrorOptions = {}) {
+export class EmbAIdStreamError extends EmbAIdError {
+  constructor(message: string, options: EmbAIdErrorOptions = {}) {
     super(message, { code: "stream_error", ...options });
   }
 }
 
-export class ProprAIPermissionError extends ProprAIError {
+export class EmbAIdPermissionError extends EmbAIdError {
   readonly keyType: KeyType;
   readonly resource: string;
   readonly requiredKeyType: KeyType;
@@ -178,37 +178,37 @@ export function createErrorFromResponse(params: {
   body: unknown;
   requestId?: string;
   retryAfter?: number;
-}): ProprAIError {
+}): EmbAIdError {
   const { status, body, requestId, retryAfter } = params;
   const detail = extractDetail(body);
   const message = detail.message ?? DEFAULT_MESSAGES[status] ?? `request failed with status ${status}`;
   const code = (
     detail.code !== undefined && KNOWN_CODES.has(detail.code) ? detail.code : undefined
-  ) as ProprAIErrorCode | undefined;
+  ) as EmbAIdErrorCode | undefined;
 
-  const options: ProprAIErrorOptions = { status, body, requestId };
+  const options: EmbAIdErrorOptions = { status, body, requestId };
 
   switch (status) {
     case 400:
-      return new ProprAIBadRequestError(message, { ...options, code: code ?? "invalid_request" });
+      return new EmbAIdBadRequestError(message, { ...options, code: code ?? "invalid_request" });
     case 401:
-      return new ProprAIUnauthorizedError(message, { ...options, code: code ?? "unauthorized" });
+      return new EmbAIdUnauthorizedError(message, { ...options, code: code ?? "unauthorized" });
     case 403:
-      return new ProprAIForbiddenError(message, { ...options, code: code ?? "forbidden" });
+      return new EmbAIdForbiddenError(message, { ...options, code: code ?? "forbidden" });
     case 404:
-      return new ProprAINotFoundError(message, { ...options, code: code ?? "not_found" });
+      return new EmbAIdNotFoundError(message, { ...options, code: code ?? "not_found" });
     case 409:
-      return new ProprAIConflictError(message, { ...options, code: code ?? "conflict" });
+      return new EmbAIdConflictError(message, { ...options, code: code ?? "conflict" });
     case 422:
-      return new ProprAIBadRequestError(message, { ...options, code: code ?? "invalid_request" });
+      return new EmbAIdBadRequestError(message, { ...options, code: code ?? "invalid_request" });
     case 429:
-      return new ProprAIRateLimitError(message, {
+      return new EmbAIdRateLimitError(message, {
         ...options,
         code: code ?? "rate_limited",
         retryAfter,
       });
     case 503:
-      return new ProprAIProviderUnavailableError(message, {
+      return new EmbAIdProviderUnavailableError(message, {
         ...options,
         code: code ?? "provider_unavailable",
       });
@@ -217,8 +217,8 @@ export function createErrorFromResponse(params: {
   }
 
   if (status >= 500) {
-    return new ProprAIServerError(message, { ...options, code: code ?? "error" });
+    return new EmbAIdServerError(message, { ...options, code: code ?? "error" });
   }
 
-  return new ProprAIError(message, { ...options, code: code ?? "error" });
+  return new EmbAIdError(message, { ...options, code: code ?? "error" });
 }

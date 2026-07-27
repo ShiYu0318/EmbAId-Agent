@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>proprAI Chat 智嵌 — 讓你的內容,安靜地開口回答</title>
+    <title>EmbAId Chat 智嵌 — 讓你的內容,安靜地開口回答</title>
     <meta
       name="description"
       content="API-first 的 RAG 內容問答平台。上傳文件、嵌入一段 script,幾分鐘就有一個查得到出處的 AI 助理。混合檢索、重排序、低信心婉拒、可稽核來源,一次到位。"
@@ -22,9 +22,9 @@
 
     <header class="nav" data-nav>
       <div class="container nav__inner">
-        <a class="brand" href="#top" aria-label="proprAI Chat 首頁">
+        <a class="brand" href="#top" aria-label="EmbAId Chat 首頁">
           <span class="brand__mark" aria-hidden="true">P</span>
-          <span class="brand__name">proprAI Chat</span>
+          <span class="brand__name">EmbAId Chat</span>
         </a>
 
         <nav class="nav__links" aria-label="主要導覽">
@@ -191,7 +191,7 @@
             </ul>
             <div class="code" data-copy-root>
               <div class="code__bar"><span class="code__file">index.html</span><button class="code__copy" type="button" data-copy="embed">複製</button></div>
-              <pre class="code__body"><code id="embed">&lt;script src="cdn.proprai.chat/widget.js"
+              <pre class="code__body"><code id="embed">&lt;script src="cdn.embaid.chat/widget.js"
   data-key="pub_xxx"
   data-project="proj_xxx"&gt;&lt;/script&gt;</code></pre>
             </div>
@@ -214,16 +214,16 @@
             </div>
             <div class="tabs__panel" data-panel="curl">
               <div class="code__bar"><span class="code__file">terminal</span><button class="code__copy" type="button" data-copy="curl">複製</button></div>
-              <pre class="code__body"><code id="curl">curl https://api.proprai.chat/v1/chat \
+              <pre class="code__body"><code id="curl">curl https://api.embaid.chat/v1/chat \
   -H "X-API-Key: sk_live_xxx" \
   -H "Content-Type: application/json" \
   -d '{"message":"退款要多久?"}'</code></pre>
             </div>
             <div class="tabs__panel" data-panel="sdk" hidden>
               <div class="code__bar"><span class="code__file">app.ts</span><button class="code__copy" type="button" data-copy="sdk">複製</button></div>
-              <pre class="code__body"><code id="sdk">import { ProprAI } from "@proprai/sdk";
+              <pre class="code__body"><code id="sdk">import { EmbAId } from "@embaid/sdk";
 
-const client = new ProprAI({ apiKey: process.env.PROPRAI_KEY });
+const client = new EmbAId({ apiKey: process.env.EMBAID_KEY });
 
 const stream = await client.chat.stream({
   projectId: "proj_xxx",
@@ -236,7 +236,7 @@ for await (const token of stream) {
             </div>
             <div class="tabs__panel" data-panel="embed2" hidden>
               <div class="code__bar"><span class="code__file">index.html</span><button class="code__copy" type="button" data-copy="embed2">複製</button></div>
-              <pre class="code__body"><code id="embed2">&lt;script src="cdn.proprai.chat/widget.js"
+              <pre class="code__body"><code id="embed2">&lt;script src="cdn.embaid.chat/widget.js"
   data-key="pub_xxx"
   data-project="proj_xxx"&gt;&lt;/script&gt;</code></pre>
             </div>
@@ -299,7 +299,7 @@ for await (const token of stream) {
     <footer class="footer">
       <div class="container footer__inner">
         <div class="footer__brand">
-          <span class="brand"><span class="brand__mark">P</span><span class="brand__name">proprAI Chat</span></span>
+          <span class="brand"><span class="brand__mark">P</span><span class="brand__name">EmbAId Chat</span></span>
           <p>把知識庫變成會查證的答案。</p>
         </div>
         <nav class="footer__cols" aria-label="頁尾導覽">
@@ -309,7 +309,7 @@ for await (const token of stream) {
         </nav>
       </div>
       <div class="container footer__bottom">
-        <span>© 2026 proprAI Chat</span>
+        <span>© 2026 EmbAId Chat</span>
         <span>Shadow DOM 隔離 · zh-TW 優先 · 開放原始碼</span>
       </div>
     </footer>

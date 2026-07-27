@@ -13,7 +13,7 @@ const zhTW = {
     ctaEmbed: "前往嵌入設定",
   },
   common: {
-    appName: "proprAI Chat",
+    appName: "EmbAId Chat",
     tagline: "智嵌管理後台",
     loading: "載入中",
     loadFailed: "載入失敗",
@@ -60,7 +60,7 @@ const zhTW = {
   },
   auth: {
     loginTitle: "登入管理後台",
-    loginSubtitle: "管理你的 proprAI Chat 專案、知識庫與對話。",
+    loginSubtitle: "管理你的 EmbAId Chat 專案、知識庫與對話。",
     signupTitle: "建立帳號",
     signupSubtitle: "註冊後即可開始打造專屬的 RAG 智慧客服。",
     email: "電子郵件",
@@ -525,7 +525,7 @@ const zhTW = {
     webhooks: "Webhook",
     addWebhook: "新增 Webhook",
     webhookUrl: "接收網址",
-    webhookUrlPlaceholder: "https://example.com/webhooks/proprai",
+    webhookUrlPlaceholder: "https://example.com/webhooks/embaid",
     events: "訂閱事件",
     webhookSecretTitle: "請保存你的簽章密鑰",
     webhookSecretOnce: "此密鑰只會顯示一次，用於驗證 Webhook 請求簽章。",

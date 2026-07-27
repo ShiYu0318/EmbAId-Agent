@@ -27,8 +27,8 @@ import { useProjectKey } from "@/lib/project-key";
 
 // Mirrors DEFAULT_API_URL in apps/widget/src/index.ts — the snippet only pins
 // data-api-url when the dashboard talks to a different API than that default.
-const DEFAULT_WIDGET_API = "https://api.proprai.chat";
-const WIDGET_SRC = process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://cdn.proprai.chat/widget.js";
+const DEFAULT_WIDGET_API = "https://api.embaid.chat";
+const WIDGET_SRC = process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://cdn.embaid.chat/widget.js";
 
 function buildSnippet(projectId: string, key: string): string {
   const base = apiBaseUrl().replace(/\/$/, "");

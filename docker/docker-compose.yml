@@ -1,4 +1,4 @@
-name: proprai-chat
+name: embaid-chat
 
 services:
   api:
@@ -8,7 +8,7 @@ services:
     env_file:
       - ../apps/api/.env
     environment:
-      DATABASE_URL: postgresql+asyncpg://proprai:proprai@postgres:5432/proprai
+      DATABASE_URL: postgresql+asyncpg://embaid:embaid@postgres:5432/embaid
       SEARCH_BACKEND: postgres
       REDIS_URL: redis://redis:6379
       STORAGE_ENDPOINT_URL: http://minio:9000
@@ -30,7 +30,7 @@ services:
     env_file:
       - ../apps/api/.env
     environment:
-      DATABASE_URL: postgresql+asyncpg://proprai:proprai@postgres:5432/proprai
+      DATABASE_URL: postgresql+asyncpg://embaid:embaid@postgres:5432/embaid
       SEARCH_BACKEND: postgres
       REDIS_URL: redis://redis:6379
       STORAGE_ENDPOINT_URL: http://minio:9000
@@ -54,15 +54,15 @@ services:
   postgres:
     image: pgvector/pgvector:pg17
     environment:
-      POSTGRES_USER: proprai
-      POSTGRES_PASSWORD: proprai
-      POSTGRES_DB: proprai
+      POSTGRES_USER: embaid
+      POSTGRES_PASSWORD: embaid
+      POSTGRES_DB: embaid
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U proprai"]
+      test: ["CMD-SHELL", "pg_isready -U embaid"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -76,8 +76,8 @@ services:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: proprai
-      MINIO_ROOT_PASSWORD: proprai-secret
+      MINIO_ROOT_USER: embaid
+      MINIO_ROOT_PASSWORD: embaid-secret
     volumes:
       - minio_data:/data
     ports:

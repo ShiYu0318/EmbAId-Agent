@@ -4,7 +4,7 @@
 
   const stored = (() => {
     try {
-      return localStorage.getItem("proprai-theme");
+      return localStorage.getItem("embaid-theme");
     } catch {
       return null;
     }
@@ -16,7 +16,7 @@
       const next = root.dataset.theme === "dark" ? "light" : "dark";
       root.dataset.theme = next;
       try {
-        localStorage.setItem("proprai-theme", next);
+        localStorage.setItem("embaid-theme", next);
       } catch {
         void 0;
       }

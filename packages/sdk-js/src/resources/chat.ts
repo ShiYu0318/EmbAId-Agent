@@ -1,5 +1,5 @@
 import { decodeSSEStream } from "../sse";
-import { ProprAIStreamError } from "../errors";
+import { EmbAIdStreamError } from "../errors";
 import type { HttpClient } from "../http";
 import type {
   ChatOptions,
@@ -79,7 +79,7 @@ export class ChatResource {
     });
 
     if (!response.body) {
-      throw new ProprAIStreamError("response has no body", { status: response.status });
+      throw new EmbAIdStreamError("response has no body", { status: response.status });
     }
 
     for await (const event of decodeSSEStream(response.body)) {
@@ -116,7 +116,7 @@ export class ChatResource {
           confidenceScore = event.confidenceScore;
           break;
         case "error":
-          throw new ProprAIStreamError(event.message, { status: 0 });
+          throw new EmbAIdStreamError(event.message, { status: 0 });
         default:
           break;
       }

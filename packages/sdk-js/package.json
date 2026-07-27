@@ -1,7 +1,7 @@
 {
-  "name": "@proprai/sdk-js",
+  "name": "@embaid/sdk-js",
   "version": "0.1.0",
-  "description": "Official JavaScript and TypeScript SDK for the proprAI Chat API",
+  "description": "Official JavaScript and TypeScript SDK for the EmbAId Chat API",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -31,7 +31,7 @@
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
-    "proprai",
+    "embaid",
     "rag",
     "chat",
     "sdk",

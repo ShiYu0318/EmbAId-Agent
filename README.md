@@ -1,14 +1,14 @@
 <div align="center">
 
-# proprAI Chat 智嵌
+# EmbAId Chat 智嵌
 
-**proprAI Chat** is a full-stack, open-source, API-first platform that turns any body of
+**EmbAId Chat** is a full-stack, open-source, API-first platform that turns any body of
 content into an answerable knowledge base: upload documents or point it at a website, and it
 serves grounded, streaming, cited answers over a REST + SSE API that a one-line embeddable
 widget, a mobile app, or any backend can call — multi-tenant, Traditional-Chinese-first,
 Postgres+pgvector in production or SQLite+FAISS for local development.
 
-[![CI](https://github.com/ShiYu0318/proprAI-Chat/actions/workflows/ci.yml/badge.svg)](https://github.com/ShiYu0318/proprAI-Chat/actions/workflows/ci.yml)
+[![CI](https://github.com/ShiYu0318/EmbAId-Chat/actions/workflows/ci.yml/badge.svg)](https://github.com/ShiYu0318/EmbAId-Chat/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/)
 [![React](https://img.shields.io/badge/react-19-61dafb.svg)](https://react.dev/)
 [![FastAPI](https://img.shields.io/badge/api-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
@@ -41,7 +41,7 @@ Postgres+pgvector in production or SQLite+FAISS for local development.
 
 ## Overview
 
-proprAI Chat lets you stand up a grounded question-answering service over your own content
+EmbAId Chat lets you stand up a grounded question-answering service over your own content
 without wiring a RAG pipeline yourself. Upload PDFs, Word, Markdown, or plain text, crawl a
 website, expand a sitemap, or import from Notion and Google Docs; the platform chunks,
 contextualizes, embeds, and indexes everything, then answers questions from it with inline
@@ -49,7 +49,7 @@ source citations. Answers stream token by token over Server-Sent Events, and eve
 keeps an auditable retrieval trace you can read back through the API.
 
 Because the product is **API-first**, the same knowledge base is reachable three ways: a
-one-line embeddable JavaScript widget, the official `@proprai/sdk-js` client, or a direct
+one-line embeddable JavaScript widget, the official `@embaid/sdk-js` client, or a direct
 `POST /v1/chat` call from any backend, mobile app, or bot. The widget is only the first
 official client, not the whole product.
 
@@ -64,15 +64,15 @@ or reranker models — and swaps to Postgres + pgvector for deployment behind a 
 interface. Heavier pieces (cross-encoder reranking, contextual embedding, LLM providers)
 degrade gracefully when their services or keys are unavailable.
 
-## proprAI = propri + AI
+## EmbAId = propri + AI
 
-> Embed proprAI Chat, inlAId intelligence for your website.
+> Embed EmbAId Chat, inlAId intelligence for your website.
 
 源自拉丁文 proprius，意為「屬於自己的」，作為詞根：proprietary, property, appropriate，在此代表客製化 AI 形象與資料庫的理念。
 
 透過 RAG 技術可讓使用者在屬於自己的向量資料庫中 Embedding（詞嵌入）專屬文件提供 AI 根據資料回覆。
 
-於是在 propri 中嵌入 AI 形成 proprAI，就如同在網站中嵌入 proprAI 一般，將智慧鑲嵌（inlaid）在其中。
+於是在 propri 中嵌入 AI 形成 EmbAId，就如同在網站中嵌入 EmbAId 一般，將智慧鑲嵌（inlaid）在其中。
 
 > Fun Fact: 鑲嵌 (inlaid) 本身也正好鑲嵌了 AI 在其中。
 
@@ -133,7 +133,7 @@ degrade gracefully when their services or keys are unavailable.
   stale-document count.
 - **Webhooks** — subscribe to `document.indexed`, `source.failed`, `conversation.started`,
   and `knowledge_gap.created` with HMAC-signed deliveries and a delivery log.
-- **Official SDK** — `@proprai/sdk-js`, a zero-dependency, browser/Node/edge TypeScript
+- **Official SDK** — `@embaid/sdk-js`, a zero-dependency, browser/Node/edge TypeScript
   client with streaming and non-streaming chat, retries, and full types.
 
 ### Embeddable widget
@@ -174,7 +174,7 @@ Design notes:
 
 ## RAG design
 
-proprAI Chat composes the retrieval-augmented generation stages as swappable modules behind
+EmbAId Chat composes the retrieval-augmented generation stages as swappable modules behind
 one storage interface, so the same behavior runs on SQLite + FAISS locally and Postgres +
 pgvector in deployment:
 
@@ -203,7 +203,7 @@ question
 ## Architecture
 
 ```
-  Widget (Shadow DOM, vanilla TS)   Dashboard (Next.js, React)   Any client via @proprai/sdk-js
+  Widget (Shadow DOM, vanilla TS)   Dashboard (Next.js, React)   Any client via @embaid/sdk-js
              \                              |                          /
               \        X-API-Key / SSE      |     Bearer JWT          /
                v                            v                        v
@@ -253,7 +253,7 @@ question
 ## Project structure
 
 ```
-proprAI-Chat/
+EmbAId-Chat/
   apps/
     api/                 FastAPI backend (run uv commands from here)
       src/
@@ -274,7 +274,7 @@ proprAI-Chat/
     widget/              Embeddable Shadow DOM chat widget + esbuild build + demo.html
     landing/             Marketing site with an embedded live widget demo (static + esbuild)
   packages/
-    sdk-js/              @proprai/sdk-js official TypeScript client
+    sdk-js/              @embaid/sdk-js official TypeScript client
   docker/                docker-compose.yml + Dockerfiles
   .github/workflows/     CI: API tests, workspace build and test
 ```
@@ -315,7 +315,7 @@ pnpm -r test
 Build just the widget and open its isolation demo:
 
 ```bash
-pnpm --filter @proprai/widget build
+pnpm --filter @embaid/widget build
 # open apps/widget/demo.html in a browser
 ```
 
@@ -344,7 +344,7 @@ live answers:
 ```bash
 ENVIRONMENT=development
 JWT_SECRET=                       # openssl rand -hex 32
-DATABASE_URL=sqlite+aiosqlite:///./data/proprai.sqlite
+DATABASE_URL=sqlite+aiosqlite:///./data/embaid.sqlite
 SEARCH_BACKEND=sqlite_faiss       # or postgres
 QUEUE_ENABLED=true                # false runs jobs inline (no Redis)
 ANTHROPIC_API_KEY=                # or OPENAI_API_KEY, or run Ollama
@@ -367,16 +367,16 @@ to start with a weak `JWT_SECRET` or a wildcard CORS origin.
 Embed the widget on any site:
 
 ```html
-<script src="https://cdn.proprai.chat/widget.js"
+<script src="https://cdn.embaid.chat/widget.js"
         data-key="pub_xxx" data-project="proj_xxx"></script>
 ```
 
 Call the API from TypeScript with the SDK:
 
 ```ts
-import { ProprAI } from "@proprai/sdk-js";
+import { EmbAId } from "@embaid/sdk-js";
 
-const client = new ProprAI({ apiKey: "sk_xxx", projectId: "proj_xxx" });
+const client = new EmbAId({ apiKey: "sk_xxx", projectId: "proj_xxx" });
 for await (const event of client.chat.stream({ message: "退貨政策是什麼？" })) {
   if (event.type === "token") process.stdout.write(event.text);
 }
@@ -523,7 +523,7 @@ parsing and the Markdown renderer's XSS defenses.
 
 ```bash
 cd apps/api && uv run pytest          # 99 passing (Postgres store tests skip locally)
-pnpm --filter @proprai/widget test    # SSE parsing + Markdown safety
+pnpm --filter @embaid/widget test    # SSE parsing + Markdown safety
 ```
 
 CI runs the API suite against a pgvector service container and builds and tests the

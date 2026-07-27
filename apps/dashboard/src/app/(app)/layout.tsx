@@ -71,14 +71,14 @@ const NAV: { sectionKey: string; items: NavItem[] }[] = [
 const MIN_WIDTH = 240;
 const MAX_WIDTH = 480;
 const DEFAULT_WIDTH = 300;
-const WIDTH_KEY = "proprai.sidebar.width.v2";
+const WIDTH_KEY = "embaid.sidebar.width.v2";
 
 // Roughly a 1:5 split — the sidebar takes about one sixth of the viewport.
 function proportionalWidth(): number {
   if (typeof window === "undefined") return DEFAULT_WIDTH;
   return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.round(window.innerWidth / 6)));
 }
-const COLLAPSED_KEY = "proprai.sidebar.collapsed";
+const COLLAPSED_KEY = "embaid.sidebar.collapsed";
 
 function AccountBlock() {
   const { user, logout } = useAuth();
@@ -208,7 +208,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             >
               <IconMenu size={18} />
             </button>
-            <span className="app-brand-mark">proprAI</span>
+            <span className="app-brand-mark">EmbAId</span>
             <span className="app-brand-sub">Chat</span>
           </div>
 

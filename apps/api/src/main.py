@@ -36,7 +36,7 @@ def create_app() -> FastAPI:
     verify_production_config()
 
     app = FastAPI(
-        title="proprAI Chat API",
+        title="EmbAId Chat API",
         version="0.1.0",
         docs_url="/docs",
         redoc_url="/redoc",

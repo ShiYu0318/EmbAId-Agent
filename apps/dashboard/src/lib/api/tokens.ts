@@ -9,9 +9,9 @@ export interface TokenStore {
   clear(): void;
 }
 
-const ACCESS_KEY = "proprai.access";
-const REFRESH_KEY = "proprai.refresh";
-const USER_KEY = "proprai.user";
+const ACCESS_KEY = "embaid.access";
+const REFRESH_KEY = "embaid.refresh";
+const USER_KEY = "embaid.user";
 
 function hasWindow(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";

@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { useAuth } from "@/lib/auth/context";
 import type { Project, ProjectCreateBody } from "@/lib/api/types";
 
-const STORAGE_KEY = "proprai.project";
+const STORAGE_KEY = "embaid.project";
 
 interface ProjectContextValue {
   projects: Project[];

@@ -275,7 +275,7 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
             </div>
 
             <div className="widget-chat__branding">
-              {t("widget.poweredBy")} <strong>proprAI</strong>
+              {t("widget.poweredBy")} <strong>EmbAId</strong>
             </div>
           </div>
         </CardBody>

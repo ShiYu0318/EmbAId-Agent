@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     dashboard_url: str = "http://localhost:3000"
     cors_origins: str = "http://localhost:3000"
 
-    database_url: str = "sqlite+aiosqlite:///./data/proprai.sqlite"
+    database_url: str = "sqlite+aiosqlite:///./data/embaid.sqlite"
     search_backend: Literal["sqlite_faiss", "postgres"] = "sqlite_faiss"
     faiss_index_dir: str = "./data/indices"
 
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     jwt_refresh_ttl_days: int = 30
 
     storage_endpoint_url: str | None = None
-    storage_bucket: str = "proprai"
+    storage_bucket: str = "embaid"
     storage_access_key: str | None = None
     storage_secret_key: str | None = None
     storage_region: str = "us-east-1"

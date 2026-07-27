@@ -1,10 +1,10 @@
-import { ProprAIError, ProprAIPermissionError } from "./errors";
+import { EmbAIdError, EmbAIdPermissionError } from "./errors";
 import { HttpClient } from "./http";
 import { ChatResource } from "./resources/chat";
 import { ManagementResources } from "./resources/management";
 import type { KeyType } from "./types/common";
 
-export interface ProprAIOptions {
+export interface EmbAIdOptions {
   apiKey: string;
   projectId: string;
   baseUrl?: string;
@@ -13,7 +13,7 @@ export interface ProprAIOptions {
   timeout?: number;
 }
 
-const DEFAULT_BASE_URL = "https://api.proprai.chat";
+const DEFAULT_BASE_URL = "https://api.embaid.chat";
 
 const PREFIXES: Record<string, KeyType> = {
   pub_: "publishable",
@@ -25,22 +25,22 @@ function detectKeyType(apiKey: string): KeyType {
   for (const [prefix, type] of Object.entries(PREFIXES)) {
     if (apiKey.startsWith(prefix)) return type;
   }
-  throw new ProprAIError("api key must start with pub_, sk_, or sbx_", {
+  throw new EmbAIdError("api key must start with pub_, sk_, or sbx_", {
     status: 0,
     code: "invalid_request",
   });
 }
 
-export class ProprAI {
+export class EmbAId {
   readonly keyType: KeyType;
   readonly chat: ChatResource;
 
   private readonly http: HttpClient;
   private readonly management: ManagementResources;
 
-  constructor(options: ProprAIOptions) {
-    if (!options.apiKey) throw new ProprAIError("apiKey is required", { status: 0 });
-    if (!options.projectId) throw new ProprAIError("projectId is required", { status: 0 });
+  constructor(options: EmbAIdOptions) {
+    if (!options.apiKey) throw new EmbAIdError("apiKey is required", { status: 0 });
+    if (!options.projectId) throw new EmbAIdError("projectId is required", { status: 0 });
 
     this.keyType = detectKeyType(options.apiKey);
     this.http = new HttpClient({
@@ -56,7 +56,7 @@ export class ProprAI {
 
   private requireSecret<T>(resource: string, group: T): T {
     if (this.keyType !== "secret") {
-      throw new ProprAIPermissionError({ keyType: this.keyType, resource, requiredKeyType: "secret" });
+      throw new EmbAIdPermissionError({ keyType: this.keyType, resource, requiredKeyType: "secret" });
     }
     return group;
   }

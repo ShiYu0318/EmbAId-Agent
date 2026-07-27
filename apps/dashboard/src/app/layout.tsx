@@ -7,8 +7,8 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "proprAI Chat",
-  description: "Management dashboard for the proprAI Chat platform",
+  title: "EmbAId Chat",
+  description: "Management dashboard for the EmbAId Chat platform",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

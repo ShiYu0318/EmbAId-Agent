@@ -4,7 +4,7 @@ import { renderMarkdown } from "./markdown";
 import { STYLES } from "./styles";
 import type { Citation, EmbedOptions, WidgetConfig } from "./types";
 
-const CONVERSATION_STORAGE_KEY = "proprai-conversation-id";
+const CONVERSATION_STORAGE_KEY = "embaid-conversation-id";
 
 interface PendingAnswer {
   bubble: HTMLElement;
@@ -39,7 +39,7 @@ export class ChatWidget {
     this.doc = doc;
     this.api = new ApiClient(options);
     this.host = doc.createElement("div");
-    this.host.setAttribute("data-proprai-widget", "");
+    this.host.setAttribute("data-embaid-widget", "");
     this.shadow = this.host.attachShadow({ mode: "closed" });
   }
 
@@ -175,7 +175,7 @@ export class ChatWidget {
     const branding = this.el("div", "branding");
     branding.append(this.doc.createTextNode(`${this.t("poweredBy")} `));
     const brand = this.doc.createElement("strong");
-    brand.textContent = "proprAI";
+    brand.textContent = "EmbAId";
     branding.appendChild(brand);
     return branding;
   }

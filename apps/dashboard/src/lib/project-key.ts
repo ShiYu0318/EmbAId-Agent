@@ -9,7 +9,7 @@ export type KeyScope = "playground" | "embed";
 
 function storageKey(projectId: string, scope: KeyScope): string {
   // The playground slot predates scoping — keep its name so existing keys survive.
-  return scope === "playground" ? `proprai.key.${projectId}` : `proprai.${scope}.${projectId}`;
+  return scope === "playground" ? `embaid.key.${projectId}` : `embaid.${scope}.${projectId}`;
 }
 
 export function useProjectKey(
