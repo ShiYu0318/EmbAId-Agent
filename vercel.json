@@ -1,7 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "installCommand": "pnpm install --frozen-lockfile --prod=false",
-  "buildCommand": "node apps/landing/build.mjs",
-  "outputDirectory": "apps/landing/dist"
-}
