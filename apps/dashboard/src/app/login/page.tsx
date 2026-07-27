@@ -107,7 +107,7 @@ function LoginForm() {
 
       <section className="auth-panel">
         <div className="auth-brand">
-          <span className="auth-brand__mark">P</span>
+          <span className="auth-brand__mark">E</span>
           <span className="auth-brand__name">{t("common.appName")}</span>
         </div>
 
