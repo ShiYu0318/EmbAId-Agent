@@ -2,10 +2,7 @@
 
 # EmbAId Chat
 
-**Turn your own content into an embeddable AI assistant that cites its sources — and stays quiet when it does not know.**
-
-A self-hosted, API-first RAG platform: ingest documents and websites, retrieve with hybrid search,
-answer with citations, and drop the whole thing onto any page with one `<script>` tag.
+**Embed a RAG-powered, customizable AI chatbot widget into any website with a single `<script>` tag.**
 
 [![CI](https://github.com/ShiYu0318/EmbAId-Chat/actions/workflows/ci.yml/badge.svg)](https://github.com/ShiYu0318/EmbAId-Chat/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
@@ -45,31 +42,37 @@ answer with citations, and drop the whole thing onto any page with one `<script>
 
 ## Overview
 
-Most "chat with your docs" tools fail in the same two ways: they answer confidently when the
-knowledge base has nothing useful, and they give you no way to check where an answer came from.
-Both problems are fatal for customer-facing support, where a wrong answer is worse than no answer.
+EmbAId Chat turns your own content into a chat assistant that lives on your site. Point it at your
+files, your website, or your Notion workspace; it chunks and embeds everything into a vector store
+you control, then answers visitor questions in real time from that material — streamed token by
+token, aware of what was said earlier in the conversation, and linked back to the source it came
+from.
 
-EmbAId Chat is built around the opposite default. Every answer is assembled only from retrieved
-passages, every answer carries citations back to the source document, and when retrieval
-confidence falls below a per-project threshold the assistant declines instead of guessing — and
-records the question so you can see exactly what your content is missing.
+Everything the visitor sees is yours to shape: the assistant's name, avatar, greeting, persona,
+accent colour, starter questions, and the model behind it, all editable from the dashboard with a
+live preview and no redeploy. Everything the operator needs is there too: what was asked, what was
+retrieved, how confident the system was, what it cost, and which questions your content cannot yet
+answer.
 
 **What it does**
 
 1. **Ingests** your knowledge — file uploads, website crawls, sitemaps, Notion, Google Docs.
 2. **Indexes** it — recursive chunking, optional LLM-generated context per chunk, vector plus
-   full-text indexes.
-3. **Answers** questions — hybrid retrieval, reciprocal rank fusion, cross-encoder reranking, a
-   confidence gate, then a streamed answer with citations.
-4. **Ships** as a widget — one script tag, Shadow DOM isolated, zero runtime dependencies.
-5. **Reports** back — retrieval traces, analytics, and a knowledge-gap queue of unanswered questions.
+   full-text indexes in a store you own.
+3. **Answers** in real time — hybrid retrieval, reciprocal rank fusion, cross-encoder reranking,
+   then a streamed answer with citations and conversation memory.
+4. **Ships** as a widget — one script tag, Shadow DOM isolated, zero runtime dependencies, styled
+   to match the host site.
+5. **Reports** back — retrieval traces, analytics, and a queue of questions your content has yet
+   to cover.
 
 **Who it is for**
 
-- Teams who want a support assistant grounded in their own content, self-hosted, without sending
-  their corpus to a third-party SaaS.
+- Teams who want a branded assistant running on their own content and their own infrastructure,
+  without handing the corpus to a third-party SaaS.
 - Developers who want a RAG reference implementation where every stage is inspectable and swappable.
-- Anyone who needs the answer path to be auditable after the fact, not just plausible in the moment.
+- Anyone who needs to customize more than a colour — persona, retrieval behaviour, models, storage,
+  and thresholds are all configurable per project.
 
 **Runs with no external services.** The default configuration uses SQLite, FAISS and an inline job
 runner, so a full instance starts with one command and no Docker.
@@ -80,10 +83,11 @@ runner, so a full instance starts with one command and no Docker.
 
 | Principle | What it means in practice |
 | --- | --- |
-| **Grounded or silent** | Answers are built only from retrieved chunks. Below `confidence_threshold` the assistant refuses in the user's language and logs the question as a knowledge gap. |
-| **Auditable by default** | Every answer emits a `RetrievalTrace`: rewritten query, per-backend hits and ranks, fusion scores, trust weighting, confidence, and per-stage timings. |
+| **Customizable end to end** | Name, avatar, greeting, persona, accent colour, starter questions, system prompt, chat and embedding models, retrieval thresholds — all per project, all editable from the dashboard without a redeploy. |
+| **Your data, your infrastructure** | Documents, embeddings, and conversations live in stores you run. Nothing leaves your deployment except calls to the model provider you pick, and that provider can be a local Ollama. |
 | **Swappable everything** | Search backend, chat model, embedding model, and reranker sit behind narrow interfaces. Switching SQLite+FAISS to Postgres+pgvector is one environment variable. |
-| **Not all content is equal** | Chunks carry a trust score and documents carry a verification date. Stale and low-trust passages are down-weighted at retrieval time, not silently treated as fact. |
+| **Answers you can trace** | Every answer is assembled from retrieved passages and emits a `RetrievalTrace`: rewritten query, per-backend hits and ranks, fusion scores, trust weighting, confidence, and per-stage timings. |
+| **Not all content is equal** | Chunks carry a trust score and documents carry a verification date. Stale and low-trust passages are down-weighted at retrieval time. |
 | **Multi-tenant from day one** | Organizations, projects, scoped API keys, per-key origin allowlists, and per-key rate limits are in the core data model, not bolted on later. |
 | **The widget is a guest** | The embeddable widget renders in a Shadow DOM with zero runtime dependencies, so it cannot leak styles into, or inherit styles from, the host page. |
 
@@ -194,9 +198,11 @@ not clear the same bar as a freshly reviewed one. Trust weighting is applied to 
 *before* the confidence gate reads it, so freshness and provenance actually change whether the
 assistant answers at all — not just the ordering.
 
-**What refusal costs.** Nothing is thrown away. The question is normalized and recorded as a
-`FlaggedQuestion` with an occurrence counter, so repeated misses surface in the dashboard ranked by
-demand. That queue is the intended feedback loop: it tells you which document to write next.
+**Gaps become a content backlog.** When the gate does not clear, the question is normalized and
+recorded as a `FlaggedQuestion` with an occurrence counter, so repeated misses surface in the
+dashboard ranked by real demand. The model can draft an answer for a human to review, and an
+approved answer is indexed straight back into the knowledge base — the queue tells you exactly
+which document to write next.
 
 ### Streamed response format
 
@@ -290,15 +296,15 @@ vectors, so a crawl can be cleanly undone in one action.
 
 ### Retrieval and answering
 
+- Token-by-token SSE streaming, so answers start appearing immediately
+- Conversation memory: follow-up questions are rewritten against recent turns before retrieval
 - Hybrid dense plus lexical retrieval, executed in parallel
 - Reciprocal rank fusion with normalized scores
-- Trust weighting and staleness penalties applied pre-gate
 - Optional cross-encoder reranking
-- Per-project confidence threshold with multilingual refusal
-- Conversation-aware query rewriting
+- Trust weighting and staleness penalties applied before the confidence gate
 - Semantic answer cache with a cosine-similarity threshold
 - Citations resolved back to document title and URL
-- Token-by-token SSE streaming
+- Per-project confidence threshold with multilingual refusal
 - Chinese-aware text handling (jieba segmentation, OpenCC normalization)
 
 ### Multi-tenant platform
@@ -473,8 +479,9 @@ End to end, from an empty database to a working embed:
    tag, and the floating test bot in the dashboard unlocks so you can try the assistant without
    leaving the console.
 5. **Paste the snippet** before `</body>` on your site.
-6. **Watch the gaps.** Questions the assistant declined to answer collect in the knowledge-gap
-   queue, ranked by how often they were asked. That list is your content backlog.
+6. **Grow the knowledge base.** Questions your content could not yet cover collect in the
+   knowledge-gap queue, ranked by how often visitors asked them. Draft an answer with the model,
+   approve it, and it is indexed straight back in.
 
 ---
 
