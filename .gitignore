@@ -29,3 +29,7 @@ data/
 
 # Next.js generated
 next-env.d.ts
+
+# Cloud-sync conflict copies such as "page 2.tsx". They are stale snapshots that
+# shadow the real module and have broken typecheck and vitest before.
+* [0-9].*
