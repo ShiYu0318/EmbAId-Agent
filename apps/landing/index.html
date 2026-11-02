@@ -1,56 +1,67 @@
 <!doctype html>
-<html lang="zh-TW">
+<html lang="zh-TW" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>EmbAId Chat 智嵌 — 讓你的內容,安靜地開口回答</title>
+    <meta name="theme-color" content="#08080b" />
+    <title>EmbAId Agent — 把會查證、可客製化的 AI Agent 嵌入任何網站</title>
     <meta
       name="description"
-      content="API-first 的 RAG 內容問答平台。上傳文件、嵌入一段 script,幾分鐘就有一個查得到出處的 AI 助理。混合檢索、重排序、低信心婉拒、可稽核來源,一次到位。"
+      content="一段 script，把會查證、可完全客製化的 AI Agent 嵌入任何網站。以 RAG 混合檢索與重排序作答並附出處，證據不足時不會生成錯誤的回覆；資料與模型都留在你選的地方。"
     />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230033ff'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='17' fill='white' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+    <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
     <script src="./app.js" defer></script>
+    <script src="./hero.js" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#main">跳到主要內容</a>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="progress" aria-hidden="true"><i data-progress></i></div>
 
     <header class="nav" data-nav>
       <div class="container nav__inner">
-        <a class="brand" href="#top" aria-label="EmbAId Chat 首頁">
+        <a class="brand" href="#top" aria-label="EmbAId Agent 首頁">
           <span class="brand__mark" aria-hidden="true">E</span>
-          <span class="brand__name">EmbAId Chat</span>
+          <span class="brand__name">EmbAId Agent</span>
         </a>
 
-        <nav class="nav__links" aria-label="主要導覽">
-          <a href="#features">功能</a>
+        <nav class="nav__links" aria-label="主要導覽" data-glide>
+          <span class="nav__pill" aria-hidden="true" data-glide-pill></span>
           <a href="#how">運作原理</a>
+          <a href="#thinking">思考過程</a>
+          <a href="#features">功能</a>
+          <a href="#deploy">部署</a>
           <a href="#developers">開發者</a>
-          <a href="#pricing">定價</a>
+          <!-- pricing hidden until billing launches; keep for future: <a href="#pricing">定價</a> -->
         </nav>
 
         <div class="nav__actions">
           <button class="icon-btn" type="button" aria-label="切換深淺主題" data-theme-toggle>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9c0-.5 0-.9-.1-1.3A5 5 0 0 1 12 3z" /></svg>
+            <svg class="i-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+            <svg class="i-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" /></svg>
           </button>
-          <a class="btn btn--ghost" href="#" data-login>登入</a>
+          <a class="icon-btn nav__gh" href="https://github.com/ShiYu0318/EmbAId-Chat" target="_blank" rel="noopener" aria-label="在 GitHub 查看原始碼"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a>
+          <a class="btn btn--quiet" href="#" data-login>登入</a>
           <a class="btn btn--primary" href="#" data-signup>免費開始</a>
+          <button class="icon-btn nav__toggle" type="button" aria-label="開啟選單" aria-expanded="false" data-nav-toggle>
+            <span></span><span></span>
+          </button>
         </div>
-
-        <button class="nav__toggle" type="button" aria-label="開啟選單" aria-expanded="false" data-nav-toggle>
-          <span></span><span></span><span></span>
-        </button>
       </div>
       <div class="nav__mobile" data-nav-mobile>
-        <a href="#features">功能</a>
         <a href="#how">運作原理</a>
+        <a href="#thinking">思考過程</a>
+        <a href="#features">功能</a>
+        <a href="#deploy">部署</a>
         <a href="#developers">開發者</a>
-        <a href="#pricing">定價</a>
+        <!-- pricing hidden until billing launches; keep for future: <a href="#pricing">定價</a> -->
+        <a href="https://github.com/ShiYu0318/EmbAId-Chat" target="_blank" rel="noopener">GitHub</a>
         <a href="#" data-login>登入</a>
         <a class="btn btn--primary" href="#" data-signup>免費開始</a>
       </div>
@@ -59,141 +70,312 @@
     <main id="main">
       <span id="top"></span>
 
-      <section class="hero">
-        <div class="container hero__inner">
-          <span class="eyebrow reveal">API-FIRST · RAG 內容問答平台</span>
-          <h1 class="hero__title reveal" data-d="1">讓你的內容,<br />安靜地開口回答。</h1>
-          <p class="hero__lede reveal" data-d="2">
-            上傳文件、連結網站,再嵌入一段 script。混合檢索、交叉重排序、低信心自動婉拒、
-            可稽核來源——把會亂編的聊天機器人,變成查得到出處的答案。
-          </p>
-          <div class="hero__cta reveal" data-d="3">
-            <a class="btn btn--primary btn--lg" href="#" data-signup>免費開始建立</a>
-            <a class="btn btn--outline btn--lg" href="#demo">看實機展示</a>
-            <a class="btn btn--ghost btn--lg" href="#developers">開發者文件 →</a>
-          </div>
-        </div>
-        <span class="hero__cue" aria-hidden="true"><i></i>SCROLL</span>
+      <section class="hero" aria-label="從內容到回答的粒子動畫">
+        <canvas class="hero__canvas" data-hero-canvas aria-hidden="true"></canvas>
+        <div class="hero__glow" aria-hidden="true"></div>
+        <a class="hero__cue" href="#intro" aria-label="往下捲動"><i></i></a>
       </section>
 
-      <div class="strip">
-        <div class="container strip__inner">
-          <span class="strip__label">適合場景</span>
-          <b>客服知識庫</b><b>技術文件</b><b>產品手冊</b><b>法遵政策</b><b>校園課程</b><b>內部維基</b>
+      <section id="intro" class="intro">
+        <div class="container intro__inner">
+          <ol class="intro__stages" data-hero-stage aria-label="從內容到回答">
+            <li data-stage>匯入來源</li>
+            <li data-stage>建立索引</li>
+            <li data-stage>檢索推理</li>
+            <li data-stage>生成回答</li>
+          </ol>
+          <div class="intro__grid">
+            <div class="intro__copy">
+            <span class="badge reveal">開源、可自架的 Agentic RAG</span>
+            <h1 class="intro__title" data-split>把會查證的 AI Agent<br />嵌進任何網站</h1>
+            <p class="intro__lede reveal" data-d="2">
+              一段 script，就能讓 EmbAId Agent 以你的網站、文件與知識庫回答訪客。每個回答都經過 RAG 檢索與重排序並附上出處，證據不足時不會生成錯誤的回覆。名稱、人格、外觀與模型都能客製，資料留在你選的地方。
+            </p>
+          </div>
+          <div class="intro__side reveal" data-d="3">
+            <div class="snippet" data-copy-root>
+              <code id="hero-snippet">&lt;script src="…/widget.js" data-key="pub_…"&gt;</code>
+              <button class="snippet__copy" type="button" data-copy="hero-snippet-full" aria-label="複製嵌入程式碼">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>
+              </button>
+              <span id="hero-snippet-full" hidden>&lt;script src="https://YOUR-WIDGET-HOST/widget.js" data-key="pub_PROJECT_KEY" data-project="PROJECT_ID" data-api-url="https://YOUR-API-HOST"&gt;&lt;/script&gt;</span>
+            </div>
+            <div class="intro__cta">
+              <a class="btn btn--primary btn--lg" href="#" data-signup>免費開始建立<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+              <a class="btn btn--glass btn--lg" href="https://github.com/ShiYu0318/EmbAId-Chat" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>GitHub</a>
+            </div>
+          </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="marquee" aria-label="適用場景">
+        <div class="marquee__track">
+          <ul>
+            <li>企業官網</li><li>產品與 API 文件</li><li>客服中心</li><li>內部知識庫</li><li>電商與會員服務</li><li>部落格與個人網站</li><li>學校與公共服務</li><li>政策與法遵文件</li>
+          </ul>
+          <ul aria-hidden="true">
+            <li>企業官網</li><li>產品與 API 文件</li><li>客服中心</li><li>內部知識庫</li><li>電商與會員服務</li><li>部落格與個人網站</li><li>學校與公共服務</li><li>政策與法遵文件</li>
+          </ul>
         </div>
       </div>
 
-      <section id="features" class="figs">
-        <div class="container">
-          <h2 class="figs__head reveal">一套為「答得準」打造的管線。<span class="off">從檢索、重排序到婉拒與稽核,一條龍處理 RAG 最難的地方。</span></h2>
-          <div class="figs__grid reveal" data-d="1">
-            <article class="figcol">
-              <div class="figcol__art"><svg viewBox="0 0 128 128" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M64 22 108 40 64 58 20 40Z" /><path d="M20 56 64 74 108 56" /><path d="M20 72 64 90 108 72" /><path d="M20 88 64 106 108 88" opacity=".5" /></svg></div>
-              <span class="fig">FIG 01</span>
-              <h3>混合檢索</h3>
-              <p>向量語意與關鍵字語彙雙軌並行,以 RRF 融合,長尾專有名詞也找得到。</p>
-            </article>
-            <article class="figcol">
-              <div class="figcol__art"><svg viewBox="0 0 128 128" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><rect x="26" y="70" width="16" height="34" /><rect x="50" y="46" width="16" height="58" /><rect x="74" y="30" width="16" height="74" stroke="var(--accent)" /><rect x="98" y="82" width="8" height="22" opacity=".5" /><path d="M20 104h92" opacity=".4" /></svg></div>
-              <span class="fig">FIG 02</span>
-              <h3>交叉重排序</h3>
-              <p>Cross-encoder 對候選段落逐一評分,把最相關的證據推到最前面再交給模型。</p>
-            </article>
-            <article class="figcol">
-              <div class="figcol__art"><svg viewBox="0 0 128 128" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M64 24 100 38v26c0 24-17 36-36 42-19-6-36-18-36-42V38Z" /><path d="M50 64l10 10 20-22" stroke="var(--accent)" /></svg></div>
-              <span class="fig">FIG 03</span>
-              <h3>低信心婉拒</h3>
-              <p>證據不足時不硬掰,誠實回覆「文件裡沒有」,並把問題記錄為知識缺口。</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section class="show">
-        <div class="container">
-          <div class="show__top reveal">
-            <h2>把每個答案,變成可回溯的證據鏈。</h2>
-            <div class="show__desc">每則回答都能回溯:檢索了哪些段落、分數多少、為何選它。決策全程透明,可稽核。<br /><a class="link" href="#demo">看檢索軌跡 →</a></div>
-          </div>
-          <div class="stage reveal" data-d="1">
-            <div class="stage__ghost" aria-hidden="true"></div>
-            <div class="stage__main">
-              <div class="board__bar"><span class="lab">TRACE · conv_8f21 · 4 candidates · rerank</span></div>
-              <div class="board">
-                <div class="board__row"><span class="board__n">1</span><span class="board__t">退款政策 <small>· 光年書店政策 §4</small></span><span class="board__bar2"><i style="width:94%"></i></span><span class="board__s">0.94</span></div>
-                <div class="board__row"><span class="board__n">2</span><span class="board__t">會員服務條款 <small>· 會員手冊 §2</small></span><span class="board__bar2"><i style="width:71%"></i></span><span class="board__s">0.71</span></div>
-                <div class="board__row"><span class="board__n">3</span><span class="board__t">運費與門檻 <small>· 常見問題</small></span><span class="board__bar2"><i style="width:58%"></i></span><span class="board__s">0.58</span></div>
-                <div class="board__row"><span class="board__n">4</span><span class="board__t">點數制度 <small>· 常見問題</small></span><span class="board__bar2"><i style="width:41%"></i></span><span class="board__s">0.41</span></div>
-              </div>
-            </div>
-            <div class="stage__float" aria-hidden="true">
-              <div class="float__bar"><span class="ava">智</span>智嵌助理</div>
-              <div class="float__body">
-                <div class="float__u">退款期限是幾天?</div>
-                <div class="float__a">購買後 <b>21 天</b>內,附來源。</div>
-              </div>
-            </div>
-          </div>
-          <div class="index reveal">
-            <a href="#features"><span class="n">1.0</span> 混合檢索</a>
-            <a href="#features"><span class="n">1.1</span> 交叉重排序</a>
-            <a href="#features"><span class="n">1.2</span> 對話式改寫</a>
-            <a href="#features"><span class="n">1.3</span> 可稽核軌跡</a>
-          </div>
-        </div>
-      </section>
-
-      <section id="how" class="steps-sec">
+      <section id="how" class="story">
         <div class="container">
           <div class="sec-head reveal">
             <span class="eyebrow">運作原理</span>
-            <h2>三步,從一堆文件到會回答的助理。</h2>
+            <h2>從一堆文件，到一個會查證的 Agent。</h2>
+            <p>一條完整的 RAG 管線：擷取、切塊、嵌入、混合檢索、重排序，再到有依據的生成。每一步都看得見、改得動。</p>
           </div>
-          <ol class="steps reveal" data-d="1">
-            <li class="step"><span class="step__n">1.0</span><h3>匯入內容</h3><p>上傳 PDF、Word、Markdown,或連結網站與 Sitemap。系統自動抓取、清洗、切塊。</p></li>
-            <li class="step"><span class="step__n">2.0</span><h3>索引與嵌入</h3><p>帶上下文的分塊嵌入寫入向量庫,同時建立語彙索引,支撐混合檢索。</p></li>
-            <li class="step"><span class="step__n">3.0</span><h3>嵌入或呼叫</h3><p>貼一段 script 就有浮動助理,或用 REST API 與 SDK 接進任何產品。</p></li>
-          </ol>
-        </div>
-      </section>
 
-      <section class="metrics-sec">
-        <div class="container">
-          <div class="metrics" data-metrics>
-            <div class="metric reveal"><strong data-count="200" data-suffix="ms" data-prefix="&lt;">0</strong><span>典型檢索延遲</span></div>
-            <div class="metric reveal" data-d="1"><strong data-count="40" data-suffix="+">0</strong><span>支援檔案格式</span></div>
-            <div class="metric reveal" data-d="2"><strong data-count="3" data-suffix=" 種">0</strong><span>API Key 權限層級</span></div>
-            <div class="metric reveal" data-d="3"><strong data-count="100" data-suffix="%">0</strong><span>回答附帶來源</span></div>
-          </div>
-        </div>
-      </section>
+          <div class="story__grid" data-story>
+            <ol class="story__steps">
+              <li class="story__step" data-step="0">
+                <h3>匯入你的內容</h3>
+                <p>在你核准的範圍內爬取網站與 Sitemap，或上傳 PDF、Word、Markdown，也能接 Notion 與 Google Docs。每份來源都看得到擷取狀態與抽出的文字（Ingestion）。</p>
+              </li>
+              <li class="story__step" data-step="1">
+                <h3>切塊、嵌入、建索引</h3>
+                <p>以遞迴切塊（Recursive Chunking，800 字、120 字重疊）處理中英混排內容，產生 Dense Embedding 寫入向量索引（FAISS／pgvector），同時建立 BM25 全文索引。可開啟 Contextual Retrieval，為每段補上定位脈絡，引用時仍顯示原文。</p>
+              </li>
+              <li class="story__step" data-step="2">
+                <h3>混合檢索、重排序、判斷</h3>
+                <p>Agent 先依對話脈絡改寫查詢（Query Rewriting），以向量與 BM25 進行混合檢索（Hybrid Search），用 Reciprocal Rank Fusion 融合後交給 Cross-encoder 重排序，再依來源可信度與時效加權。信心低於門檻時，不會生成錯誤的回覆。</p>
+              </li>
+              <li class="story__step" data-step="3">
+                <h3>有依據地回答，然後變得更好</h3>
+                <p>以檢索到的段落進行 Grounded Generation，SSE 逐字串流並附上引用；相似問題命中語意快取（Semantic Cache）直接回答。答不出的問題進入知識缺口佇列，草擬答案、核准後寫回知識庫。</p>
+              </li>
+            </ol>
 
-      <section id="demo" class="embed">
-        <div class="container embed__grid">
-          <div class="embed__stage reveal">
-            <div class="embed__host" aria-hidden="true"></div>
-            <div class="widget">
-              <div class="widget__bar"><span class="widget__ava">智</span><span class="widget__title">智嵌助理</span><span class="widget__ping">線上</span></div>
-              <div class="widget__body">
-                <div class="wmsg wmsg--u">退款期限是幾天?</div>
-                <div class="wmsg wmsg--a">購買後 <strong>21 天</strong>內可申請,需保留收據。<div class="cite">來源 · <b>光年書店政策</b></div></div>
+            <div class="story__visual" aria-hidden="true">
+              <div class="panel story__panel">
+                <div class="panel__bar"><i></i><i></i><i></i><span data-story-label>sources</span></div>
+
+                <div class="scene" data-scene="0">
+                  <div class="src"><span class="src__ic">◎</span><b>docs.example.com</b><small>網站，共 128 頁</small><span class="src__bar"><i style="--w: 100%"></i></span><em class="ok">完成</em></div>
+                  <div class="src"><span class="src__ic">▤</span><b>退換貨政策.pdf</b><small>上傳檔案，共 14 頁</small><span class="src__bar"><i style="--w: 100%"></i></span><em class="ok">完成</em></div>
+                  <div class="src"><span class="src__ic">◇</span><b>產品手冊</b><small>Notion，共 36 頁</small><span class="src__bar"><i style="--w: 72%"></i></span><em>索引中</em></div>
+                  <div class="src"><span class="src__ic">▦</span><b>sitemap.xml</b><small>網站地圖，等待中</small><span class="src__bar"><i style="--w: 8%"></i></span><em>排隊</em></div>
+                </div>
+
+                <div class="scene" data-scene="1">
+                  <div class="chunks">
+                    <span></span><span></span><span class="hot"></span><span></span><span></span><span></span>
+                    <span></span><span class="hot"></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span class="hot"></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span><span class="hot"></span>
+                  </div>
+                  <div class="chunks__legend"><span><i class="v"></i>Dense 向量</span><span><i class="l"></i>BM25 全文</span><span>chunk 800，overlap 120</span></div>
+                </div>
+
+                <div class="scene" data-scene="2">
+                  <div class="rank">
+                    <div class="rank__q">「退貨要幾天內申請？」 → <b>退貨申請期限 天數</b></div>
+                    <div class="rank__row"><span>1</span><b>退換貨政策 §4</b><span class="rank__bar"><i style="--w: 94%"></i></span><em>0.94</em></div>
+                    <div class="rank__row"><span>2</span><b>會員服務條款 §2</b><span class="rank__bar"><i style="--w: 71%"></i></span><em>0.71</em></div>
+                    <div class="rank__row dim"><span>3</span><b>運費與門檻</b><span class="rank__bar"><i style="--w: 46%"></i></span><em>0.46</em></div>
+                    <div class="rank__row dim"><span>4</span><b>2023 舊版政策</b><span class="rank__bar"><i style="--w: 22%"></i></span><em>過時</em></div>
+                  </div>
+                </div>
+
+                <div class="scene" data-scene="3">
+                  <div class="mini-chat">
+                    <div class="mc mc--u">退貨要幾天內申請？</div>
+                    <div class="mc mc--a">收到商品後 <b>21 天內</b>可申請退貨，請保留發票與完整包裝。<span class="mc__cite">退換貨政策 §4</span></div>
+                    <div class="gap">知識缺口：「可以退到信用卡嗎？」<em>草擬答案 →</em></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div class="embed__text reveal" data-d="1">
-            <span class="eyebrow">實機展示 · EMBED</span>
-            <h2>一段 script,嵌進任何頁面。</h2>
-            <p>右下角的浮動泡泡就是嵌入後的真實小工具,跑在 Shadow DOM 不被宿主樣式污染。點開它問問看。</p>
-            <ul class="flist">
-              <li><span class="n">01</span> Shadow DOM 樣式隔離</li>
-              <li><span class="n">02</span> 串流逐字回覆,附引用來源</li>
-              <li><span class="n">03</span> 深淺主題自動適配</li>
+        </div>
+      </section>
+
+      <section id="thinking" class="think">
+        <div class="container think__grid">
+          <div class="think__text reveal">
+            <span class="eyebrow">實際運作的 Agent 推理過程</span>
+            <h2>它會先推理、查證，<br />證據不足就不亂答。</h2>
+            <p>每一則回答前，Agent 都會讓訪客看見它正在做什麼：理解問題、改寫查詢、混合檢索、重排序、評估證據信心。看得見的推理步驟，讓等待變成信任。</p>
+            <div class="seg" role="tablist" aria-label="示範情境" data-think-tabs>
+              <span class="seg__pill" aria-hidden="true"></span>
+              <button role="tab" aria-selected="true" data-scenario="answer">找得到答案</button>
+              <button role="tab" aria-selected="false" data-scenario="clarify">需要追問</button>
+              <button role="tab" aria-selected="false" data-scenario="abstain">證據不足</button>
+            </div>
+            <p class="think__note">右下角的浮動泡泡是真正嵌入的小工具，點開就能直接問。</p>
+          </div>
+
+          <div class="think__stage reveal" data-d="1">
+            <div class="chatmock" data-think aria-live="polite">
+              <div class="chatmock__bar">
+                <span class="ava">E<i></i></span>
+                <div><b>EmbAId Agent</b><small data-think-presence>線上立即回覆</small></div>
+              </div>
+              <div class="chatmock__body" data-think-body></div>
+              <div class="chatmock__input"><span data-think-input>輸入你的問題…</span><span class="chatmock__send" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5 M5 12l7-7 7 7" /></svg></span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="feat">
+        <div class="container">
+          <div class="sec-head reveal">
+            <span class="eyebrow">功能</span>
+            <h2>為「答得準」打造的每一個環節。</h2>
+            <p>從 Retrieval、Reranking 到 Generation 與營運，每個元件都在你的掌控之中，也都能替換。</p>
+          </div>
+
+          <div class="bento" data-spotlight>
+            <article class="card card--wide reveal">
+              <div class="card__art art-hybrid" aria-hidden="true">
+                <div class="lane"><span>Dense</span><i></i><i></i><i></i></div>
+                <div class="lane"><span>BM25</span><i></i><i></i><i></i></div>
+                <div class="merge">RRF</div>
+              </div>
+              <h3>混合檢索與 Cross-encoder 重排序</h3>
+              <p>Dense 向量與 BM25 關鍵字並行檢索，以 Reciprocal Rank Fusion（RRF）融合，再由 Cross-encoder 重新排序。專有名詞、型號與政策條號都找得到。</p>
+            </article>
+
+            <article class="card reveal" data-d="1">
+              <div class="card__art art-trace" aria-hidden="true">
+                <span>rewrite</span><span>search</span><span>fuse</span><span>rerank</span><span>answer</span>
+              </div>
+              <h3>可稽核的 Retrieval Trace</h3>
+              <p>每則回答都留下改寫後的查詢、向量與 BM25 命中、RRF 分數、重排序結果、信心與各階段耗時。</p>
+            </article>
+
+            <article class="card reveal" data-d="2">
+              <div class="card__art art-trust" aria-hidden="true">
+                <div><span>官方政策</span><i style="--w: 92%"></i></div>
+                <div><span>FAQ</span><i style="--w: 70%"></i></div>
+                <div><span>舊公告</span><i class="stale" style="--w: 30%"></i></div>
+              </div>
+              <h3>可信度與時效加權</h3>
+              <p>段落帶可信度分數、文件帶驗證日期，過時或低可信的內容在檢索排序時自動降權，不會蓋過權威來源。</p>
+            </article>
+
+            <article class="card reveal">
+              <div class="card__art art-gap" aria-hidden="true">
+                <div class="q">「可以分期付款嗎？」<em data-tick>×12</em></div>
+                <div class="q">「海外可以寄嗎？」<em data-tick>×7</em></div><div class="q">「發票可以改抬頭嗎？」<em data-tick>×3</em></div>
+                <div class="draft">草擬答案 → 核准入庫</div>
+              </div>
+              <h3>知識缺口佇列</h3>
+              <p>答不出的問題自動彙整成待辦，草擬答案並核准後直接成為新知識。</p>
+            </article>
+
+            <article class="card reveal" data-d="1">
+              <div class="card__art art-shadow" aria-hidden="true">
+                <div class="host"><span></span><span></span><span></span></div>
+                <div class="bubble">⌁</div>
+              </div>
+              <h3>不打擾的嵌入式 Agent</h3>
+              <p>跑在 Shadow DOM，零相依、不吃宿主樣式。外觀改完即時生效，不必重新部署。</p>
+            </article>
+
+            <article class="card reveal" data-d="2">
+              <div class="card__art art-persona" aria-hidden="true" data-persona-root>
+                <div class="sws"><span class="sw" style="--c: oklch(0.485 0.291 264)"></span><span class="sw" style="--c: oklch(0.7 0.16 160)"></span><span class="sw" style="--c: oklch(0.72 0.17 55)"></span><span class="sw" style="--c: oklch(0.65 0.2 330)"></span></div>
+                <div class="persona" data-persona>「親切、簡潔，使用繁體中文」</div>
+              </div>
+              <h3>人格、外觀與模型全可客製</h3>
+              <p>名稱、頭像、問候語、語氣、System Prompt、起始問題、主色，以及聊天與 Embedding 模型，每個專案各自設定並即時預覽。</p>
+            </article>
+
+            <article class="card card--wide reveal">
+              <div class="card__art art-ops" aria-hidden="true">
+                <div class="spark"><svg viewBox="0 0 200 48" preserveAspectRatio="none"><g class="spark__run"><path d="M0 34 C 15 30, 25 22, 45 26 S 75 12, 95 18 S 125 32, 145 20 S 180 26, 200 34 C 215 30, 225 22, 245 26 S 275 12, 295 18 S 325 32, 345 20 S 380 26, 400 34" /></g></svg><i class="spark__dot"></i></div>
+                <div class="chips"><span>Webhook HMAC 簽章</span><span>REST API</span><span>TypeScript SDK</span><span>Sentry</span></div>
+              </div>
+              <h3>分析、Webhook 與 SDK</h3>
+              <p>問答量、回答率、信心分布與熱門問題一目了然；事件以簽章 Webhook 推送，或用型別完整的 SDK 接進你的產品。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="deploy" class="deploy">
+        <div class="container">
+          <div class="sec-head reveal">
+            <span class="eyebrow">部署流程</span>
+            <h2>從建立專案到上線，一條清楚的路。</h2>
+            <p>儀表板會帶著你把 Agent 一路部署上線，並在最後確認你的網站真的接上了。</p>
+          </div>
+
+          <div class="timeline" data-timeline>
+            <div class="timeline__line" aria-hidden="true"><i data-timeline-draw></i></div>
+            <ol>
+              <li class="tl reveal"><span class="tl__dot"></span><h3>建立專案</h3><p>選一個 Agent 人格範本起手：客服、技術文件、內部知識或自訂。</p></li>
+              <li class="tl reveal"><span class="tl__dot"></span><h3>連接來源</h3><p>設定網站爬取範圍與允許的網域、上傳補充文件，或連接 Notion 與 Google Docs。</p></li>
+              <li class="tl reveal"><span class="tl__dot"></span><h3>檢查索引品質</h3><p>逐份檢視抽出的文字與 Chunk，停用不該公開的內容，再用試答確認檢索命中與 Retrieval Trace。</p></li>
+              <li class="tl reveal"><span class="tl__dot"></span><h3>調整人格與外觀</h3><p>名稱、語氣、主色、起始問題，右側即時預覽真實的聊天視窗。</p></li>
+              <li class="tl reveal"><span class="tl__dot"></span><h3>產生金鑰、設定允許網域</h3><p>發佈用金鑰只能在你列出的網域使用，並有速率限制保護。</p></li>
+              <li class="tl reveal"><span class="tl__dot"></span><h3>貼上 script，確認上線</h3><p>複製一段程式碼到網站，儀表板會偵測第一則來自你網域的對話，告訴你已經接通。</p></li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section class="host-sec">
+        <div class="container">
+          <div class="sec-head reveal">
+            <span class="eyebrow">你的資料，你的基礎設施</span>
+            <h2>想放哪裡，就放哪裡。</h2>
+            <p>文件、向量與對話都存在你營運的儲存空間。除了你選的模型供應商，沒有資料會離開你的部署——而那個供應商也可以是本地的 Ollama。</p>
+          </div>
+          <div class="modes" data-spotlight>
+            <article class="card mode reveal">
+              <span class="mode__tag">最小可行</span>
+              <div class="flow" aria-hidden="true"><span>瀏覽器</span><i></i><span>API</span><i></i><span>Ollama</span></div>
+              <h3>完全本地</h3>
+              <p>SQLite + FAISS + 本機檔案，聊天與嵌入都走 Ollama。一個指令啟動，不需要 Docker。</p>
+              <code>uv run uvicorn src.main:app</code>
+            </article>
+            <article class="card mode mode--focus reveal" data-d="1">
+              <span class="mode__tag">彈性</span>
+              <div class="flow" aria-hidden="true"><span>本地嵌入</span><i></i><span>API</span><i></i><span>雲端模型</span></div>
+              <h3>混合路由</h3>
+              <p>嵌入留在本地、回答交給雲端模型，或反過來。每個專案可各自選擇聊天與嵌入模型。</p>
+              <code>DEFAULT_CHAT_PROVIDER=anthropic</code>
+            </article>
+            <article class="card mode reveal" data-d="2">
+              <span class="mode__tag">服務化</span>
+              <div class="flow" aria-hidden="true"><span>API</span><i></i><span>Redis</span><i></i><span>pgvector</span></div>
+              <h3>完整服務堆疊</h3>
+              <p>PostgreSQL + pgvector、Redis 背景工作與 S3 / MinIO 物件儲存，換後端只要一個環境變數。</p>
+              <code>SEARCH_BACKEND=postgres</code>
+            </article>
+          </div>
+          <div class="host-cta reveal">
+            <a class="btn btn--glass btn--lg" href="https://github.com/ShiYu0318/EmbAId-Chat" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>在 GitHub 取得原始碼並自架</a>
+            <span>MIT 授權，一個指令就能在本機跑起來</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="roadmap" class="road">
+        <div class="container road__grid">
+          <div class="road__text reveal">
+            <span class="eyebrow eyebrow--soft">研發中，尚未上線</span>
+            <h2>下一步：會自主調用工具、<br />多輪思考的 Agentic RAG。</h2>
+            <p>相關不等於正確。一段文字可能符合問題，卻描述了已廢止的政策、不同的產品版本，或不適用於這位訪客的條件。我們正在讓 Agent 自主規劃檢索、調用工具、進行多輪思考，並在證據衝突或過時時做出正確判斷。</p>
+            <ul class="road__list">
+              <li><b>自主調用工具（Tool Use）</b>Agent 依問題自主決定要追加搜尋、閱讀整份文件或主動反問；先從唯讀工具與轉介草稿開始，再開放會改變狀態的操作。</li>
+              <li><b>多輪思考與自主規劃</b>拆解子問題、多輪檢索與自我檢查（Self-reflection）；輪數、成本與時間都有上限，每一步都留下可見的推理紀錄。</li>
+              <li><b>DeltaRAG 時效與衝突判斷</b>區分「版本不同」「適用對象不同」與「真正矛盾」，決定回答、再找證據或婉拒——不預設最新的就是對的。</li>
+              <li><b>知識同步與存取層級</b>排程同步、版本歷史與增量更新；匿名訪客只檢索公開內容。</li>
             </ul>
-            <div class="code" data-copy-root>
-              <div class="code__bar"><span class="code__file">index.html</span><button class="code__copy" type="button" data-copy="embed">複製</button></div>
-              <pre class="code__body"><code id="embed">&lt;script src="cdn.embaid.chat/widget.js"
-  data-key="pub_xxx"
-  data-project="proj_xxx"&gt;&lt;/script&gt;</code></pre>
+          </div>
+          <div class="road__visual reveal" data-d="1" aria-hidden="true">
+            <div class="decide">
+              <div class="decide__q">Agent 評估問題 + 證據</div>
+              <svg class="decide__lines" viewBox="0 0 380 110" preserveAspectRatio="none" fill="none" data-packets><path d="M190 0 C190 55, 47 55, 47 110" /><path d="M190 0 C190 55, 142 55, 142 110" /><path d="M190 0 C190 55, 238 55, 238 110" /><path d="M190 0 C190 55, 333 55, 333 110" /><circle class="pkt" r="3"><animateMotion dur="3.2s" begin="0.0s" repeatCount="indefinite" path="M190 0 C190 55, 47 55, 47 110" /></circle><circle class="pkt" r="3"><animateMotion dur="3.2s" begin="-0.8s" repeatCount="indefinite" path="M190 0 C190 55, 142 55, 142 110" /></circle><circle class="pkt" r="3"><animateMotion dur="3.2s" begin="-1.6s" repeatCount="indefinite" path="M190 0 C190 55, 238 55, 238 110" /></circle><circle class="pkt" r="3"><animateMotion dur="3.2s" begin="-2.4s" repeatCount="indefinite" path="M190 0 C190 55, 333 55, 333 110" /></circle></svg>
+              <div class="decide__out">
+                <span class="go">回答</span><span>再找證據</span><span>反問</span><span class="stop">婉拒</span>
+              </div>
             </div>
           </div>
         </div>
@@ -203,94 +385,111 @@
         <div class="container">
           <div class="sec-head reveal">
             <span class="eyebrow">開發者優先</span>
-            <h2>一個 API,三種接法。</h2>
-            <p>浮動小工具、REST API,或型別完整的 TypeScript SDK,選你順手的方式接上。</p>
+            <h2>一個 API，三種接法。</h2>
+            <p>嵌入式 Agent、REST API（SSE 串流），或型別完整的 TypeScript SDK，選你順手的方式。</p>
           </div>
-          <div class="tabs reveal" data-d="1" data-tabs data-copy-root>
+          <div class="tabs panel reveal" data-d="1" data-tabs data-copy-root>
             <div class="tabs__head" role="tablist" aria-label="程式碼範例">
-              <button role="tab" aria-selected="true" data-tab="curl">cURL</button>
+              <span class="tabs__pill" aria-hidden="true"></span>
+              <button role="tab" aria-selected="true" data-tab="embed2">嵌入 Script</button>
+              <button role="tab" aria-selected="false" data-tab="curl">cURL</button>
               <button role="tab" aria-selected="false" data-tab="sdk">TypeScript SDK</button>
-              <button role="tab" aria-selected="false" data-tab="embed2">嵌入 Script</button>
             </div>
-            <div class="tabs__panel" data-panel="curl">
+            <div class="tabs__panel" data-panel="embed2">
+              <div class="code__bar"><span class="code__file">index.html</span><button class="code__copy" type="button" data-copy="embed2">複製</button></div>
+              <pre class="code__body"><code id="embed2"><span class="t">&lt;script</span>
+  <span class="a">src</span>=<span class="s">"https://YOUR-WIDGET-HOST/widget.js"</span>
+  <span class="a">data-key</span>=<span class="s">"pub_PROJECT_KEY"</span>
+  <span class="a">data-project</span>=<span class="s">"PROJECT_ID"</span>
+  <span class="a">data-api-url</span>=<span class="s">"https://YOUR-API-HOST"</span><span class="t">&gt;&lt;/script&gt;</span></code></pre>
+            </div>
+            <div class="tabs__panel" data-panel="curl" hidden>
               <div class="code__bar"><span class="code__file">terminal</span><button class="code__copy" type="button" data-copy="curl">複製</button></div>
-              <pre class="code__body"><code id="curl">curl https://api.embaid.chat/v1/chat \
+              <pre class="code__body"><code id="curl">curl https://YOUR-API-HOST/v1/chat \
   -H "X-API-Key: sk_live_xxx" \
   -H "Content-Type: application/json" \
-  -d '{"message":"退款要多久?"}'</code></pre>
+  -d '{"message":"退貨要幾天內申請？"}'</code></pre>
             </div>
             <div class="tabs__panel" data-panel="sdk" hidden>
               <div class="code__bar"><span class="code__file">app.ts</span><button class="code__copy" type="button" data-copy="sdk">複製</button></div>
-              <pre class="code__body"><code id="sdk">import { EmbAId } from "@embaid/sdk";
+              <pre class="code__body"><code id="sdk"><span class="k">import</span> { EmbAId } <span class="k">from</span> <span class="s">"@embaid/sdk"</span>;
 
-const client = new EmbAId({ apiKey: process.env.EMBAID_KEY });
+<span class="k">const</span> client = <span class="k">new</span> EmbAId({ apiKey: process.env.EMBAID_KEY });
 
-const stream = await client.chat.stream({
-  projectId: "proj_xxx",
-  message: "退款政策是什麼?",
+<span class="k">const</span> stream = <span class="k">await</span> client.chat.stream({
+  projectId: <span class="s">"proj_xxx"</span>,
+  message: <span class="s">"退貨要幾天內申請？"</span>,
 });
 
-for await (const token of stream) {
+<span class="k">for await</span> (<span class="k">const</span> token <span class="k">of</span> stream) {
   process.stdout.write(token.text);
 }</code></pre>
-            </div>
-            <div class="tabs__panel" data-panel="embed2" hidden>
-              <div class="code__bar"><span class="code__file">index.html</span><button class="code__copy" type="button" data-copy="embed2">複製</button></div>
-              <pre class="code__body"><code id="embed2">&lt;script src="cdn.embaid.chat/widget.js"
-  data-key="pub_xxx"
-  data-project="proj_xxx"&gt;&lt;/script&gt;</code></pre>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="pricing" class="pricing-sec">
+      <!-- pricing hidden until billing launches; remove `hidden` to restore -->
+      <section id="pricing" class="pricing-sec" hidden>
         <div class="container">
-          <div class="sec-head reveal">
+          <div class="sec-head">
             <span class="eyebrow">定價</span>
-            <h2>從免費體驗開始,隨用量成長。</h2>
-            <p>本頁為產品展示。<!-- price disclaimer hidden until billing launches; keep for future: 價格僅為示意。 -->自架版本永久免費、原始碼開放。</p>
+            <h2>從免費體驗開始，隨用量成長。</h2>
+            <p>自架版本永久免費、原始碼開放。</p>
           </div>
-          <div class="pricing reveal" data-d="1">
-            <article class="plan">
-              <h3>體驗</h3>
-              <!-- pricing hidden until billing launches; keep for future
-              <p class="plan__price">免費</p>
-              -->
-              <p class="plan__note">個人專案與試用</p>
-              <ul><li>1 個專案</li><li>500 則訊息 / 月</li><li>浮動小工具嵌入</li><li>社群支援</li></ul>
-              <a class="btn btn--outline btn--block" href="#demo">先看展示</a>
-            </article>
-            <article class="plan plan--featured">
-              <span class="plan__tag">最受歡迎</span>
-              <h3>成長</h3>
-              <!-- pricing hidden until billing launches; keep for future
-              <p class="plan__price">$29<span>/月</span></p>
-              -->
-              <p class="plan__note">上線中的產品團隊</p>
-              <ul><li>10 個專案</li><li>20,000 則訊息 / 月</li><li>完整 API 與 SDK</li><li>可稽核檢索軌跡</li><li>Webhook 與知識缺口報表</li></ul>
-              <a class="btn btn--primary btn--block" href="#" data-signup>開始使用</a>
-            </article>
-            <article class="plan">
-              <h3>企業</h3>
-              <!-- pricing hidden until billing launches; keep for future
-              <p class="plan__price">洽談</p>
-              -->
-              <p class="plan__note">自架、合規與規模化</p>
-              <ul><li>不限專案</li><li>自架 / 私有雲部署</li><li>SSO 與稽核紀錄</li><li>專屬支援</li></ul>
-              <a class="btn btn--outline btn--block" href="#demo">聯絡我們</a>
-            </article>
+          <div class="pricing">
+            <article class="card plan"><h3>體驗</h3><!-- <p class="plan__price">免費</p> --><p class="plan__note">個人專案與試用</p><ul><li>1 個專案</li><li>500 則訊息 / 月</li><li>浮動小工具嵌入</li><li>社群支援</li></ul><a class="btn btn--glass btn--block" href="#thinking">先看展示</a></article>
+            <article class="card plan plan--featured"><span class="plan__tag">最受歡迎</span><h3>成長</h3><!-- <p class="plan__price">$29<span>/月</span></p> --><p class="plan__note">上線中的產品團隊</p><ul><li>10 個專案</li><li>20,000 則訊息 / 月</li><li>完整 API 與 SDK</li><li>可稽核檢索軌跡</li><li>Webhook 與知識缺口報表</li></ul><a class="btn btn--primary btn--block" href="#" data-signup>開始使用</a></article>
+            <article class="card plan"><h3>企業</h3><!-- <p class="plan__price">洽談</p> --><p class="plan__note">自架、合規與規模化</p><ul><li>不限專案</li><li>自架 / 私有雲部署</li><li>SSO 與稽核紀錄</li><li>專屬支援</li></ul><a class="btn btn--glass btn--block" href="#thinking">聯絡我們</a></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq-sec">
+        <div class="container faq__grid">
+          <div class="sec-head sec-head--left reveal">
+            <span class="eyebrow">常見問題</span>
+            <h2>上線前，你可能想知道。</h2>
+          </div>
+          <div class="faq reveal" data-d="1">
+            <details class="faq__item" name="faq" open>
+              <summary>它會不會亂編答案？</summary>
+              <div class="faq__body"><p>每則回答都以檢索到的段落為依據（Grounded Generation）並附上引用。當最佳證據的信心低於你設定的門檻，Agent 不會生成錯誤的回覆，而是說明目前資料不足，並把問題記錄成知識缺口。</p></div>
+            </details>
+            <details class="faq__item" name="faq">
+              <summary>我的資料會存在哪裡？</summary>
+              <div class="faq__body"><p>存在你部署的資料庫與儲存空間。專案之間完全隔離；除了你選擇的模型供應商，不會有資料送往第三方。</p></div>
+            </details>
+            <details class="faq__item" name="faq">
+              <summary>可以只用本地模型嗎？</summary>
+              <div class="faq__body"><p>可以。聊天與嵌入都設定為 Ollama 時，整套系統可以在你自己的機器上運作。也能混合使用，例如本地嵌入搭配雲端聊天模型。</p></div>
+            </details>
+            <details class="faq__item" name="faq">
+              <summary>嵌入後會影響我網站的樣式嗎？</summary>
+              <div class="faq__body"><p>不會。小工具渲染在 Shadow DOM 裡，沒有任何執行期相依，樣式不會外洩到你的頁面，也不會被你的 CSS 影響。</p></div>
+            </details>
+            <details class="faq__item" name="faq">
+              <summary>需要會寫程式嗎？</summary>
+              <div class="faq__body"><p>不需要。從匯入內容、調整外觀到產生嵌入程式碼都在儀表板完成，只要能編輯網站並貼上一段 script 即可。需要更深整合時，再使用 API 或 SDK。</p></div>
+            </details>
+            <details class="faq__item" name="faq">
+              <summary>網站內容更新後，Agent 會知道嗎？</summary>
+              <div class="faq__body"><p>目前可以對單一來源或整個專案重新索引。排程同步、版本歷史與過期提醒正在開發中。</p></div>
+            </details>
           </div>
         </div>
       </section>
 
       <section class="cta">
-        <div class="container cta__inner reveal">
-          <h2>準備好讓你的內容開口了嗎?</h2>
-          <p>上傳第一份文件,五分鐘後就能在自己的網站上看到會查證的助理。</p>
-          <div class="cta__actions">
-            <a class="btn btn--primary btn--lg" href="#" data-signup>免費開始建立</a>
-            <a class="btn btn--outline btn--lg" href="#developers">閱讀開發者文件</a>
+        <div class="container">
+          <div class="cta__inner reveal">
+            <div class="cta__glow" aria-hidden="true"></div>
+            <h2>讓你的網站，擁有自己的 AI Agent。</h2>
+            <p>上傳第一份文件，接著就能在自己的網站上看見會查證的 Agent。</p>
+            <div class="cta__actions">
+              <a class="btn btn--primary btn--lg" href="#" data-signup>免費開始建立</a>
+              <a class="btn btn--glass btn--lg" href="https://github.com/ShiYu0318/EmbAId-Chat" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>Star on GitHub</a>
+            </div>
           </div>
         </div>
       </section>
@@ -299,18 +498,18 @@ for await (const token of stream) {
     <footer class="footer">
       <div class="container footer__inner">
         <div class="footer__brand">
-          <span class="brand"><span class="brand__mark">E</span><span class="brand__name">EmbAId Chat</span></span>
-          <p>把知識庫變成會查證的答案。</p>
+          <span class="brand"><span class="brand__mark">E</span><span class="brand__name">EmbAId Agent</span></span>
+          <p>把會查證的 AI Agent，嵌進任何網站。</p>
         </div>
         <nav class="footer__cols" aria-label="頁尾導覽">
-          <div><h4>產品</h4><a href="#features">功能</a><a href="#how">運作原理</a><a href="#pricing">定價</a></div>
-          <div><h4>開發者</h4><a href="#developers">API</a><a href="#demo">嵌入小工具</a><a href="#developers">SDK</a></div>
-          <div><h4>資源</h4><a href="#demo">實機展示</a><a href="#top">回到頂端</a></div>
+          <div><h4>產品</h4><a href="#how">運作原理</a><a href="#thinking">思考過程</a><a href="#features">功能</a><!-- pricing hidden until billing launches; keep for future: <a href="#pricing">定價</a> --></div>
+          <div><h4>部署</h4><a href="#deploy">部署流程</a><a href="#roadmap">研發路線</a><a href="#developers">API 與 SDK</a></div>
+          <div><h4>資源</h4><a href="#thinking">實機展示</a><a href="https://github.com/ShiYu0318/EmbAId-Chat" target="_blank" rel="noopener">GitHub</a><a href="https://github.com/ShiYu0318/EmbAId-Chat/issues" target="_blank" rel="noopener">回報問題</a></div>
         </nav>
       </div>
       <div class="container footer__bottom">
-        <span>© 2026 EmbAId Chat</span>
-        <span>Shadow DOM 隔離 · zh-TW 優先 · 開放原始碼</span>
+        <span>© 2026 EmbAId Agent，採 MIT 授權</span>
+        <span>Shadow DOM 隔離、繁體中文優先、開放原始碼</span>
       </div>
     </footer>
 
