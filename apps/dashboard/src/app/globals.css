@@ -629,6 +629,31 @@ select {
 /* Onboarding progress bar */
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* Chunk viewer */
 .link-button {
   background: none;
@@ -2667,6 +2692,8 @@ button.kb-name__label:disabled {
    so they read as frosted glass rather than flat matte panels. */
 
 
+
+
 :root[data-theme="dark"] .app-sidebar,
 :root[data-theme="dark"] .launch,
 :root[data-theme="dark"] .first-run,
@@ -3107,3 +3134,73 @@ button.kb-name__label:disabled {
   }
 }
 
+/* ---------- fluid layout: nothing may widen the page past the viewport ---------- */
+
+html,
+body {
+  overflow-x: clip;
+}
+.app-main > *,
+.stack > *,
+.overview > *,
+.viz-frame > *,
+.kpi-grid > *,
+.viz-grid > *,
+.metric-grid > *,
+.embed-layout > *,
+.widget-studio > * {
+  min-width: 0;
+}
+.kb-table-wrap,
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 860px) {
+  .app-sidebar,
+  .app-sidebar-inner {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .app-search {
+    width: 100%;
+  }
+  .launch__summary {
+    min-width: 0;
+  }
+}
+
+/* Short cells never break letter by letter; the table scrolls inside its card instead. */
+.kb-table th,
+.kb-table td,
+.data-table th,
+.data-table td {
+  white-space: nowrap;
+}
+.kb-table .kb-name,
+.data-table td:first-child {
+  white-space: normal;
+  min-width: 160px;
+}
+
+/* Numbers and labels use the UI face. Monospace stays for code only: its zero carries a
+   slash (to tell 0 from O in code), which is noise in figures and captions. */
+.auth-aside__eyebrow,
+.auth-demo__name,
+.auth-demo__source,
+.auth-brand__mark,
+.chunk-item__head,
+.kb-num,
+.kb-stat__value,
+.kb-tagmgr__count,
+.widget-chat__branding,
+.trace-score,
+.first-run__eyebrow,
+.first-run__steps span,
+.launch__count,
+.launch__mark {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: normal;
+}
