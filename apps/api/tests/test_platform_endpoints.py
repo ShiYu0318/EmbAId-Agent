@@ -145,6 +145,12 @@ async def test_analytics_reports_refusals_and_satisfaction(authed_client: AsyncC
     assert body["thumbs_up"] == 1
     assert body["satisfaction_rate"] == 1.0
     assert len(body["conversations_by_day"]) == body["range_days"] + 1
+    assert sum(point["value"] for point in body["answers_by_day"]) == 1
+    assert sum(point["value"] for point in body["refusals_by_day"]) == 1
+    assert len(body["confidence_histogram"]) == 10
+    assert sum(body["confidence_histogram"]) <= body["answers"]
+    assert {item["label"] for item in body["channels"]} <= {"widget", "dashboard", "api"}
+    assert body["previous"]["conversations"] == 0
 
 
 async def test_knowledge_gap_listing_ranks_by_occurrence(authed_client: AsyncClient) -> None:
