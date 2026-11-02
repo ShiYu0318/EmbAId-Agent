@@ -343,6 +343,19 @@ export interface Analytics {
   conversations_by_day: DailyPoint[];
   messages_by_day: DailyPoint[];
   top_questions: TopQuestion[];
+  answers_by_day: DailyPoint[];
+  refusals_by_day: DailyPoint[];
+  confidence_threshold: number;
+  confidence_histogram: number[];
+  channels: { label: string; count: number }[];
+  previous: {
+    conversations: number;
+    messages: number;
+    answers: number;
+    refusal_rate: number;
+    satisfaction_rate: number | null;
+    average_confidence: number | null;
+  } | null;
 }
 
 export interface Webhook {

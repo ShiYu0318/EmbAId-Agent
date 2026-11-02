@@ -2638,6 +2638,108 @@ button.kb-name__label:disabled {
   color: var(--text);
 }
 
+/* ---------- analytics layout ---------- */
+
+.filter-row {
+  display: flex;
+  gap: 6px;
+}
+.filter-chip {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.filter-chip:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.filter-chip.is-on {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent-text);
+}
+.viz-frame {
+  display: grid;
+  gap: 20px;
+  transition: opacity 0.2s ease;
+}
+.viz-frame.is-refreshing {
+  opacity: 0.55;
+}
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.kpi .metric-value {
+  margin-top: 6px;
+}
+.kpi__delta {
+  margin-top: 8px;
+  min-height: 18px;
+}
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.viz-span-2 {
+  grid-column: span 2;
+}
+.viz-subhead {
+  margin: 22px 0 10px;
+  color: var(--text-faint);
+  font-size: 12px;
+}
+.mini-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 0;
+}
+.mini-stats div {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.mini-stats dt {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+.mini-stats dd {
+  margin: 4px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 1000px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .viz-grid {
+    grid-template-columns: 1fr;
+  }
+  .viz-span-2 {
+    grid-column: auto;
+  }
+}
+
+/* Flat frosted panels: one translucent near-black fill and a single hairline. */
+:root[data-theme="dark"] .launch,
+:root[data-theme="dark"] .first-run,
+:root[data-theme="dark"] .widget-chat {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--glass);
+  box-shadow: none;
+}
+
 /* ---------- launch progress (flat) ---------- */
 
 .launch {
