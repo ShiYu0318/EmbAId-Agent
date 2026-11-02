@@ -5,7 +5,8 @@
 
 .claude/
 
-docs/superpowers/
+# Local specifications, research notes, and coursework reports.
+/docs/
 
 __pycache__/
 *.py[cod]
