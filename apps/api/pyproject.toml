@@ -1,7 +1,7 @@
 [project]
 name = "embaid-api"
 version = "0.1.0"
-description = "EmbAId Chat API"
+description = "EmbAId Agent API"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.115",
