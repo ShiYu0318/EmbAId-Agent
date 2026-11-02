@@ -136,14 +136,14 @@
               </li>
               <li class="story__step" data-step="1">
                 <h3>切塊、嵌入、建索引</h3>
-                <p>以遞迴切塊（Recursive Chunking，800 字、120 字重疊）處理中英混排內容，產生 Dense Embedding 寫入向量索引（FAISS／pgvector），同時建立 BM25 全文索引。可開啟 Contextual Retrieval，為每段補上定位脈絡，引用時仍顯示原文。</p>
+                <p>以遞迴切塊（Recursive Chunking，相鄰段落保留重疊）處理中英混排內容，產生 Dense Embedding 寫入向量索引（FAISS／pgvector），同時建立 BM25 全文索引。可開啟 Contextual Retrieval，為每段補上定位脈絡，引用時仍顯示原文。</p>
               </li>
               <li class="story__step" data-step="2">
                 <h3>混合檢索、重排序、判斷</h3>
                 <p>Agent 先依對話脈絡改寫查詢（Query Rewriting），以向量與 BM25 進行混合檢索（Hybrid Search），用 Reciprocal Rank Fusion 融合後交給 Cross-encoder 重排序，再依來源可信度與時效加權。信心低於門檻時，不會生成錯誤的回覆。</p>
               </li>
               <li class="story__step" data-step="3">
-                <h3>有依據地回答，然後變得更好</h3>
+                <h3>有依據地回答，或記錄知識缺口</h3>
                 <p>以檢索到的段落進行 Grounded Generation，SSE 逐字串流並附上引用；相似問題命中語意快取（Semantic Cache）直接回答。答不出的問題進入知識缺口佇列，草擬答案、核准後寫回知識庫。</p>
               </li>
             </ol>
@@ -166,7 +166,7 @@
                     <span></span><span></span><span></span><span class="hot"></span><span></span><span></span>
                     <span></span><span></span><span></span><span></span><span></span><span class="hot"></span>
                   </div>
-                  <div class="chunks__legend"><span><i class="v"></i>Dense 向量</span><span><i class="l"></i>BM25 全文</span><span>chunk 800，overlap 120</span></div>
+                  <div class="chunks__legend"><span><i class="v"></i>Dense 向量</span><span><i class="l"></i>BM25 全文</span><span>遞迴切塊，段落重疊</span></div>
                 </div>
 
                 <div class="scene" data-scene="2">
