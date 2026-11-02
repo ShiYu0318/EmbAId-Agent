@@ -7,7 +7,7 @@ const zhTW = {
   launcherClose: "收合對話視窗",
   panelLabel: "客服對話視窗",
   logLabel: "對話紀錄",
-  botNameDefault: "智能助理",
+  botNameDefault: "AI 助理",
   greetingDefault: "嗨，有什麼可以幫你的嗎？",
   startersLabel: "你可以這樣問",
   inputLabel: "輸入你的問題",
