@@ -2047,3 +2047,198 @@ button.kb-name__label:disabled {
   color: var(--text);
 }
 
+/* ---------- launch progress (flat) ---------- */
+
+.launch {
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.launch__head {
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr) auto auto;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 16px 14px 20px;
+}
+.launch__summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  white-space: nowrap;
+}
+.launch__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.launch__count {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.launch__meter {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+.launch__meter span {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  transition: background-color 0.3s ease;
+}
+.launch__meter span[data-done] {
+  background: var(--accent);
+}
+.launch__next {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+.launch__next span {
+  opacity: 0.75;
+}
+.launch__next b {
+  font-weight: 600;
+}
+.launch__next:hover {
+  background: var(--accent-strong);
+}
+.launch__done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.launch__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.launch__toggle:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.launch__toggle svg {
+  transition: transform 0.2s var(--ease-out);
+}
+.launch__toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.launch__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+.launch__steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 20px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.launch__steps li:nth-child(3n) {
+  border-right: 0;
+}
+.launch__steps li:nth-last-child(-n + 3) {
+  border-bottom: 0;
+}
+.launch__mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.launch__steps li[data-done] .launch__mark {
+  border-color: transparent;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.launch__steps li[data-next] .launch__mark {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+.launch__step {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.launch__step b {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.launch__steps li[data-done] .launch__step b {
+  color: var(--text-muted);
+}
+.launch__step small {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+.launch__step a {
+  color: var(--accent-text);
+  font-size: 12.5px;
+}
+.launch__step a:hover {
+  text-decoration: underline;
+}
+@media (max-width: 900px) {
+  .launch__head {
+    grid-template-columns: 1fr auto;
+    row-gap: 12px;
+  }
+  .launch__meter {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .launch__next {
+    grid-column: 1;
+    justify-self: start;
+  }
+  .launch__steps {
+    grid-template-columns: 1fr;
+  }
+  .launch__steps li {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 900px) {
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
