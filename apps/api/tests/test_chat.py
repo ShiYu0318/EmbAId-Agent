@@ -109,6 +109,48 @@ async def test_chat_streams_answer_with_citations_and_trace(
     assert "trace" in names
 
 
+async def test_chat_reports_thinking_stages_before_answering(
+    authed_client: AsyncClient, backend: FakeSearchBackend, stub_providers: FakeChatModel
+) -> None:
+    project_id, raw_key = await _project_with_key(authed_client)
+    await _seed_chunk(backend, authed_client, project_id)
+
+    response = await authed_client.post(
+        "/v1/chat",
+        json={"message": "請問退貨政策是什麼？"},
+        headers={"X-API-Key": raw_key},
+    )
+    events = parse_sse(response.text)
+    names = [name for name, _ in events]
+    stages = [data["stage"] for name, data in events if name == "status"]
+
+    assert names.index("status") < names.index("token")
+    assert stages[0] == "understand"
+    assert stages[-1] in {"compose", "cache_hit"}
+    if stages[-1] == "compose":
+        assert stages == ["understand", "search", "rerank", "compose"]
+        compose = [data for name, data in events if name == "status"][-1]
+        assert compose["sources"] >= 1
+
+
+async def test_low_confidence_reports_abstain_stage(
+    authed_client: AsyncClient, backend: FakeSearchBackend, stub_providers: FakeChatModel
+) -> None:
+    _, raw_key = await _project_with_key(authed_client)
+    backend.vector_results = []
+    backend.lexical_results = []
+
+    response = await authed_client.post(
+        "/v1/chat",
+        json={"message": "這個問題知識庫沒有答案"},
+        headers={"X-API-Key": raw_key},
+    )
+    stages = [data for name, data in parse_sse(response.text) if name == "status"]
+
+    assert stages[-1]["stage"] == "abstain"
+    assert stages[-1]["confidence"] < stages[-1]["threshold"]
+
+
 async def test_chat_persists_messages_and_trace(
     authed_client: AsyncClient, backend: FakeSearchBackend, stub_providers: FakeChatModel
 ) -> None:
@@ -212,8 +254,10 @@ async def test_disabled_document_is_excluded_from_retrieval(
 
     async with session_scope() as session:
         document = (
-            await session.execute(select(Document).where(Document.project_id == project_id))
-        ).scalars().first()
+            (await session.execute(select(Document).where(Document.project_id == project_id)))
+            .scalars()
+            .first()
+        )
         assert document is not None
         document.enabled = False
 

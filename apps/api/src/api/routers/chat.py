@@ -1,3 +1,4 @@
+import asyncio
 import json
 from collections.abc import AsyncIterator
 
@@ -107,30 +108,13 @@ async def chat(payload: ChatRequest, session: SessionDep, context: KeyDep) -> St
     history = await _load_history(session, conversation.id)
 
     session.add(Message(conversation_id=conversation.id, role="user", content=payload.message))
-    await session.flush()
-
-    prepared = await pipeline.prepare(
-        session=session,
-        project=project,
-        runtime=runtime,
-        question=payload.message,
-        history=history,
-        locale=payload.locale or conversation.locale,
-    )
-
-    assistant = Message(
-        conversation_id=conversation.id,
-        role="assistant",
-        content="",
-        citations=cache.serialize_citations(prepared.citations),
-        confidence_score=prepared.confidence,
-        retrieval_trace=prepared.trace.as_dict(),
-    )
+    assistant = Message(conversation_id=conversation.id, role="assistant", content="")
     session.add(assistant)
     await session.flush()
 
     conversation_id = conversation.id
     assistant_id = assistant.id
+    locale = payload.locale or conversation.locale
     await session.commit()
 
     async def event_stream() -> AsyncIterator[str]:
@@ -138,6 +122,41 @@ async def chat(payload: ChatRequest, session: SessionDep, context: KeyDep) -> St
             "conversation",
             {"conversation_id": conversation_id, "message_id": assistant_id},
         )
+
+        # Run retrieval in the background and relay each stage as it starts, so the
+        # client can show the assistant thinking instead of a silent wait.
+        stages: asyncio.Queue[tuple[str, dict[str, object]]] = asyncio.Queue()
+
+        async def report(name: str, detail: dict[str, object]) -> None:
+            await stages.put((name, detail))
+
+        task = asyncio.create_task(
+            pipeline.prepare(
+                session=session,
+                project=project,
+                runtime=runtime,
+                question=payload.message,
+                history=history,
+                locale=locale,
+                on_stage=report,
+            )
+        )
+        while not task.done() or not stages.empty():
+            getter = asyncio.ensure_future(stages.get())
+            done, _ = await asyncio.wait({getter, task}, return_when=asyncio.FIRST_COMPLETED)
+            if getter in done:
+                name, detail = getter.result()
+                yield _frame("status", {"stage": name, **detail})
+            else:
+                getter.cancel()
+        prepared = task.result()
+
+        stored = await session.get(Message, assistant_id)
+        if stored is not None:
+            stored.citations = cache.serialize_citations(prepared.citations)
+            stored.confidence_score = prepared.confidence
+            stored.retrieval_trace = prepared.trace.as_dict()
+            await session.commit()
 
         collected: list[str] = []
         async for token in pipeline.stream_answer(runtime, prepared):

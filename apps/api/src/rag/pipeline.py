@@ -1,5 +1,5 @@
 import time
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
 
 from langchain_core.embeddings import Embeddings
@@ -21,6 +21,9 @@ from .timing import elapsed_ms
 from .types import ChatTurn, Citation, RetrievalTrace, RetrievedChunk
 
 MAX_NORMALIZED_CHARS = 500
+
+# Reports a pipeline stage as it starts, so clients can show what the assistant is doing.
+StageCallback = Callable[[str, dict[str, object]], Awaitable[None]]
 
 REFUSALS = {
     "zh": (
@@ -101,7 +104,12 @@ async def prepare(
     question: str,
     history: Sequence[ChatTurn] = (),
     locale: str | None = None,
+    on_stage: StageCallback | None = None,
 ) -> PreparedAnswer:
+    async def stage(name: str, **detail: object) -> None:
+        if on_stage is not None:
+            await on_stage(name, detail)
+
     settings = get_settings()
     resolved_locale = resolve_locale(project, locale)
     trace = RetrievalTrace(
@@ -109,6 +117,7 @@ async def prepare(
         confidence_threshold=project.confidence_threshold,
     )
 
+    await stage("understand")
     question_embedding: list[float] | None = None
     if settings.semantic_cache_enabled:
         question_embedding = await runtime.embeddings.aembed_query(question)
@@ -123,6 +132,7 @@ async def prepare(
         )
         if cached is not None:
             answer, citations = cached
+            await stage("cache_hit", sources=len(citations))
             return PreparedAnswer(
                 trace=trace,
                 locale=resolved_locale,
@@ -136,6 +146,7 @@ async def prepare(
     trace.timings_ms["rewrite"] = elapsed_ms(started)
     trace.rewritten_query = rewritten
 
+    await stage("search", query=rewritten)
     retriever = Retriever(
         session,
         project,
@@ -149,6 +160,7 @@ async def prepare(
         embedding=question_embedding if rewritten == question else None,
     )
 
+    await stage("rerank", candidates=len(chunks))
     chunks = await rerank(
         rewritten,
         chunks,
@@ -162,6 +174,11 @@ async def prepare(
     trace.confidence_score = confidence
 
     if confidence < project.confidence_threshold:
+        await stage(
+            "abstain",
+            confidence=round(confidence, 2),
+            threshold=project.confidence_threshold,
+        )
         trace.answered = False
         trace.refusal_reason = "low_confidence"
         await flag_question(session, project, question)
@@ -174,6 +191,7 @@ async def prepare(
             question_embedding=question_embedding,
         )
 
+    await stage("compose", sources=len(chunks), confidence=round(confidence, 2))
     return PreparedAnswer(
         trace=trace,
         locale=resolved_locale,
