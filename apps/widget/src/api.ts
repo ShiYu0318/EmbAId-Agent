@@ -2,7 +2,7 @@ import { SseParser } from "./sse";
 import type { Citation, EmbedOptions, Feedback, WidgetConfig } from "./types";
 
 export const DEFAULT_CONFIG: WidgetConfig = {
-  primaryColor: "#4493f8",
+  primaryColor: "#0033ff",
   position: "bottom-right",
   greeting: "您好，有什麼可以協助您的嗎？",
   starterQuestions: [],
