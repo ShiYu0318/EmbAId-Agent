@@ -3209,3 +3209,27 @@ html {
     transform: none !important;
   }
 }
+
+/* the demo's send button mirrors the embedded widget: rounded square, arrow up, dim until there is text */
+.chatmock__send {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22);
+  opacity: 0.35;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s var(--ease-out);
+}
+.chatmock__input[data-filled] .chatmock__send {
+  opacity: 1;
+}
+.chatmock__input {
+  padding: 6px 6px 6px 14px;
+  border-radius: 16px;
+}
