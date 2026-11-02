@@ -15,7 +15,7 @@ class PersonaTemplate:
     bot_name: str
     persona: str
     bot_avatar_url: str | None = None
-    accent_color: str = "#2563eb"
+    accent_color: str = "#0033ff"
     confidence_threshold: float = 0.35
     staleness_days: int = 180
 
@@ -54,7 +54,7 @@ CUSTOMER_SUPPORT = PersonaTemplate(
     ),
     bot_name="客服小幫手",
     persona="同理、耐心、以解決問題為導向的客戶支援專員",
-    accent_color="#2563eb",
+    accent_color="#0033ff",
     confidence_threshold=0.4,
     staleness_days=90,
 )

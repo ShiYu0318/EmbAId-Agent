@@ -27,7 +27,7 @@ async def public_widget_config(context: KeyDep) -> dict[str, object]:
     project = context.project
     config = project.widget_config or {}
     return {
-        "primary_color": config.get("accent_color") or "#4493f8",
+        "primary_color": config.get("accent_color") or "#0033ff",
         "greeting": config.get("greeting") or "",
         "starter_questions": config.get("suggested_questions") or [],
         "bot_name": config.get("bot_name") or "",

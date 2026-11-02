@@ -65,7 +65,7 @@ class WidgetConfigPayload(BaseModel):
     bot_name: str = Field(default="", max_length=80)
     bot_avatar_url: str | None = Field(default=None, max_length=2000)
     persona: str = Field(default="", max_length=500)
-    accent_color: str = Field(default="#2563eb", max_length=20)
+    accent_color: str = Field(default="#0033ff", max_length=20)
 
 
 class TemplatePayload(BaseModel):
