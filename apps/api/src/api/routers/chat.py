@@ -2,12 +2,13 @@ import asyncio
 import json
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...config import get_settings
 from ...db.models import Conversation, Message, Project
 from ...providers.registry import ProviderNotConfiguredError, build_chat_model, build_embeddings
 from ...rag import cache, pipeline
@@ -59,8 +60,23 @@ def _build_runtime(project: Project) -> pipeline.RagRuntime:
         raise ProviderUnavailable(str(exc)) from exc
 
 
+def _channel(is_sandbox: bool, origin: str | None) -> str:
+    """Where a new conversation came from. Chats started inside the dashboard are kept
+    apart from real website traffic, so a live install can be told from a test."""
+    if is_sandbox:
+        return "api"
+    dashboard = get_settings().dashboard_url.rstrip("/")
+    if origin and origin.rstrip("/") == dashboard:
+        return "dashboard"
+    return "widget"
+
+
 async def _resolve_conversation(
-    session: AsyncSession, project: Project, payload: ChatRequest, is_sandbox: bool
+    session: AsyncSession,
+    project: Project,
+    payload: ChatRequest,
+    is_sandbox: bool,
+    origin: str | None = None,
 ) -> Conversation:
     if payload.conversation_id:
         result = await session.execute(
@@ -76,7 +92,7 @@ async def _resolve_conversation(
 
     conversation = Conversation(
         project_id=project.id,
-        channel="api" if is_sandbox else "widget",
+        channel=_channel(is_sandbox, origin),
         visitor_id=payload.visitor_id,
         is_sandbox=is_sandbox,
         locale=payload.locale or project.default_locale,
@@ -100,11 +116,15 @@ async def _load_history(session: AsyncSession, conversation_id: str) -> list[Cha
 
 
 @router.post("/chat")
-async def chat(payload: ChatRequest, session: SessionDep, context: KeyDep) -> StreamingResponse:
+async def chat(
+    payload: ChatRequest, request: Request, session: SessionDep, context: KeyDep
+) -> StreamingResponse:
     project = context.project
     runtime = _build_runtime(project)
 
-    conversation = await _resolve_conversation(session, project, payload, context.is_sandbox)
+    conversation = await _resolve_conversation(
+        session, project, payload, context.is_sandbox, request.headers.get("origin")
+    )
     history = await _load_history(session, conversation.id)
 
     session.add(Message(conversation_id=conversation.id, role="user", content=payload.message))

@@ -151,6 +151,33 @@ async def test_low_confidence_reports_abstain_stage(
     assert stages[-1]["confidence"] < stages[-1]["threshold"]
 
 
+async def test_dashboard_origin_is_kept_apart_from_website_traffic(
+    authed_client: AsyncClient, backend: FakeSearchBackend, stub_providers: FakeChatModel
+) -> None:
+    from src.config import get_settings
+    from src.db.models import Conversation
+    from src.db.session import session_scope
+
+    project_id, raw_key = await _project_with_key(authed_client)
+    await _seed_chunk(backend, authed_client, project_id)
+
+    channels = {}
+    for origin in (get_settings().dashboard_url, "https://shop.example.com"):
+        response = await authed_client.post(
+            "/v1/chat",
+            json={"message": "退貨要幾天？"},
+            headers={"X-API-Key": raw_key, "Origin": origin},
+        )
+        conversation_id = dict(parse_sse(response.text))["conversation"]["conversation_id"]
+        async with session_scope() as session:
+            stored = await session.get(Conversation, conversation_id)
+            assert stored is not None
+            channels[origin] = stored.channel
+
+    assert channels[get_settings().dashboard_url] == "dashboard"
+    assert channels["https://shop.example.com"] == "widget"
+
+
 async def test_chat_persists_messages_and_trace(
     authed_client: AsyncClient, backend: FakeSearchBackend, stub_providers: FakeChatModel
 ) -> None:
