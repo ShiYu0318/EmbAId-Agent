@@ -680,7 +680,7 @@
       float a = uGalT * (.14 + .13 / (.45 + r));
       float c = cos(a); float s = sin(a);
       q.xy = vec2(c * q.x - s * q.y, s * q.x + c * q.y);
-      float t = .9;
+      float t = -.9; // with the camera's slight pitch this views the disk from about 45 degrees above
       return vec3(q.x, q.y * cos(t) - q.z * sin(t), q.y * sin(t) + q.z * cos(t));
     }
     float ease(float t){ return t < .5 ? 4.*t*t*t : 1. - pow(-2.*t + 2., 3.) / 2.; }
