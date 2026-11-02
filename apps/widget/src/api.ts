@@ -14,6 +14,7 @@ export const DEFAULT_CONFIG: WidgetConfig = {
 
 export interface StreamHandlers {
   onConversation?(conversationId: string, messageId: string): void;
+  onStatus?(stage: string, detail: Record<string, unknown>): void;
   onToken?(text: string): void;
   onCitations?(citations: Citation[]): void;
   onDone?(answered: boolean): void;
@@ -126,6 +127,9 @@ export class ApiClient {
       if (event === "conversation") {
         const record = payload as Record<string, string>;
         handlers.onConversation?.(record.conversation_id ?? "", record.message_id ?? "");
+      } else if (event === "status") {
+        const record = (payload ?? {}) as Record<string, unknown>;
+        handlers.onStatus?.(String(record.stage ?? ""), record);
       } else if (event === "token") {
         handlers.onToken?.(String((payload as Record<string, unknown>).text ?? ""));
       } else if (event === "citations") {
