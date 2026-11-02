@@ -36,7 +36,7 @@
   const demoAnswers = [
     {
       match: ["檢索", "亂", "幻覺", "hallucin", "準", "來源", "信心", "出處", "rag"],
-      text: "EmbAId Agent 用**混合檢索**（Dense 向量 + BM25）找出候選段落，以 RRF 融合後再由 Cross-encoder 重排序。當證據信心低於門檻時，不會生成錯誤的回覆——所以每個答案都查得到出處。",
+      text: "EmbAId Agent 用**混合檢索**（Dense 向量 + BM25）找出候選段落，以 RRF 融合後再由 Cross-encoder 重排序。當證據信心低於門檻時，不會生成錯誤的回覆，所以每個答案都查得到出處。",
       cite: { title: "檢索管線設計", snippet: "hybrid retrieval + cross-encoder rerank" },
     },
     {
@@ -46,7 +46,7 @@
     },
     {
       match: ["安全", "隱私", "資料", "privacy", "合規", "gdpr", "自架", "私有"],
-      text: "資料以**專案為界**完整隔離，API Key 分為 publishable、secret、sandbox 三種權限層級。你可以用雲端託管，也可以用開放原始碼版本自架，敏感資料完全不出你的伺服器。",
+      text: "資料以**專案為界**完整隔離，API Key 分為 publishable、secret、sandbox 三種權限層級。程式碼開源，可以自架；除了你選的模型供應商，資料不會離開你的伺服器，模型也可以換成本地的 Ollama。",
       cite: { title: "安全與多租戶", snippet: "project-scoped isolation, self-host" },
     },
   ];

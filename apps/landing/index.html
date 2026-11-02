@@ -197,7 +197,7 @@
           <div class="think__text reveal">
             <span class="eyebrow">實際運作的 Agent 推理過程</span>
             <h2>它會先推理、查證，<br />證據不足就不亂答。</h2>
-            <p>每一則回答前，Agent 都會讓訪客看見它正在做什麼：理解問題、改寫查詢、混合檢索、重排序、評估證據信心。看得見的推理步驟，讓等待變成信任。</p>
+            <p>每一則回答前，Agent 都會讓訪客看見它正在做什麼：理解問題、改寫查詢、混合檢索、重排序、評估證據信心。</p>
             <div class="seg" role="tablist" aria-label="示範情境" data-think-tabs>
               <span class="seg__pill" aria-hidden="true"></span>
               <button role="tab" aria-selected="true" data-scenario="answer">找得到答案</button>
@@ -225,7 +225,7 @@
           <div class="sec-head reveal">
             <span class="eyebrow">功能</span>
             <h2>為「答得準」打造的每一個環節。</h2>
-            <p>從 Retrieval、Reranking 到 Generation 與營運，每個元件都在你的掌控之中，也都能替換。</p>
+            <p>Retrieval、Reranking、Generation 和營運工具都能自己設定，也都能換掉。</p>
           </div>
 
           <div class="bento" data-spotlight>
@@ -324,7 +324,7 @@
           <div class="sec-head reveal">
             <span class="eyebrow">你的資料，你的基礎設施</span>
             <h2>想放哪裡，就放哪裡。</h2>
-            <p>文件、向量與對話都存在你營運的儲存空間。除了你選的模型供應商，沒有資料會離開你的部署——而那個供應商也可以是本地的 Ollama。</p>
+            <p>文件、向量與對話都存在你營運的儲存空間。除了你選的模型供應商，沒有資料會離開你的部署，而那個供應商也可以是本地的 Ollama。</p>
           </div>
           <div class="modes" data-spotlight>
             <article class="card mode reveal">
@@ -361,11 +361,11 @@
           <div class="road__text reveal">
             <span class="eyebrow eyebrow--soft">研發中，尚未上線</span>
             <h2>下一步：會自主調用工具、<br />多輪思考的 Agentic RAG。</h2>
-            <p>相關不等於正確。一段文字可能符合問題，卻描述了已廢止的政策、不同的產品版本，或不適用於這位訪客的條件。我們正在讓 Agent 自主規劃檢索、調用工具、進行多輪思考，並在證據衝突或過時時做出正確判斷。</p>
+            <p>相關不等於正確。一段文字可能符合問題，卻描述了已廢止的政策、不同的產品版本，或不適用於這位訪客的條件。我們正在讓 Agent 自主規劃檢索、調用工具、進行多輪思考，並在證據衝突或過時時，決定要回答、補查證據，還是婉拒。</p>
             <ul class="road__list">
               <li><b>自主調用工具（Tool Use）</b>Agent 依問題自主決定要追加搜尋、閱讀整份文件或主動反問；先從唯讀工具與轉介草稿開始，再開放會改變狀態的操作。</li>
               <li><b>多輪思考與自主規劃</b>拆解子問題、多輪檢索與自我檢查（Self-reflection）；輪數、成本與時間都有上限，每一步都留下可見的推理紀錄。</li>
-              <li><b>DeltaRAG 時效與衝突判斷</b>區分「版本不同」「適用對象不同」與「真正矛盾」，決定回答、再找證據或婉拒——不預設最新的就是對的。</li>
+              <li><b>DeltaRAG 時效與衝突判斷</b>區分「版本不同」「適用對象不同」與「真正矛盾」，決定回答、再找證據或婉拒，不預設最新的就是對的。</li>
               <li><b>知識同步與存取層級</b>排程同步、版本歷史與增量更新；匿名訪客只檢索公開內容。</li>
             </ul>
           </div>
