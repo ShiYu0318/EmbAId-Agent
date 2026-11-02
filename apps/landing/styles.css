@@ -3153,3 +3153,59 @@ html {
     background: oklch(0.985 0.002 286 / 0.97);
   }
 }
+
+/* ---------- scroll-in choreography (stronger, directional, staggered) ---------- */
+
+.reveal,
+.reveal[data-reveal="up"] {
+  opacity: 0;
+  filter: blur(6px);
+  transform: translate3d(0, 44px, 0);
+  transition:
+    opacity 0.9s var(--ease-out),
+    transform 1s var(--ease-out),
+    filter 0.9s var(--ease-out);
+  transition-delay: var(--rd, 0ms);
+}
+.reveal[data-reveal="left"] {
+  transform: translate3d(-56px, 0, 0);
+}
+.reveal[data-reveal="right"] {
+  transform: translate3d(56px, 0, 0);
+}
+.reveal[data-reveal="scale"] {
+  transform: translate3d(0, 36px, 0) scale(0.94);
+}
+.reveal.in,
+.reveal[data-reveal].in {
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+/* the story steps already fade by focus; reveal only moves them in */
+.story__step.reveal.in:not([data-active]) {
+  opacity: 0.28;
+}
+@media (max-width: 1024px) {
+  .story__step.reveal.in:not([data-active]) {
+    opacity: 1;
+  }
+  .reveal[data-reveal="left"],
+  .reveal[data-reveal="right"] {
+    transform: translate3d(0, 40px, 0);
+  }
+}
+@media (max-width: 760px) {
+  .reveal,
+  .reveal[data-reveal] {
+    transition-duration: 0.75s;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal[data-reveal] {
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+  }
+}
