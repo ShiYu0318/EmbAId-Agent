@@ -12,8 +12,13 @@
   height: 38px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease,
+    box-shadow 0.2s ease, transform 0.16s var(--ease-out);
   user-select: none;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .button:disabled {
@@ -45,7 +50,8 @@
 }
 
 .secondary {
-  background: var(--surface);
+  background: var(--surface-gradient), var(--surface);
+  box-shadow: var(--sheen);
   color: var(--text);
   border-color: var(--border-strong);
 }
@@ -114,10 +120,10 @@
 }
 
 .card {
-  background: var(--surface);
+  background: var(--surface-gradient), var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--sheen), var(--shadow-sm);
 }
 
 .cardPad {
@@ -274,9 +280,29 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  cursor: pointer;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
   font-size: 14px;
   color: var(--text);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle:focus-visible {
+  outline: none;
+}
+
+.toggle:focus-visible .toggleTrack {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: var(--accent);
 }
 
 .toggleTrack {
@@ -546,4 +572,70 @@
   background: var(--success-soft);
   color: var(--success);
   font-size: 13px;
+}
+
+/* Deep frosted black in the dark theme: translucent, blurred, edge-lit. */
+:global(:root[data-theme="dark"]) .card {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: none;
+}
+
+:global(:root[data-theme="dark"]) .dialog {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-lg);
+}
+
+:global(:root[data-theme="dark"]) .overlay {
+  background: rgba(2, 2, 6, 0.45);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+:global(:root[data-theme="dark"]) .input,
+:global(:root[data-theme="dark"]) .textarea,
+:global(:root[data-theme="dark"]) .select {
+  background: rgba(0, 0, 0, 0.32);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+:global(:root[data-theme="dark"]) .secondary {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+
+:global(:root[data-theme="dark"]) .secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:global(:root[data-theme="dark"]) .input:focus,
+:global(:root[data-theme="dark"]) .textarea:focus,
+:global(:root[data-theme="dark"]) .select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Cards never force the page wider; a table inside one scrolls on its own. */
+.card,
+.cardPad {
+  min-width: 0;
+}
+.cardPad:has(> table),
+.cardPad:has(> div > table) {
+  overflow-x: auto;
+}
+
+.cardTitle {
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .cardHeader {
+    flex-wrap: wrap;
+  }
 }
