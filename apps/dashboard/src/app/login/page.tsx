@@ -17,7 +17,7 @@ function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
 
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(params.get("mode") === "signup" ? "signup" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -84,7 +84,7 @@ function LoginForm() {
     <main className="auth-split">
       <aside className="auth-aside" aria-hidden="true">
         <span className="auth-aside__eyebrow">
-          {t("common.appName")} <span>· {t("auth.asideTag")}</span>
+          {t("common.appName")} <span>{t("auth.asideTag")}</span>
         </span>
         <div className="auth-aside__lead">
           <h2 className="auth-aside__title">{t("auth.asideTitle")}</h2>
