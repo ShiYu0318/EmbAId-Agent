@@ -2149,6 +2149,81 @@ button.kb-name__label:disabled {
   }
 }
 
+/* ---------- first run ---------- */
+
+.first-run {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  max-width: 720px;
+  margin: 24px auto 0;
+  padding: 56px 32px 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-gradient), var(--surface);
+  box-shadow: var(--sheen), var(--shadow);
+  text-align: center;
+  overflow: hidden;
+  isolation: isolate;
+  animation: card-rise 0.5s var(--ease-out) both;
+}
+.first-run__eyebrow {
+  color: var(--accent-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.first-run__title {
+  font-size: clamp(22px, 2.6vw, 30px);
+  letter-spacing: -0.02em;
+}
+.first-run__text {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+}
+.first-run__steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.first-run__steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 13.5px;
+  text-align: left;
+  animation: card-rise 0.45s var(--ease-out) both;
+}
+.first-run__steps span {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+@media (max-width: 720px) {
+  .first-run__steps {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+
 /* ---------- deep frosted black (dark theme) ----------
    Surfaces are translucent and blurred over a faint ambient light field,
    so they read as frosted glass rather than flat matte panels. */
