@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 
-import { AreaChart, HBarList } from "@/components/charts";
+import { HBarList } from "@/components/charts";
+import { NumberTicker, Sparkline } from "@/components/motion";
+import { NextActions } from "@/components/next-actions";
+import { Delta, TimeSeries } from "@/components/viz";
 import { PageHeader, RequireProject } from "@/components/page";
 import { Button, Card, CardBody, CardHeader, SkeletonCards, StateBlock } from "@/components/ui";
 import { useAuth } from "@/lib/auth/context";
@@ -10,12 +14,26 @@ import { errorMessage, useAsyncData } from "@/lib/hooks";
 import { useI18n, type Locale, type TranslateFn } from "@/lib/i18n";
 import { formatDecimal, formatNumber, formatPercent } from "@/lib/format";
 
-function Metric({ label, value, caption }: { label: string; value: string; caption?: string }) {
+function Metric({
+  label,
+  value,
+  caption,
+  trend,
+  delta,
+}: {
+  label: string;
+  value: ReactNode;
+  caption?: string;
+  trend?: number[];
+  delta?: ReactNode;
+}) {
   return (
-    <Card>
+    <Card className="metric-card">
       <CardBody>
         <div className="metric-label">{label}</div>
         <div className="metric-value">{value}</div>
+        {delta ? <div className="kpi__delta">{delta}</div> : null}
+        {trend ? <Sparkline values={trend} label={label} /> : null}
         {caption ? <div className="metric-caption">{caption}</div> : null}
       </CardBody>
     </Card>
@@ -41,43 +59,52 @@ function OverviewAnalytics({ projectId, t, locale }: { projectId: string; t: Tra
   if (error) return <StateBlock title={t("common.loadFailed")} text={errorMessage(t, error)} />;
   if (!data) return <StateBlock title={t("overview.noData")} />;
 
-  const satisfaction =
-    data.satisfaction_rate === null
-      ? t("common.none")
-      : formatPercent(data.satisfaction_rate, locale);
+  const count = (n: number) => <NumberTicker value={n} format={(v) => formatNumber(Math.round(v), locale)} />;
+  const percent = (n: number) => <NumberTicker value={n} format={(v) => formatPercent(v, locale)} />;
+  const satisfaction = data.satisfaction_rate === null ? t("common.none") : percent(data.satisfaction_rate);
   const confidence =
-    data.average_confidence === null ? t("common.none") : formatDecimal(data.average_confidence);
+    data.average_confidence === null ? (
+      t("common.none")
+    ) : (
+      <NumberTicker value={data.average_confidence} format={(v) => formatDecimal(v)} />
+    );
 
   return (
     <>
+      <NextActions projectId={projectId} analytics={data} />
       <div className="metric-grid">
-        <Metric label={t("overview.conversations")} value={formatNumber(data.conversations, locale)} />
-        <Metric label={t("overview.messages")} value={formatNumber(data.messages, locale)} />
+        <Metric
+          label={t("overview.conversations")}
+          value={count(data.conversations)}
+          delta={<Delta current={data.conversations} previous={data.previous?.conversations ?? null} label={t("analytics.vsPrevious")} emptyLabel={t("analytics.noPrevious")} />}
+          trend={data.conversations_by_day.map((p) => p.value)}
+        />
+        <Metric
+          label={t("overview.messages")}
+          value={count(data.messages)}
+          delta={<Delta current={data.messages} previous={data.previous?.messages ?? null} label={t("analytics.vsPrevious")} emptyLabel={t("analytics.noPrevious")} />}
+          trend={data.messages_by_day.map((p) => p.value)}
+        />
         <Metric label={t("overview.satisfaction")} value={satisfaction} />
-        <Metric label={t("overview.refusalRate")} value={formatPercent(data.refusal_rate, locale)} />
-        <Metric
-          label={t("overview.cacheHitRate")}
-          value={formatPercent(data.cache_hit_rate, locale)}
-        />
+        <Metric label={t("overview.refusalRate")} value={percent(data.refusal_rate)} />
+        <Metric label={t("overview.cacheHitRate")} value={percent(data.cache_hit_rate)} />
         <Metric label={t("overview.averageConfidence")} value={confidence} />
-        <Metric
-          label={t("overview.staleDocuments")}
-          value={formatNumber(data.stale_documents, locale)}
-        />
-        <Metric
-          label={t("overview.tokensUsed")}
-          value={formatNumber(data.prompt_tokens + data.completion_tokens, locale)}
-        />
+        <Metric label={t("overview.staleDocuments")} value={count(data.stale_documents)} />
+        <Metric label={t("overview.tokensUsed")} value={count(data.prompt_tokens + data.completion_tokens)} />
       </div>
 
       <div className="overview-columns">
         <Card>
           <CardHeader title={t("overview.messages")} subtitle={t("overview.last30Days")} />
           <CardBody>
-            <AreaChart
+            <TimeSeries
               ariaLabel={t("overview.messages")}
-              values={data.messages_by_day.map((point) => point.value)}
-              labels={data.messages_by_day.map((point) => point.date)}
+              locale={locale}
+              height={200}
+              dates={data.messages_by_day.map((point) => point.date)}
+              series={[
+                { key: "messages", label: t("overview.messages"), colorVar: "--chart-1", values: data.messages_by_day.map((point) => point.value) },
+              ]}
             />
           </CardBody>
         </Card>
