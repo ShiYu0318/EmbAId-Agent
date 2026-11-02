@@ -24,6 +24,23 @@ const zhTW = {
   errorGeneric: "系統忙線中，請稍後再試。",
   errorNetwork: "連線發生問題，請確認網路後再試一次。",
   roleYou: "你",
+  presenceOnline: "線上立即回覆",
+  presenceThinking: "正在思考…",
+  presenceTyping: "正在輸入…",
+  received: "已讀",
+  thoughtActive: "思考中…",
+  thoughtDone: "已思考 {s} 秒",
+  thoughtWarn: "已思考 {s} 秒，證據不足",
+  stageUnderstand: "理解你的問題",
+  stageCacheHit: "找到相似的已答問題",
+  stageSearch: "搜尋知識庫",
+  stageRerank: "比對 {n} 段候選內容",
+  stageCompose: "整理 {n} 份來源，組織回答",
+  stageAbstain: "證據不足，不想用猜的",
+  stageAbstainDetail: "最高信心 {c}，低於門檻 {t}",
+  stageWorking: "正在查詢資料",
+  retry: "重試",
+  sourceCount: "{n} 份來源",
 } as const;
 
 export type MessageKey = keyof typeof zhTW;
@@ -49,6 +66,23 @@ const en: Partial<Record<MessageKey, string>> = {
   errorGeneric: "Something went wrong. Please try again shortly.",
   errorNetwork: "Connection problem. Check your network and try again.",
   roleYou: "You",
+  presenceOnline: "Online, usually replies instantly",
+  presenceThinking: "Thinking…",
+  presenceTyping: "Typing…",
+  received: "Seen",
+  thoughtActive: "Thinking…",
+  thoughtDone: "Thought for {s}s",
+  thoughtWarn: "Thought for {s}s, not enough evidence",
+  stageUnderstand: "Understanding your question",
+  stageCacheHit: "Found a similar answered question",
+  stageSearch: "Searching the knowledge base",
+  stageRerank: "Comparing {n} candidate passages",
+  stageCompose: "Drafting from {n} sources",
+  stageAbstain: "Not enough evidence to answer",
+  stageAbstainDetail: "Best match {c}, below threshold {t}",
+  stageWorking: "Looking that up",
+  retry: "Retry",
+  sourceCount: "{n} sources",
 };
 
 const DICTIONARIES: Record<Locale, Partial<Record<MessageKey, string>>> = {
@@ -78,3 +112,9 @@ export function createTranslator(locale: Locale): (key: MessageKey) => string {
 }
 
 export type Translator = ReturnType<typeof createTranslator>;
+
+export function format(template: string, values: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (match, key: string) =>
+    key in values ? String(values[key]) : match,
+  );
+}
