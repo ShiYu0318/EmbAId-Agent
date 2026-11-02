@@ -1,8 +1,14 @@
 import type { Locale } from "@/lib/i18n";
 
+// The API stores UTC; SQLite drops the offset, so treat bare timestamps as UTC.
+export function parseTimestamp(value: string): Date {
+  const zoned = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value) || !value.includes("T");
+  return new Date(zoned ? value : `${value}Z`);
+}
+
 export function formatDate(value: string | null, locale: Locale): string {
   if (!value) return "—";
-  const date = new Date(value);
+  const date = parseTimestamp(value);
   if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat(locale, {
     year: "numeric",
@@ -13,7 +19,7 @@ export function formatDate(value: string | null, locale: Locale): string {
 
 export function formatDateTime(value: string | null, locale: Locale): string {
   if (!value) return "—";
-  const date = new Date(value);
+  const date = parseTimestamp(value);
   if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat(locale, {
     year: "numeric",
@@ -26,7 +32,7 @@ export function formatDateTime(value: string | null, locale: Locale): string {
 
 export function formatRelative(value: string | null, locale: Locale, justNow: string): string {
   if (!value) return "—";
-  const date = new Date(value);
+  const date = parseTimestamp(value);
   if (Number.isNaN(date.getTime())) return "—";
   const diffMs = date.getTime() - Date.now();
   const absSeconds = Math.abs(diffMs) / 1000;
