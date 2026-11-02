@@ -1,8 +1,13 @@
 <div align="center">
 
-# EmbAId Chat
+# EmbAId Agent
 
-**Embed a RAG-powered, customizable AI chatbot widget into any website with a single `<script>` tag.**
+**Embed a verifiable, fully customizable AI agent into any website with a single `<script>` tag.**
+
+Agentic RAG over your own content: it reasons in visible steps, answers only from retrieved
+evidence with citations, and declines instead of guessing when the evidence is not there.
+
+**English** · [繁體中文](README.zh-TW.md)
 
 [![CI](https://github.com/ShiYu0318/EmbAId-Chat/actions/workflows/ci.yml/badge.svg)](https://github.com/ShiYu0318/EmbAId-Chat/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
@@ -10,22 +15,32 @@
 [![Node](https://img.shields.io/badge/Node-20%2B-black.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-black.svg)](https://www.typescriptlang.org/)
 
+[Live site](https://embaid-agent.vercel.app) · [Quick start](#getting-started) · [How answering works](#how-answering-works)
+
 </div>
+
+<p align="center">
+  <img src=".github/assets/screenshots/widget-on-site.png" alt="EmbAId Agent embedded on a bookstore website, showing its reasoning steps and a cited answer" width="880" />
+</p>
 
 ---
 
 ## Table of contents
 
 - [Overview](#overview)
+- [Screenshots](#screenshots)
 - [Design principles](#design-principles)
 - [Architecture](#architecture)
+- [The agent loop](#the-agent-loop)
 - [How answering works](#how-answering-works)
+- [The RAG pipeline in detail](#the-rag-pipeline-in-detail)
 - [How ingestion works](#how-ingestion-works)
 - [Features](#features)
+- [Roadmap: agentic retrieval](#roadmap-agentic-retrieval)
 - [Tech stack](#tech-stack)
 - [Project structure](#project-structure)
 - [Getting started](#getting-started)
-- [Your first assistant](#your-first-assistant)
+- [Your first agent](#your-first-agent)
 - [Configuration](#configuration)
 - [Embedding the widget](#embedding-the-widget)
 - [Using the SDK](#using-the-sdk)
@@ -42,11 +57,18 @@
 
 ## Overview
 
-EmbAId Chat turns your own content into a chat assistant that lives on your site. Point it at your
+EmbAId Agent turns your own content into an AI agent that lives on your site. Point it at your
 files, your website, or your Notion workspace; it chunks and embeds everything into a vector store
-you control, then answers visitor questions in real time from that material — streamed token by
-token, aware of what was said earlier in the conversation, and linked back to the source it came
-from.
+you control. When a visitor asks something, the agent works through the question in explicit steps
+— understand and rewrite the query, run hybrid retrieval, rerank the evidence, judge whether that
+evidence is strong enough — and only then writes a grounded answer, streamed token by token and
+linked back to the passages it came from.
+
+Every step is reported as it happens. Visitors watch the agent think ("searching the knowledge
+base…", "comparing 18 candidate passages…") instead of staring at a spinner, and operators get the
+full retrieval trace for every answer afterwards. When the evidence does not clear the bar, the
+agent says so rather than generating a plausible-sounding wrong answer, and the question lands in a
+queue of gaps for you to fill.
 
 Everything the visitor sees is yours to shape: the assistant's name, avatar, greeting, persona,
 accent colour, starter questions, and the model behind it, all editable from the dashboard with a
@@ -57,25 +79,42 @@ answer.
 **What it does**
 
 1. **Ingests** your knowledge — file uploads, website crawls, sitemaps, Notion, Google Docs.
-2. **Indexes** it — recursive chunking, optional LLM-generated context per chunk, vector plus
-   full-text indexes in a store you own.
-3. **Answers** in real time — hybrid retrieval, reciprocal rank fusion, cross-encoder reranking,
-   then a streamed answer with citations and conversation memory.
-4. **Ships** as a widget — one script tag, Shadow DOM isolated, zero runtime dependencies, styled
-   to match the host site.
-5. **Reports** back — retrieval traces, analytics, and a queue of questions your content has yet
-   to cover.
+2. **Indexes** it — recursive chunking, optional contextual retrieval (an LLM-written locating
+   sentence per chunk), dense vectors plus a BM25 full-text index in a store you own.
+3. **Reasons** before it answers — query rewriting against the conversation, hybrid dense + lexical
+   retrieval, reciprocal rank fusion, trust and freshness weighting, cross-encoder reranking, and a
+   confidence gate, each step streamed to the visitor as it runs.
+4. **Answers or declines** — a grounded answer with citations when the evidence holds up; an honest
+   "the documents don't cover this" plus a logged knowledge gap when it does not.
+5. **Ships** as an embeddable agent — one script tag, Shadow DOM isolated, zero runtime
+   dependencies, with its own name, persona, look and model.
+6. **Reports** back — retrieval traces, analytics with period-over-period deltas, install
+   verification, and a ranked queue of questions your content has yet to cover.
 
 **Who it is for**
 
-- Teams who want a branded assistant running on their own content and their own infrastructure,
+- Teams who want a branded AI agent running on their own content and their own infrastructure,
   without handing the corpus to a third-party SaaS.
-- Developers who want a RAG reference implementation where every stage is inspectable and swappable.
+- Developers who want an agentic RAG reference implementation where every stage is inspectable,
+  streamed, and swappable.
 - Anyone who needs to customize more than a colour — persona, retrieval behaviour, models, storage,
   and thresholds are all configurable per project.
 
 **Runs with no external services.** The default configuration uses SQLite, FAISS and an inline job
 runner, so a full instance starts with one command and no Docker.
+
+---
+
+## Screenshots
+
+| | |
+| --- | --- |
+| ![Landing page hero](.github/assets/screenshots/landing-hero.png) | ![Landing page introduction](.github/assets/screenshots/landing-intro.png) |
+| **Landing page.** A WebGL particle field morphs through ten shapes that tell the product story. | **One script tag.** The intro section, with the embed snippet and the RAG pipeline stages. |
+| ![Dashboard overview](.github/assets/screenshots/dashboard-overview.png) | ![Playground with reasoning steps](.github/assets/screenshots/dashboard-playground.png) |
+| **Dashboard overview.** Launch progress, suggested next steps, and KPIs with trends. | **Playground.** Test answers before going live and unfold the agent's reasoning steps. |
+| ![Embed settings with install verification](.github/assets/screenshots/dashboard-embed.png) | ![Agent embedded on a website](.github/assets/screenshots/widget-on-site.png) |
+| **Embed settings.** Keys, allowed sites, the snippet, and automatic install verification. | **On your site.** The agent shows its reasoning, answers from your documents, and cites them. |
 
 ---
 
@@ -86,7 +125,9 @@ runner, so a full instance starts with one command and no Docker.
 | **Customizable end to end** | Name, avatar, greeting, persona, accent colour, starter questions, system prompt, chat and embedding models, retrieval thresholds — all per project, all editable from the dashboard without a redeploy. |
 | **Your data, your infrastructure** | Documents, embeddings, and conversations live in stores you run. Nothing leaves your deployment except calls to the model provider you pick, and that provider can be a local Ollama. |
 | **Swappable everything** | Search backend, chat model, embedding model, and reranker sit behind narrow interfaces. Switching SQLite+FAISS to Postgres+pgvector is one environment variable. |
+| **Reasoning you can watch** | The agent streams each stage it runs — understand, search, rerank, compose or abstain — before the first answer token, so visitors see the work and operators see the same steps in the trace. |
 | **Answers you can trace** | Every answer is assembled from retrieved passages and emits a `RetrievalTrace`: rewritten query, per-backend hits and ranks, fusion scores, trust weighting, confidence, and per-stage timings. |
+| **Declining beats guessing** | A per-project confidence gate decides whether the evidence is strong enough. Below it, the agent does not generate an answer; it explains that the documents do not cover the question and logs a knowledge gap. |
 | **Not all content is equal** | Chunks carry a trust score and documents carry a verification date. Stale and low-trust passages are down-weighted at retrieval time. |
 | **Multi-tenant from day one** | Organizations, projects, scoped API keys, per-key origin allowlists, and per-key rate limits are in the core data model, not bolted on later. |
 | **The widget is a guest** | The embeddable widget renders in a Shadow DOM with zero runtime dependencies, so it cannot leak styles into, or inherit styles from, the host page. |
@@ -101,7 +142,7 @@ relational store, the search index, and object storage.
 ```mermaid
 flowchart TB
     subgraph clients["Client surfaces"]
-        widget["Embeddable widget<br/>Shadow DOM, vanilla TS"]
+        widget["Embeddable agent<br/>Shadow DOM, vanilla TS"]
         dash["Management dashboard<br/>Next.js 15 + React 19"]
         sdk["TypeScript SDK<br/>or direct HTTP"]
     end
@@ -110,7 +151,7 @@ flowchart TB
         mw["Middleware<br/>CORS · security headers · rate limit"]
         auth["Auth layer<br/>JWT sessions · API key context"]
         routers["Routers<br/>projects · content · chat · analytics"]
-        rag["RAG pipeline<br/>rewrite → retrieve → fuse → rerank → gate"]
+        rag["Agent loop over the RAG pipeline<br/>understand → retrieve → fuse → rerank → gate → compose<br/>stages streamed as status events"]
         jobs["Ingestion jobs<br/>load → chunk → contextualize → embed"]
     end
 
@@ -148,10 +189,63 @@ flowchart TB
 | Component | Responsibility |
 | --- | --- |
 | **API** (`apps/api`) | The only writer of durable state. Owns auth, tenancy, ingestion orchestration, retrieval, and answer generation. |
-| **Dashboard** (`apps/dashboard`) | Operator console: knowledge base, widget studio, embed settings, conversations, analytics, knowledge gaps. Talks to the API with a JWT. |
-| **Widget** (`apps/widget`) | What end users see on your site. Reads its configuration from the API at boot using a publishable key. |
+| **Dashboard** (`apps/dashboard`) | Operator console: launch checklist, knowledge base, playground with reasoning steps, widget studio, embed settings with install verification, conversations, analytics, knowledge gaps, ⌘K command palette. Talks to the API with a JWT. |
+| **Widget** (`apps/widget`) | The embedded agent visitors see on your site: presence states, live reasoning steps, paced streaming, citation chips. Reads its configuration from the API at boot using a publishable key. |
 | **SDK** (`packages/sdk-js`) | Typed client for both the chat surface and the management surface, with streaming helpers. |
-| **Landing** (`apps/landing`) | Static marketing site that embeds the real widget as a live demo. |
+| **Landing** (`apps/landing`) | Static marketing site with a WebGL particle hero, a scripted reasoning demo, and the real widget embedded as a live demo. |
+
+---
+
+## The agent loop
+
+Answering is not a single model call. The API runs an agent loop over the retrieval pipeline and
+reports every stage it enters on the same SSE stream that later carries the answer:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant V as Visitor (widget)
+    participant A as EmbAId Agent API
+    participant S as Search index
+    participant M as Chat model
+    V->>A: POST /v1/chat  "Can I return it to my credit card?"
+    A-->>V: status: understand
+    A->>M: rewrite the question against recent turns
+    A-->>V: status: search  (query = "refund method credit card")
+    A->>S: dense kNN  ∥  BM25
+    A-->>V: status: rerank  (candidates = 18)
+    A->>A: RRF fusion · trust and freshness weighting · cross-encoder
+    alt evidence clears the confidence threshold
+        A-->>V: status: compose  (sources = 2, confidence = 0.91)
+        A->>M: grounded prompt with numbered passages
+        M-->>A: tokens
+        A-->>V: token … token
+        A-->>V: citations · trace · done(answered = true)
+    else evidence is too weak
+        A-->>V: status: abstain  (confidence 0.31, below threshold 0.55)
+        A-->>V: honest refusal · done(answered = false)
+        A->>A: log a knowledge gap
+    end
+```
+
+| Stage | Emitted when | Detail fields |
+| --- | --- | --- |
+| `understand` | The agent starts working on the question | — |
+| `cache_hit` | A near-identical question was answered before | `sources` |
+| `search` | The rewritten query goes to hybrid retrieval | `query` |
+| `rerank` | Fused candidates are being reordered | `candidates` |
+| `compose` | Evidence cleared the gate; the answer is being written | `sources`, `confidence` |
+| `abstain` | Evidence did not clear the gate | `confidence`, `threshold` |
+
+The widget turns these events into a live "thinking" panel: each stage appears as a step with a
+spinner that ticks to a check mark, the panel folds into "thought for 2.4 s" once the answer starts,
+and the visitor can unfold it again. Because the steps come from the server rather than a canned
+animation, what the visitor sees is exactly what the agent did. The same stages appear in the
+dashboard playground and the built-in test bot.
+
+The loop is deliberately bounded today: one rewrite, one retrieval round, one decision. Multi-round
+retrieval and tool use are on the [roadmap](#roadmap-agentic-retrieval); the event protocol is already
+shaped for them, since a client renders whatever stages arrive.
 
 ---
 
@@ -196,7 +290,8 @@ what makes a single global `confidence_threshold` meaningful across projects.
 **Why weight before the gate.** A passage from a document nobody has verified in six months should
 not clear the same bar as a freshly reviewed one. Trust weighting is applied to the fused score
 *before* the confidence gate reads it, so freshness and provenance actually change whether the
-assistant answers at all — not just the ordering.
+agent answers at all — not just the ordering. (With cross-encoder reranking enabled the reranker's
+score takes over at the gate; see [the known limitation](#6-cross-encoder-reranking).)
 
 **Gaps become a content backlog.** When the gate does not clear, the question is normalized and
 recorded as a `FlaggedQuestion` with an occurrence counter, so repeated misses surface in the
@@ -211,10 +306,112 @@ which document to write next.
 | Event | Payload | Emitted |
 | --- | --- | --- |
 | `conversation` | `{ conversation_id, message_id }` | Once, immediately |
+| `status` | `{ stage, ...detail }` — see [the agent loop](#the-agent-loop) | Once per stage, before the first token |
 | `token` | `{ text }` | Repeatedly while generating |
 | `citations` | `{ items: [...] }` | Once, after retrieval |
 | `trace` | Full `RetrievalTrace` | Once, before completion |
 | `done` | `{ answered: boolean }` | Once, last |
+
+---
+
+## The RAG pipeline in detail
+
+This section walks the pipeline stage by stage with the defaults the code actually uses.
+
+### 1. Ingestion and chunking
+
+| Step | What happens | Default |
+| --- | --- | --- |
+| Loading | PDF, DOCX, Markdown and text are parsed; web pages are reduced to readable content (navigation, headers and footers removed); text is decoded as UTF-8, Big5 or GB18030 | 25 MB per file |
+| Recursive chunking | Text is split on the largest natural boundary that fits — headings, paragraphs, lines, CJK and Latin sentence punctuation, then words — so chunks rarely cut a sentence in half | 800 characters, 120 overlap |
+| Contextual retrieval | Optional. The chat model writes one sentence that locates each chunk within its document; that sentence is embedded with the chunk but never shown in citations | concurrency 4 |
+| Embedding | Chunks are embedded in batches into dense vectors | batches of 64 |
+| Indexing | Vectors go to FAISS (`IndexFlatIP`, inner product over normalized vectors) or pgvector (cosine); text goes to SQLite FTS5 (BM25) or Postgres `tsvector` (`ts_rank`) | — |
+
+The overlap means a fact that straddles a boundary is fully present in at least one chunk. Mixed
+Chinese and English is handled explicitly: CJK punctuation (`。！？；`) is a sentence boundary, and
+lexical search tokenizes Chinese with jieba and normalizes simplified/traditional variants with
+OpenCC, so 「退貨」 and 「退货」 match.
+
+### 2. Query understanding
+
+Follow-up questions are usually unanswerable on their own ("what about the card?"). When there is
+conversation history, the agent asks the chat model to rewrite the latest question into a
+standalone query, resolving pronouns and ellipsis against the recent turns. The rewritten query is
+what gets retrieved, and both versions are kept in the trace. A first question with no history
+skips this step.
+
+### 3. Hybrid retrieval
+
+Dense and lexical retrieval run **in parallel**, each returning up to `RETRIEVAL_CANDIDATES` (30)
+hits:
+
+- **Dense retrieval** finds passages that mean the same thing in different words ("refund window"
+  ↔ "return period").
+- **Lexical retrieval (BM25)** finds exact tokens dense models blur: product codes, error strings,
+  clause numbers, names.
+
+### 4. Reciprocal rank fusion
+
+The two lists are merged by rank, not by score, so their incompatible score scales never meet:
+
+```
+rrf(d) = Σ over lists  1 / (k + rank(d)),   k = 60
+normalized = rrf(d) / (n_lists / (k + 1))
+```
+
+Normalization makes the fused score readable: a passage ranked first in every list scores exactly
+`1.0`. That is what lets one confidence threshold mean the same thing across projects.
+
+### 5. Trust and freshness weighting
+
+```
+w = 0.5 + 0.5 · trust_score          (chunk-level, 0–1)
+w = w · 0.6   if the document is stale (not verified within staleness_days, default 180)
+score = rrf_normalized · w
+```
+
+Weighting happens **before** the confidence gate, so on the fused path provenance and freshness
+change whether the agent answers at all, not just the order of the sources.
+
+### 6. Cross-encoder reranking
+
+Optionally, the fused candidates are re-scored by a cross-encoder
+(`BAAI/bge-reranker-v2-m3`, multilingual), which reads the query and each passage together instead
+of comparing two independent embeddings. It is slower and more precise, which is why it runs on the
+fused shortlist rather than the whole index. Its raw score is squashed to 0–1 with a sigmoid and
+becomes the passage score, and the top `RETRIEVAL_TOP_K` (6) passages move on. If the reranker is not
+installed or fails, the pipeline keeps the fused order; the trace then shows an empty
+`reranked_hits` list and no `rerank` timing.
+
+> **Known limitation.** When reranking runs, the cross-encoder score replaces the trust- and
+> freshness-weighted score, so those multipliers shape the shortlist but not the final gate.
+> Keeping both components and combining them deliberately is part of the
+> [evidence-aware roadmap](#roadmap-agentic-retrieval).
+
+### 7. The confidence gate
+
+```
+confidence = max(score over the top-K passages)
+answer   if confidence ≥ project.confidence_threshold   (default 0.35)
+abstain  otherwise
+```
+
+Abstaining is a first-class outcome: the agent streams an `abstain` stage, replies in the visitor's
+language that the documents do not cover the question, marks the message `answered = false`, and
+records a normalized, deduplicated knowledge gap with an occurrence counter.
+
+### 8. Grounded generation
+
+The prompt carries the persona and system prompt, the numbered passages, and an instruction to
+answer only from them and cite by number. Tokens stream over SSE; citations resolve back to
+document titles and URLs. After completion the message and its trace are persisted.
+
+### 9. Semantic cache
+
+Before any of the above, the question embedding is compared with previously answered questions in
+the same project. At cosine similarity ≥ `SEMANTIC_CACHE_THRESHOLD` (0.95) the cached answer and its
+original citations are returned, and the visitor sees a `cache_hit` step instead of a search.
 
 ---
 
@@ -296,6 +493,7 @@ vectors, so a crawl can be cleanly undone in one action.
 
 ### Retrieval and answering
 
+- Live reasoning steps streamed as `status` events before the answer
 - Token-by-token SSE streaming, so answers start appearing immediately
 - Conversation memory: follow-up questions are rewritten against recent turns before retrieval
 - Hybrid dense plus lexical retrieval, executed in parallel
@@ -319,9 +517,16 @@ vectors, so a crawl can be cleanly undone in one action.
 
 ### Operations
 
+- Six-step launch checklist computed from real project state, with a "next step" shortcut
+- Install verification: the embed page waits for the first conversation from a real website and
+  confirms the install (dashboard-originated chats are tagged separately and never count)
+- Suggested next steps on the overview, derived from gaps, drafts, refusal rate, stale documents
+  and key safety
+- ⌘K command palette for pages, actions and projects
 - Retrieval trace persisted per message and viewable in the dashboard
-- Analytics: conversation and message volume, satisfaction, refusal rate, cache hit rate, average
-  confidence, stale documents, token usage
+- Analytics with period-over-period deltas: conversation and message volume, answered vs refused
+  per day, confidence distribution against the project threshold, conversation channels,
+  satisfaction, cache hit rate, stale documents, token usage — each chart with a data-table view
 - Knowledge-gap queue with occurrence counts, LLM-drafted answers, and one-click promotion into
   the knowledge base
 - Message-level thumbs up and down feedback
@@ -329,14 +534,38 @@ vectors, so a crawl can be cleanly undone in one action.
 - Outbound webhooks with HMAC signatures, delivery log, retries, and a test trigger
 - Optional Sentry error tracking
 
-### Embeddable widget
+### Embeddable agent
 
 - One `<script>` tag, configured with data attributes
+- Presence states (online, thinking, typing), a read receipt, and a live reasoning panel
+- Paced token reveal that pauses briefly at punctuation, for a natural reading rhythm
+- Citation chips, feedback buttons, and a retry action on network errors
 - Shadow DOM isolation, no runtime dependencies
 - Configuration fetched from the API by publishable key, so appearance changes need no redeploy
 - Themeable accent colour, avatar, greeting, persona, and starter questions
 - Streaming answers with inline citations and Markdown rendering
 - Light, dark, and automatic themes; multilingual UI
+
+---
+
+## Roadmap: agentic retrieval
+
+The current agent follows a fixed, bounded path. The next stage — in active research and **not yet
+shipped** — makes retrieval agentic and evidence-aware:
+
+- **Tool use.** The agent decides for itself whether to search again, read a whole document, or ask
+  the visitor a clarifying question, starting with read-only tools and referral drafts before any
+  tool that changes external state.
+- **Multi-round reasoning.** Break a question into sub-questions, retrieve over several rounds, and
+  check its own draft before answering. Rounds, cost and wall-clock time are capped outside the
+  model, and every step stays visible in the trace.
+- **Conflicting and outdated evidence.** Relevance is not correctness: a passage can match the
+  question while describing a superseded policy, a different product version, or conditions that do
+  not apply to this visitor. The agent will distinguish different versions, different audiences, and
+  genuine contradictions, and then decide to **answer, retrieve more evidence, or decline** — without
+  assuming the newest source is always right.
+- **Knowledge sync and access levels.** Scheduled source sync with version history and incremental
+  updates; anonymous visitors retrieve only public content.
 
 ---
 
@@ -359,6 +588,7 @@ vectors, so a crawl can be cleanly undone in one action.
 | Crawling | httpx and BeautifulSoup, optional Playwright (`crawl` extra) |
 | Dashboard | Next.js 15, React 19, TypeScript, CSS custom properties |
 | Widget | Vanilla TypeScript, esbuild, Shadow DOM, zero runtime dependencies |
+| Landing | Static HTML, raw WebGL particle field, no framework |
 | SDK | TypeScript, tsup (ESM + CJS + types), zero runtime dependencies |
 | Tooling | uv (Python), pnpm workspaces, ruff, mypy, ESLint, Vitest, pytest |
 | CI/CD | GitHub Actions, Docker Compose |
@@ -385,11 +615,11 @@ EmbAId-Chat/
 │   │   └── tests/               Offline suite with fakes for search, embeddings, chat
 │   ├── dashboard/               Next.js management console
 │   ├── widget/                  Embeddable Shadow DOM widget + demo page
-│   └── landing/                 Static marketing site with a live widget demo
+│   └── landing/                 Static marketing site: WebGL particle hero, live agent demo
 ├── packages/
 │   └── sdk-js/                  @embaid/sdk-js official TypeScript client
 ├── docker/                      docker-compose.yml and Dockerfiles
-└── .github/workflows/           CI: API tests, workspace build and test
+└── .github/                     CI workflows and README screenshots
 ```
 
 `apps/api` is a standalone Python project managed by uv. Everything else is a pnpm workspace. The
@@ -452,6 +682,14 @@ Serve the marketing site with the live embedded widget:
 cd apps/landing && pnpm serve          # builds the widget, serves on :4180
 ```
 
+For a public build without a hosted dashboard, hide sign-in and point "get started" at the setup
+guide; or point both at your hosted console:
+
+```bash
+LANDING_DASHBOARD_URL="" node apps/landing/build.mjs
+LANDING_DASHBOARD_URL=https://app.example.com node apps/landing/build.mjs
+```
+
 ### Full stack with Docker
 
 ```bash
@@ -464,21 +702,25 @@ backend automatically. Add `--profile ollama` to run a local model alongside.
 
 ---
 
-## Your first assistant
+## Your first agent
 
-End to end, from an empty database to a working embed:
+End to end, from an empty database to a working embed. The dashboard's launch checklist walks the
+same six steps and ticks each one off from real project state:
 
 1. **Create an account** at `http://localhost:3000` and create a project. Optionally pick a persona
    template to seed the system prompt and widget copy.
 2. **Add knowledge** on the knowledge base page — drag in a PDF or Markdown file, or add a website
    and let the crawler expand it. Documents appear immediately and flip from processing to ready as
    indexing completes.
-3. **Customize the widget** in the widget studio: bot name, greeting, persona, accent colour,
+3. **Test it** in the playground and unfold the reasoning steps to see what was retrieved.
+   **Customize the agent** in the widget studio: bot name, greeting, persona, accent colour,
    avatar, and starter questions, with a live preview of the real chat window.
 4. **Create a publishable key** on the embed page and press deploy. You get a ready-to-paste script
    tag, and the floating test bot in the dashboard unlocks so you can try the assistant without
    leaving the console.
-5. **Paste the snippet** before `</body>` on your site.
+5. **Paste the snippet** before `</body>` on your site. The embed page watches for the first
+   conversation from a real website and turns green when it arrives — chats you start from the
+   dashboard are tagged separately, so they never count as a live install.
 6. **Grow the knowledge base.** Questions your content could not yet cover collect in the
    knowledge-gap queue, ranked by how often visitors asked them. Draft an answer with the model,
    approve it, and it is indexed straight back in.
@@ -661,7 +903,7 @@ envelope `{"detail": {"code": "...", "message": "..."}}`.
 | --- | --- | --- | --- |
 | `POST` | `/v1/chat` | API key | Ask a question, SSE stream back |
 | `GET` | `/v1/widget-config` | publishable key | Widget bootstrap configuration |
-| `GET` | `/v1/conversations` | JWT | Browse conversations |
+| `GET` | `/v1/conversations` | JWT | Browse conversations; filter by `channel` (`widget`, `dashboard`, `api`) |
 | `GET` `DELETE` | `/v1/conversations/{id}` | JWT | Read or delete a transcript |
 | `GET` | `/v1/conversations/export` | JWT | Bulk export |
 | `POST` | `/v1/messages/{id}/feedback` | API key | Thumbs up or down |
@@ -671,7 +913,7 @@ envelope `{"detail": {"code": "...", "message": "..."}}`.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/v1/projects/{id}/analytics` | Volume, satisfaction, refusal and cache rates, tokens |
+| `GET` | `/v1/projects/{id}/analytics` | Volume, answered vs refused per day, confidence histogram, channels, satisfaction, refusal and cache rates, tokens, and the previous period for deltas |
 | `GET` | `/v1/projects/{id}/knowledge-gaps` | Unanswered questions by frequency |
 | `POST` | `/v1/knowledge-gaps/{id}/draft-answer` | LLM-drafted answer for review |
 | `POST` | `/v1/knowledge-gaps/{id}/approve` | Promote the answer into the knowledge base |
@@ -851,6 +1093,9 @@ uv run arq src.tasks.worker.WorkerSettings
 `docker/docker-compose.yml` brings up the whole stack — API, dashboard, Postgres with pgvector,
 Redis, and MinIO — and is a reasonable starting point for a single-host deployment.
 
+The landing page is fully static: build it with `LANDING_DASHBOARD_URL` set and publish
+`apps/landing/dist` to any static host such as Vercel.
+
 ---
 
 ## Testing
@@ -864,6 +1109,17 @@ uv run mypy src            # type check
 pnpm -r test               # widget, SDK, dashboard
 pnpm -r typecheck
 pnpm -r lint
+```
+
+Isolate the backend suite from your local `.env` so its provider and OAuth settings do not leak
+into the tests:
+
+```bash
+env DATABASE_URL=sqlite+aiosqlite:///:memory: QUEUE_ENABLED=false \
+  GOOGLE_CLIENT_ID= GOOGLE_CLIENT_SECRET= \
+  DEFAULT_CHAT_PROVIDER=anthropic DEFAULT_EMBEDDING_PROVIDER=openai \
+  RERANK_ENABLED=false CONTEXTUAL_EMBEDDING_ENABLED=false \
+  uv run pytest
 ```
 
 The backend suite runs fully offline: search backends, embeddings, and the chat model are replaced
