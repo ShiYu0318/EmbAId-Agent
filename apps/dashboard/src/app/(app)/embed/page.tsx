@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { InstallVerifier } from "@/components/install-verifier";
 import { PageHeader, RequireProject } from "@/components/page";
 import {
   Badge,
@@ -417,9 +418,12 @@ function EmbedSettings({ projectId, t }: { projectId: string; t: TranslateFn }) 
   const [freshKey, setFreshKey] = useState<string | null>(null);
 
   return (
-    <div className="embed-layout">
-      <KeysPanel projectId={projectId} keys={keys} onCreated={setFreshKey} t={t} />
-      <SnippetPanel projectId={projectId} keys={keys} candidateKey={freshKey} t={t} />
+    <div className="stack">
+      <InstallVerifier projectId={projectId} />
+      <div className="embed-layout">
+        <KeysPanel projectId={projectId} keys={keys} onCreated={setFreshKey} t={t} />
+        <SnippetPanel projectId={projectId} keys={keys} candidateKey={freshKey} t={t} />
+      </div>
     </div>
   );
 }
