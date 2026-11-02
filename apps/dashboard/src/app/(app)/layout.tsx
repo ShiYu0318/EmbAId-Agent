@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -26,8 +27,10 @@ import {
   IconSun,
   IconTranslate,
 } from "@/components/icons";
+import { CommandPalette, type Command } from "@/components/command-palette";
 import { DashboardBot } from "@/components/dashboard-bot";
 import { OnboardingBar } from "@/components/onboarding-bar";
+import { NEW_PROJECT_EVENT } from "@/components/page";
 import { ProjectWizard } from "@/components/project-wizard";
 import { IconButton, LoadingBlock, Select } from "@/components/ui";
 import { useAuth } from "@/lib/auth/context";
@@ -119,9 +122,11 @@ function AccountBlock() {
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { ready, user } = useAuth();
-  const { t } = useI18n();
+  const { t, locale, setLocale } = useI18n();
   const { projects, current, currentId, setCurrentId } = useProjects();
+  const { toggle: toggleTheme } = useTheme();
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [collapsed, setCollapsed] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -133,6 +138,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (ready && !user) router.replace("/login");
   }, [ready, user, router]);
+
+  useEffect(() => {
+    const open = () => setWizardOpen(true);
+    window.addEventListener(NEW_PROJECT_EVENT, open);
+    return () => window.removeEventListener(NEW_PROJECT_EVENT, open);
+  }, []);
 
   useEffect(() => {
     const stored = Number(window.localStorage.getItem(WIDTH_KEY));
@@ -182,6 +193,66 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const commands = useMemo<Command[]>(() => {
+    const navigate = t("palette.groupNavigate");
+    const actions = t("palette.groupActions");
+    const list: Command[] = NAV.flatMap((section) =>
+      section.items.map((item) => ({
+        id: `nav:${item.href}`,
+        label: t(item.labelKey),
+        group: navigate,
+        keywords: item.href,
+        icon: item.icon,
+        run: () => router.push(item.href),
+      })),
+    );
+    list.push(
+      {
+        id: "action:new-project",
+        label: t("palette.newProject"),
+        group: actions,
+        keywords: "create project new",
+        icon: <span className="palette__glyph">+</span>,
+        run: () => setWizardOpen(true),
+      },
+      {
+        id: "action:verify",
+        label: t("palette.verifyInstall"),
+        group: actions,
+        keywords: "install live embed verify",
+        icon: <IconKey size={17} />,
+        run: () => router.push("/embed#verify"),
+      },
+      {
+        id: "action:theme",
+        label: t("palette.toggleTheme"),
+        group: actions,
+        keywords: "dark light theme",
+        icon: <IconMoon size={17} />,
+        run: toggleTheme,
+      },
+      {
+        id: "action:language",
+        label: t("palette.toggleLanguage"),
+        group: actions,
+        keywords: "language locale english 中文",
+        icon: <IconTranslate size={17} />,
+        run: () => setLocale(LOCALES[(LOCALES.indexOf(locale) + 1) % LOCALES.length]),
+      },
+    );
+    for (const project of projects) {
+      list.push({
+        id: `project:${project.id}`,
+        label: project.name,
+        group: t("palette.groupProjects"),
+        hint: project.id === currentId ? t("palette.current") : undefined,
+        icon: <span className="palette__glyph">{project.name.slice(0, 1).toUpperCase()}</span>,
+        run: () => setCurrentId(project.id),
+      });
+    }
+    return list;
+  }, [t, router, projects, currentId, setCurrentId, toggleTheme, setLocale, locale]);
+
   if (!ready || !user) {
     return (
       <div className="app-loading">
@@ -209,7 +280,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <IconMenu size={18} />
             </button>
             <span className="app-brand-mark">EmbAId</span>
-            <span className="app-brand-sub">Chat</span>
+            <span className="app-brand-sub">Agent</span>
           </div>
 
           <div className="app-project-picker">
@@ -238,6 +309,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               +
             </button>
           </div>
+
+          <button type="button" className="app-search" onClick={() => setPaletteOpen(true)}>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            <span>{t("palette.trigger")}</span>
+            <kbd>⌘K</kbd>
+          </button>
 
           <nav className="app-nav">
             {NAV.map((section) => (
@@ -282,6 +362,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* Keyed on the project so switching projects resets the conversation and
           re-reads that project's deployed key and widget config. */}
       {current ? <DashboardBot key={current.id} projectId={current.id} /> : null}
+
+      <CommandPalette commands={commands} open={paletteOpen} onOpenChange={setPaletteOpen} />
 
       {wizardOpen && (
         <ProjectWizard onClose={() => setWizardOpen(false)} onCreated={() => router.push("/")} />
