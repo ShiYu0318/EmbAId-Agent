@@ -264,12 +264,12 @@ flowchart TD
     fan --> vec["Vector search<br/>embedding kNN"]
     fan --> lex["Lexical search<br/>FTS5 / tsvector"]
 
-    vec --> fuse["Reciprocal rank fusion<br/>score = Σ 1/(k + rank), k=60<br/>normalized so a top hit in<br/>every list scores 1.0"]
+    vec --> fuse["Reciprocal rank fusion<br/>score = Σ 1/(k + rank)<br/>normalized so a top hit in<br/>every list scores 1.0"]
     lex --> fuse
 
-    fuse --> weight["Trust weighting<br/>w = 0.5 + 0.5·trust<br/>w ×= 0.6 if document is stale<br/>final = rrf × w"]
+    fuse --> weight["Trust weighting<br/>trust raises or lowers w<br/>stale documents are penalized<br/>final = rrf × w"]
     weight --> rr["Cross-encoder rerank<br/><i>optional</i>"]
-    rr --> topk["Take top K<br/>default 6"]
+    rr --> topk["Take top K"]
 
     topk --> gate{"max score ≥<br/>confidence_threshold?"}
     gate -->|"no"| refuse["Refuse in the user's language<br/>log a knowledge gap<br/>answered = false"]
@@ -320,12 +320,12 @@ This section walks the pipeline stage by stage with the defaults the code actual
 
 ### 1. Ingestion and chunking
 
-| Step | What happens | Default |
+| Step | What happens | Notes |
 | --- | --- | --- |
 | Loading | PDF, DOCX, Markdown and text are parsed; web pages are reduced to readable content (navigation, headers and footers removed); text is decoded as UTF-8, Big5 or GB18030 | 25 MB per file |
-| Recursive chunking | Text is split on the largest natural boundary that fits — headings, paragraphs, lines, CJK and Latin sentence punctuation, then words — so chunks rarely cut a sentence in half | 800 characters, 120 overlap |
-| Contextual retrieval | Optional. The chat model writes one sentence that locates each chunk within its document; that sentence is embedded with the chunk but never shown in citations | concurrency 4 |
-| Embedding | Chunks are embedded in batches into dense vectors | batches of 64 |
+| Recursive chunking | Text is split on the largest natural boundary that fits — headings, paragraphs, lines, CJK and Latin sentence punctuation, then words — so chunks rarely cut a sentence in half | Neighbouring chunks overlap |
+| Contextual retrieval | Optional. The chat model writes one sentence that locates each chunk within its document; that sentence is embedded with the chunk but never shown in citations | Bounded concurrency |
+| Embedding | Chunks are embedded in batches into dense vectors | Batched |
 | Indexing | Vectors go to FAISS (`IndexFlatIP`, inner product over normalized vectors) or pgvector (cosine); text goes to SQLite FTS5 (BM25) or Postgres `tsvector` (`ts_rank`) | — |
 
 The overlap means a fact that straddles a boundary is fully present in at least one chunk. Mixed
@@ -343,7 +343,7 @@ skips this step.
 
 ### 3. Hybrid retrieval
 
-Dense and lexical retrieval run **in parallel**, each returning up to `RETRIEVAL_CANDIDATES` (30)
+Dense and lexical retrieval run **in parallel**, each returning up to `RETRIEVAL_CANDIDATES`
 hits:
 
 - **Dense retrieval** finds passages that mean the same thing in different words ("refund window"
@@ -356,7 +356,7 @@ hits:
 The two lists are merged by rank, not by score, so their incompatible score scales never meet:
 
 ```
-rrf(d) = Σ over lists  1 / (k + rank(d)),   k = 60
+rrf(d) = Σ over lists  1 / (k + rank(d))      k is a smoothing constant
 normalized = rrf(d) / (n_lists / (k + 1))
 ```
 
@@ -366,8 +366,8 @@ Normalization makes the fused score readable: a passage ranked first in every li
 ### 5. Trust and freshness weighting
 
 ```
-w = 0.5 + 0.5 · trust_score          (chunk-level, 0–1)
-w = w · 0.6   if the document is stale (not verified within staleness_days, default 180)
+w = base + (1 − base) · trust_score       (chunk-level, 0–1)
+w = w · stale_penalty   if the document is stale (not verified within staleness_days)
 score = rrf_normalized · w
 ```
 
@@ -377,10 +377,10 @@ change whether the agent answers at all, not just the order of the sources.
 ### 6. Cross-encoder reranking
 
 Optionally, the fused candidates are re-scored by a cross-encoder
-(`BAAI/bge-reranker-v2-m3`, multilingual), which reads the query and each passage together instead
+(multilingual by default, swappable with `RERANK_MODEL`), which reads the query and each passage together instead
 of comparing two independent embeddings. It is slower and more precise, which is why it runs on the
 fused shortlist rather than the whole index. Its raw score is squashed to 0–1 with a sigmoid and
-becomes the passage score, and the top `RETRIEVAL_TOP_K` (6) passages move on. If the reranker is not
+becomes the passage score, and the top `RETRIEVAL_TOP_K` passages move on. If the reranker is not
 installed or fails, the pipeline keeps the fused order; the trace then shows an empty
 `reranked_hits` list and no `rerank` timing.
 
@@ -393,7 +393,7 @@ installed or fails, the pipeline keeps the fused order; the trace then shows an 
 
 ```
 confidence = max(score over the top-K passages)
-answer   if confidence ≥ project.confidence_threshold   (default 0.35)
+answer   if confidence ≥ project.confidence_threshold
 abstain  otherwise
 ```
 
@@ -410,7 +410,7 @@ document titles and URLs. After completion the message and its trace are persist
 ### 9. Semantic cache
 
 Before any of the above, the question embedding is compared with previously answered questions in
-the same project. At cosine similarity ≥ `SEMANTIC_CACHE_THRESHOLD` (0.95) the cached answer and its
+the same project. At cosine similarity ≥ `SEMANTIC_CACHE_THRESHOLD` the cached answer and its
 original citations are returned, and the visitor sees a `cache_hit` step instead of a search.
 
 ---
@@ -437,9 +437,9 @@ flowchart LR
 
     subgraph process["Processing"]
         parse["Parse and decode<br/>utf-8 · big5 · gb18030"]
-        chunkit["Recursive chunking<br/>800 chars / 120 overlap"]
+        chunkit["Recursive chunking<br/>with overlap"]
         ctx["Contextual embedding<br/><i>optional</i><br/>LLM writes a locating<br/>sentence per chunk"]
-        emb["Embed in batches of 64"]
+        emb["Embed in batches"]
     end
 
     subgraph out["Persist"]
@@ -463,10 +463,10 @@ saying "it must be returned within 30 days" is unfindable if the surrounding doc
 what "it" is. When enabled, the ingestion job asks the chat model to write one short locating
 sentence per chunk given the document summary, and prepends it to the text that gets embedded. The
 stored chunk text is unchanged, so citations still show the original passage. Requests run with a
-concurrency cap of 4 to bound cost.
+concurrency cap to bound cost.
 
 **Crawling behaviour.** The crawler stays on the origin it was given, honors `robots.txt`, applies a
-delay between requests, and stops at a configurable page budget (default 25) — a cost and noise
+delay between requests, and stops at a configurable page budget — a cost and noise
 control, since every page costs an embedding call. Pages whose static HTML yields too little text
 fall back to a headless render when the optional Playwright extra is installed.
 
@@ -744,18 +744,21 @@ DEFAULT_EMBEDDING_PROVIDER=openai
 
 ### Retrieval tuning
 
-| Variable | Default | Effect |
-| --- | --- | --- |
-| `RETRIEVAL_CANDIDATES` | `30` | Candidates pulled from each backend before fusion. Higher recall, higher cost. |
-| `RETRIEVAL_TOP_K` | `6` | Passages passed to the model after reranking. |
-| `CONFIDENCE_THRESHOLD` | `0.35` | Global default for the refusal gate; overridable per project. |
-| `RERANK_ENABLED` | `true` | Cross-encoder reranking. Requires the `rerank` extra. |
-| `RERANK_MODEL` | `BAAI/bge-reranker-v2-m3` | Multilingual cross-encoder. |
-| `SEMANTIC_CACHE_ENABLED` | `true` | Reuse answers for near-identical questions. |
-| `SEMANTIC_CACHE_THRESHOLD` | `0.95` | Cosine similarity required for a cache hit. |
-| `CONTEXTUAL_EMBEDDING_ENABLED` | `true` | LLM-generated locating sentence per chunk at index time. |
-| `DOCUMENT_STALENESS_DAYS` | `180` | Age after which a document is treated as stale and down-weighted. |
-| `EMBEDDING_DIMENSIONS` | `1536` | Must match the embedding model. Changing it requires a re-index. |
+Retrieval defaults are tuned as the project evolves, so they are not repeated here: the current
+values live in `apps/api/src/config.py` and `apps/api/.env.example`.
+
+| Variable | Effect |
+| --- | --- |
+| `RETRIEVAL_CANDIDATES` | Candidates pulled from each backend before fusion. Higher recall, higher cost. |
+| `RETRIEVAL_TOP_K` | Passages passed to the model after reranking. |
+| `CONFIDENCE_THRESHOLD` | Global default for the refusal gate; overridable per project. |
+| `RERANK_ENABLED` | Cross-encoder reranking. Requires the `rerank` extra. |
+| `RERANK_MODEL` | Cross-encoder used for reranking (multilingual by default). |
+| `SEMANTIC_CACHE_ENABLED` | Reuse answers for near-identical questions. |
+| `SEMANTIC_CACHE_THRESHOLD` | Cosine similarity required for a cache hit. |
+| `CONTEXTUAL_EMBEDDING_ENABLED` | LLM-generated locating sentence per chunk at index time. |
+| `DOCUMENT_STALENESS_DAYS` | Age after which a document is treated as stale and down-weighted. |
+| `EMBEDDING_DIMENSIONS` | Must match the embedding model. Changing it requires a re-index. |
 
 ### Infrastructure
 

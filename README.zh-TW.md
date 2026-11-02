@@ -244,12 +244,12 @@ Widget 會把這些事件轉成即時的「思考中」面板：每個階段以�
 
 ### 1. 匯入與切塊
 
-| 步驟 | 做什麼 | 預設值 |
+| 步驟 | 做什麼 | 備註 |
 | --- | --- | --- |
 | 載入 | 解析 PDF、DOCX、Markdown 與純文字；網頁會去除導覽列、頁首與頁尾只保留正文；文字以 UTF-8、Big5 或 GB18030 解碼 | 單檔 25 MB |
-| 遞迴切塊 | 以能放得下的最大自然邊界切分：段落、換行、中英文句讀，最後才是詞，因此很少把一句話切成兩半 | 800 字元，重疊 120 |
-| Contextual Retrieval | 可選。由聊天模型為每段寫一句「這段在文件中講什麼」的定位說明，與段落一起嵌入，但不會顯示在引用中 | 並行 4 個 |
-| 嵌入 | 段落分批轉成 Dense 向量 | 每批 64 段 |
+| 遞迴切塊 | 以能放得下的最大自然邊界切分：段落、換行、中英文句讀，最後才是詞，因此很少把一句話切成兩半 | 相鄰段落保留重疊 |
+| Contextual Retrieval | 可選。由聊天模型為每段寫一句「這段在文件中講什麼」的定位說明，與段落一起嵌入，但不會顯示在引用中 | 限制並行數量 |
+| 嵌入 | 段落分批轉成 Dense 向量 | 分批處理 |
 | 建立索引 | 向量寫入 FAISS（正規化後做內積，`IndexFlatIP`）或 pgvector（cosine）；文字寫入 SQLite FTS5（BM25）或 Postgres `tsvector`（`ts_rank`） | — |
 
 重疊確保跨越邊界的資訊至少完整出現在其中一段。中英混排有特別處理：中文標點（`。！？；：、，`）是切分
@@ -273,7 +273,7 @@ Dense 與全文檢索**同時並行**，各自最多取回 `RETRIEVAL_CANDIDATES
 兩份結果依「排名」而不是「分數」合併，因此兩者不相容的分數尺度永遠不會直接比較：
 
 ```
-rrf(d) = Σ（每份清單）1 / (k + rank(d))，k = 60
+rrf(d) = Σ（每份清單）1 / (k + rank(d))      k 為平滑常數
 正規化 = rrf(d) / (清單數 / (k + 1))
 ```
 
@@ -283,8 +283,8 @@ rrf(d) = Σ（每份清單）1 / (k + rank(d))，k = 60
 ### 5. 可信度與時效加權
 
 ```
-w = 0.5 + 0.5 · trust_score          （段落層級，0–1）
-w = w · 0.6   若文件已過期（超過 staleness_days 未驗證，預設 180 天）
+w = base + (1 − base) · trust_score       （段落層級，0–1）
+w = w · stale_penalty   若文件已過期（超過 staleness_days 未驗證）
 score = 正規化 rrf · w
 ```
 
@@ -293,7 +293,7 @@ score = 正規化 rrf · w
 
 ### 6. Cross-encoder 重排序
 
-可選。融合後的候選段落會交給 Cross-encoder（`BAAI/bge-reranker-v2-m3`，多語言）重新評分。它會把問題與
+可選。融合後的候選段落會交給 Cross-encoder（預設為多語言模型，可用 `RERANK_MODEL` 更換）重新評分。它會把問題與
 段落放在一起閱讀，而不是比較兩個各自獨立的向量，所以更精準但也更慢，因此只用在融合後的候選清單上，而不是
 整個索引。原始分數經 sigmoid 壓到 0–1 後成為段落分數，取前 `RETRIEVAL_TOP_K`（6）段進入下一步。若重排序器
 沒有安裝或執行失敗，會保留融合後的順序；此時軌跡中的 `reranked_hits` 為空，也不會有 `rerank` 耗時。
@@ -305,7 +305,7 @@ score = 正規化 rrf · w
 
 ```
 confidence = 前 K 段中的最高分
-confidence ≥ 專案的 confidence_threshold（預設 0.35） → 回答
+confidence ≥ 專案的 confidence_threshold → 回答
 否則 → 婉拒
 ```
 
@@ -320,7 +320,7 @@ SSE 串流，引用會對應回文件標題與網址。完成後，訊息與其�
 ### 9. 語意快取
 
 在上述所有步驟之前，問題的向量會先與同專案中已回答過的問題比對。cosine 相似度 ≥
-`SEMANTIC_CACHE_THRESHOLD`（0.95）時，直接回傳快取的回答與當時的引用，訪客看到的會是 `cache_hit` 步驟，
+`SEMANTIC_CACHE_THRESHOLD` 時，直接回傳快取的回答與當時的引用，訪客看到的會是 `cache_hit` 步驟，
 而不是搜尋。
 
 **知識缺口變成內容待辦。** 未通過門檻的問題會正規化並記錄出現次數，在儀表板依實際需求排序。模型可以草擬
@@ -349,9 +349,9 @@ flowchart LR
 
     subgraph process["處理"]
         parse["解析與解碼<br/>utf-8 · big5 · gb18030"]
-        chunkit["遞迴切塊<br/>800 字元 / 120 重疊"]
+        chunkit["遞迴切塊<br/>相鄰段落重疊"]
         ctx["Contextual Retrieval<br/><i>可選</i><br/>LLM 為每段寫定位句"]
-        emb["每批 64 段嵌入"]
+        emb["分批嵌入"]
     end
 
     subgraph out["寫入"]
@@ -370,8 +370,7 @@ flowchart LR
     emb --> docrow --> chunks --> index --> hook
 ```
 
-**爬取行為。** 爬蟲只停留在指定的網域、遵守 `robots.txt`、在請求之間加入延遲，並在達到頁數上限（預設 25）
-時停止。這是成本與雜訊控制，因為每一頁都要花一次嵌入。靜態 HTML 擷取不到足夠文字的頁面，在安裝 Playwright
+**爬取行為。** 爬蟲只停留在指定的網域、遵守 `robots.txt`、在請求之間加入延遲，並在達到頁數上限時停止。這是成本與雜訊控制，因為每一頁都要花一次嵌入。靜態 HTML 擷取不到足夠文字的頁面，在安裝 Playwright
 擴充後會改用無頭瀏覽器渲染。
 
 **刪除會連帶清除。** 移除一個匯入來源，會一併移除它產生的文件與向量，一次爬取可以一個動作完整撤銷。
@@ -627,18 +626,21 @@ DEFAULT_EMBEDDING_PROVIDER=openai
 
 ### 檢索調校
 
-| 變數 | 預設值 | 效果 |
-| --- | --- | --- |
-| `RETRIEVAL_CANDIDATES` | `30` | 融合前每個後端取回的候選數。召回率更高，成本也更高。 |
-| `RETRIEVAL_TOP_K` | `6` | 重排序後交給模型的段落數。 |
-| `CONFIDENCE_THRESHOLD` | `0.35` | 婉拒門檻的全域預設值，每個專案可覆寫。 |
-| `RERANK_ENABLED` | `true` | Cross-encoder 重排序，需要 `rerank` 擴充。 |
-| `RERANK_MODEL` | `BAAI/bge-reranker-v2-m3` | 多語言 Cross-encoder。 |
-| `SEMANTIC_CACHE_ENABLED` | `true` | 對幾乎相同的問題重用回答。 |
-| `SEMANTIC_CACHE_THRESHOLD` | `0.95` | 命中快取所需的 cosine 相似度。 |
-| `CONTEXTUAL_EMBEDDING_ENABLED` | `true` | 建立索引時，由 LLM 為每段寫一句定位說明。 |
-| `DOCUMENT_STALENESS_DAYS` | `180` | 超過這個天數未驗證的文件視為過期並降權。 |
-| `EMBEDDING_DIMENSIONS` | `1536` | 必須與嵌入模型一致，修改後需要重新索引。 |
+檢索相關的預設值會隨專案調整，這裡不列出數字；目前的值請看 `apps/api/src/config.py` 與
+`apps/api/.env.example`。
+
+| 變數 | 效果 |
+| --- | --- |
+| `RETRIEVAL_CANDIDATES` | 融合前每個後端取回的候選數。召回率更高，成本也更高。 |
+| `RETRIEVAL_TOP_K` | 重排序後交給模型的段落數。 |
+| `CONFIDENCE_THRESHOLD` | 婉拒門檻的全域預設值，每個專案可覆寫。 |
+| `RERANK_ENABLED` | Cross-encoder 重排序，需要 `rerank` 擴充。 |
+| `RERANK_MODEL` | 重排序使用的 Cross-encoder（預設為多語言模型）。 |
+| `SEMANTIC_CACHE_ENABLED` | 對幾乎相同的問題重用回答。 |
+| `SEMANTIC_CACHE_THRESHOLD` | 命中快取所需的 cosine 相似度。 |
+| `CONTEXTUAL_EMBEDDING_ENABLED` | 建立索引時，由 LLM 為每段寫一句定位說明。 |
+| `DOCUMENT_STALENESS_DAYS` | 超過這個天數未驗證的文件視為過期並降權。 |
+| `EMBEDDING_DIMENSIONS` | 必須與嵌入模型一致，修改後需要重新索引。 |
 
 ### 基礎設施
 
