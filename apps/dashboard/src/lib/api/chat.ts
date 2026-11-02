@@ -1,8 +1,15 @@
 import { ApiError, NetworkError, parseError } from "./errors";
 import type { Citation, FeedbackValue, RetrievalTrace } from "./types";
 
+/** A retrieval stage the API reports while it works, before any answer token. */
+export interface StreamStage {
+  stage: string;
+  [detail: string]: unknown;
+}
+
 export interface ChatStreamHandlers {
   onConversation?: (data: { conversation_id: string; message_id: string }) => void;
+  onStatus?: (stage: StreamStage) => void;
   onToken?: (text: string) => void;
   onCitations?: (items: Citation[]) => void;
   onTrace?: (trace: RetrievalTrace) => void;
@@ -110,6 +117,9 @@ function dispatch(item: SseEvent, handlers: ChatStreamHandlers): void {
   switch (item.event) {
     case "conversation":
       handlers.onConversation?.(payload as { conversation_id: string; message_id: string });
+      break;
+    case "status":
+      handlers.onStatus?.(payload as StreamStage);
       break;
     case "token":
       handlers.onToken?.((payload as { text: string }).text);

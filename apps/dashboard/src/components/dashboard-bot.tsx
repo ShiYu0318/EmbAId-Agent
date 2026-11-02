@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import { IconArrowRight, IconChat, IconRefresh, IconX } from "@/components/icons";
+import { ThinkingSteps, TypingDots } from "@/components/thinking-steps";
 import { IconButton } from "@/components/ui";
-import { streamChat } from "@/lib/api/chat";
+import { streamChat, type StreamStage } from "@/lib/api/chat";
 import { apiBaseUrl } from "@/lib/api/config";
 import { ApiError } from "@/lib/api/errors";
 import { useAuth } from "@/lib/auth/context";
@@ -17,6 +18,9 @@ const DEFAULT_ACCENT = "#2f6df6";
 interface Turn {
   role: "user" | "assistant";
   content: string;
+  stages?: StreamStage[];
+  startedAt?: number;
+  thoughtSeconds?: number | null;
 }
 
 /**
@@ -66,7 +70,7 @@ export function DashboardBot({ projectId }: { projectId: string }) {
     setTurns((prev) => [
       ...prev,
       { role: "user", content: message },
-      { role: "assistant", content: "" },
+      { role: "assistant", content: "", stages: [], startedAt: performance.now() },
     ]);
 
     try {
@@ -81,11 +85,21 @@ export function DashboardBot({ projectId }: { projectId: string }) {
           onConversation: (data) => {
             conversationId.current = data.conversation_id;
           },
+          onStatus: (stage) => {
+            setTurns((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              next[next.length - 1] = { ...last, stages: [...(last.stages ?? []), stage] };
+              return next;
+            });
+          },
           onToken: (chunk) => {
             setTurns((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
-              next[next.length - 1] = { ...last, content: last.content + chunk };
+              const thoughtSeconds =
+                last.thoughtSeconds ?? (last.startedAt ? (performance.now() - last.startedAt) / 1000 : null);
+              next[next.length - 1] = { ...last, content: last.content + chunk, thoughtSeconds };
               return next;
             });
           },
@@ -165,16 +179,33 @@ export function DashboardBot({ projectId }: { projectId: string }) {
 
         <div className="widget-chat__log" ref={logRef}>
           {greeting && <div className="widget-chat__bubble">{greeting}</div>}
-          {turns.map((turn, i) => (
-            <div
-              key={i}
-              className={
-                turn.role === "user" ? "widget-chat__bubble is-user" : "widget-chat__bubble"
-              }
-            >
-              {turn.content || (busy && i === turns.length - 1 ? `${t("bot.thinking")}...` : "")}
-            </div>
-          ))}
+          {turns.map((turn, i) => {
+            const pending = busy && i === turns.length - 1;
+            return (
+              <div key={i} className="widget-chat__turn">
+                {turn.role === "assistant" && turn.stages ? (
+                  <ThinkingSteps
+                    stages={turn.stages}
+                    settled={Boolean(turn.content) || !pending}
+                    seconds={turn.thoughtSeconds ?? null}
+                  />
+                ) : null}
+                {turn.content ? (
+                  <div
+                    className={
+                      turn.role === "user" ? "widget-chat__bubble is-user" : "widget-chat__bubble"
+                    }
+                  >
+                    {turn.content}
+                  </div>
+                ) : pending && !turn.stages?.length ? (
+                  <div className="widget-chat__bubble" aria-label={t("bot.thinking")}>
+                    <TypingDots />
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
 
         <div className="widget-chat__footer">

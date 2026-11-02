@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { PageHeader, RequireProject } from "@/components/page";
+import { ThinkingSteps, TypingDots } from "@/components/thinking-steps";
 import { Button, Card, CardBody, Field, InlineNotice, Input, Textarea } from "@/components/ui";
-import { streamChat } from "@/lib/api/chat";
+import { streamChat, type StreamStage } from "@/lib/api/chat";
 import { apiBaseUrl } from "@/lib/api/config";
 import type { Citation, RetrievalTrace } from "@/lib/api/types";
 import { useI18n, type TranslateFn } from "@/lib/i18n";
@@ -17,6 +18,16 @@ interface Turn {
   citations?: Citation[];
   trace?: RetrievalTrace;
   messageId?: string;
+  stages?: StreamStage[];
+  startedAt?: number;
+  thoughtSeconds?: number | null;
+}
+
+// Fold the thinking steps away once the first answer token lands.
+function withToken(turn: Turn, text: string): Turn {
+  const thoughtSeconds =
+    turn.thoughtSeconds ?? (turn.startedAt ? (performance.now() - turn.startedAt) / 1000 : null);
+  return { ...turn, content: turn.content + text, thoughtSeconds };
 }
 
 function KeyGate({ projectId, t }: { projectId: string; t: TranslateFn }) {
@@ -69,7 +80,11 @@ function Conversation({
     setInput("");
     setError(null);
     setBusy(true);
-    setTurns((prev) => [...prev, { role: "user", content: message }, { role: "assistant", content: "" }]);
+    setTurns((prev) => [
+      ...prev,
+      { role: "user", content: message },
+      { role: "assistant", content: "", stages: [], startedAt: performance.now() },
+    ]);
 
     try {
       await streamChat(
@@ -88,11 +103,18 @@ function Conversation({
               return next;
             });
           },
-          onToken: (text) => {
+          onStatus: (stage) => {
             setTurns((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
-              next[next.length - 1] = { ...last, content: last.content + text };
+              next[next.length - 1] = { ...last, stages: [...(last.stages ?? []), stage] };
+              return next;
+            });
+          },
+          onToken: (text) => {
+            setTurns((prev) => {
+              const next = [...prev];
+              next[next.length - 1] = withToken(next[next.length - 1], text);
               return next;
             });
           },
@@ -145,7 +167,20 @@ function Conversation({
               <span className="playground-role">
                 {turn.role === "user" ? t("playground.you") : t("playground.assistant")}
               </span>
-              <div className="playground-bubble">{turn.content || (busy ? t("playground.thinking") : "")}</div>
+              {turn.role === "assistant" && turn.stages ? (
+                <ThinkingSteps
+                  stages={turn.stages}
+                  settled={Boolean(turn.content) || !(busy && index === turns.length - 1)}
+                  seconds={turn.thoughtSeconds ?? null}
+                />
+              ) : null}
+              {turn.content ? (
+                <div className="playground-bubble">{turn.content}</div>
+              ) : busy && index === turns.length - 1 && !turn.stages?.length ? (
+                <div className="playground-bubble">
+                  <TypingDots />
+                </div>
+              ) : null}
               {turn.citations && turn.citations.length > 0 && (
                 <ul className="playground-citations">
                   {turn.citations.map((citation, i) => (
