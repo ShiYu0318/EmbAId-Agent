@@ -3233,3 +3233,21 @@ html {
   padding: 6px 6px 6px 14px;
   border-radius: 16px;
 }
+
+/* Numbers and labels use the UI face. Monospace stays for code only: its zero carries a
+   slash (to tell 0 from O in code), which is noise in figures and captions. */
+.intro__stages,
+.src em,
+.chunks__legend,
+.rank__row > span:first-child,
+.rank__row em,
+.thought li small,
+.cites span::before,
+.conf,
+.art-hybrid .merge,
+.art-gap em,
+.mode__tag {
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: normal;
+}
