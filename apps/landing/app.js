@@ -5,16 +5,30 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   // ---------- language: translate the static page before anything reads its text ----------
-  const I18N = window.EMBAID_I18N ?? { lang: "zh-TW", t: (zh) => zh, apply: () => {}, setLang: () => {}, other: "en" };
+  const I18N = window.EMBAID_I18N ?? {
+    lang: "zh-TW",
+    other: "en",
+    t: (zh) => zh,
+    apply: () => {},
+    translate: () => {},
+    setLang: () => {},
+    onChange: () => {},
+  };
   const T = I18N.t;
-  const EN = I18N.lang === "en";
+  const isEN = () => I18N.lang === "en";
+  // Split headlines are rebuilt from their Chinese source on every switch.
+  const splitSources = new Map([...document.querySelectorAll("[data-split]")].map((el) => [el, el.innerHTML]));
   I18N.apply();
-  document.querySelectorAll("[data-lang-toggle]").forEach((button) => {
-    button.textContent = I18N.other === "en" ? "EN" : "中文";
-    button.setAttribute("aria-label", T("切換為英文", "Switch to Traditional Chinese"));
-    button.setAttribute("lang", I18N.other);
-    button.addEventListener("click", () => I18N.setLang(I18N.other));
-  });
+  const langButtons = [...document.querySelectorAll("[data-lang-toggle]")];
+  const labelLangButtons = () =>
+    langButtons.forEach((button) => {
+      button.textContent = I18N.other === "en" ? "EN" : "中文";
+      button.setAttribute("aria-label", T("切換為英文", "Switch to Traditional Chinese"));
+      button.setAttribute("lang", I18N.other);
+    });
+  labelLangButtons();
+  langButtons.forEach((button) => button.addEventListener("click", () => I18N.setLang(I18N.other)));
+  I18N.onChange(labelLangButtons);
 
   // ---------- theme ----------
   const stored = (() => {
@@ -67,8 +81,12 @@
       a.rel = "noopener";
     });
   } else {
-    document.querySelectorAll("[data-login]").forEach((a) => (a.href = `${dashboardUrl}/login?lang=${I18N.lang}`));
-    document.querySelectorAll("[data-signup]").forEach((a) => (a.href = `${dashboardUrl}/login?mode=signup&lang=${I18N.lang}`));
+    const link = () => {
+      document.querySelectorAll("[data-login]").forEach((a) => (a.href = `${dashboardUrl}/login?lang=${I18N.lang}`));
+      document.querySelectorAll("[data-signup]").forEach((a) => (a.href = `${dashboardUrl}/login?mode=signup&lang=${I18N.lang}`));
+    };
+    link();
+    I18N.onChange(link);
   }
 
   // ---------- damped wheel scrolling ----------
@@ -230,7 +248,7 @@
   };
 
   // ---------- split text ----------
-  document.querySelectorAll("[data-split]").forEach((el) => {
+  const splitText = (el) => {
     if (reduceMotion) return;
     let i = 0;
     const walk = (node) => {
@@ -261,9 +279,23 @@
         }
       });
     };
-    el.setAttribute("aria-label", el.textContent.replace(/\s+/g, " ").trim());
+    // line breaks are <br>s, so join the lines with a space or a screen reader runs them together
+    const label = [...el.childNodes].map((n) => (n.nodeName === "BR" ? " " : n.textContent)).join("");
+    el.setAttribute("aria-label", label.replace(/\s+/g, " ").trim());
     walk(el);
     el.querySelectorAll(".char").forEach((c) => c.setAttribute("aria-hidden", "true"));
+    // the page-wide translator leaves split headlines alone; they are rebuilt below
+    el.setAttribute("data-i18n-skip", "");
+  };
+  splitSources.forEach((_, el) => splitText(el));
+  I18N.onChange(() => {
+    splitSources.forEach((html, el) => {
+      el.removeAttribute("data-i18n-skip");
+      el.removeAttribute("aria-label");
+      el.innerHTML = html;
+      I18N.translate(el);
+      splitText(el);
+    });
   });
 
   // ---------- reveal ----------
@@ -334,13 +366,16 @@
     const steps = [...story.querySelectorAll("[data-step]")];
     const scenes = [...story.querySelectorAll("[data-scene]")];
     const label = story.querySelector("[data-story-label]");
-    const names = EN
-      ? ["ingest", "chunk → embed", "hybrid search → rerank", "grounded answer"]
-      : ["ingest：匯入來源", "chunk → embed：切塊與嵌入", "hybrid search → rerank", "grounded answer：回答與改善"];
+    const names = () =>
+      isEN()
+        ? ["ingest", "chunk → embed", "hybrid search → rerank", "grounded answer"]
+        : ["ingest：匯入來源", "chunk → embed：切塊與嵌入", "hybrid search → rerank", "grounded answer：回答與改善"];
+    let current = 0;
     const activate = (i) => {
+      current = i;
       steps.forEach((s, k) => s.toggleAttribute("data-active", k === i));
       scenes.forEach((s, k) => s.toggleAttribute("data-active", k === i));
-      if (label) label.textContent = names[i];
+      if (label) label.textContent = names()[i];
     };
     activate(0);
 
@@ -356,7 +391,7 @@
         copy.className = "panel story__panel story__inline";
         copy.setAttribute("aria-hidden", "true");
         const bar = panel.querySelector(".panel__bar").cloneNode(true);
-        bar.querySelector("[data-story-label]")?.replaceChildren(names[i]);
+        bar.querySelector("[data-story-label]")?.replaceChildren(names()[i]);
         bar.querySelector("[data-story-label]")?.removeAttribute("data-story-label");
         const scene = scenes[i].cloneNode(true);
         scene.setAttribute("data-active", "");
@@ -366,6 +401,10 @@
     };
     inline();
     narrow.addEventListener("change", inline);
+    I18N.onChange(() => {
+      activate(current);
+      inline();
+    });
     const so = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -489,18 +528,20 @@
     if (personaRoot) {
       const swatches = [...personaRoot.querySelectorAll(".sw")];
       const text = personaRoot.querySelector("[data-persona]");
-      const tones = EN
+      const tones = () =>
+        isEN()
         ? ["“Friendly, concise, in Traditional Chinese”", "“Precise, with clause numbers”", "“Relaxed, like chatting with a friend”", "“Formal and complete, for public services”"]
         : ["「親切、簡潔，使用繁體中文」", "「專業精準，附上條款編號」", "「輕鬆一點，像朋友聊天」", "「正式完整，適合公部門」"];
       let k = 0;
       swatches[0]?.classList.add("is-on");
+      I18N.onChange(() => (text.textContent = tones()[k % tones().length]));
       setInterval(() => {
         if (!isLive(personaRoot)) return;
         k = (k + 1) % swatches.length;
         swatches.forEach((s, i) => s.classList.toggle("is-on", i === k));
         text.classList.add("is-swap");
         setTimeout(() => {
-          text.textContent = tones[k % tones.length];
+          text.textContent = tones()[k % tones().length];
           text.classList.remove("is-swap");
         }, 220);
       }, 2800);
@@ -514,7 +555,7 @@
     const input = think.querySelector("[data-think-input]");
     const inputWrap = input.parentElement;
     const presence = think.querySelector("[data-think-presence]");
-    const IDLE = T("線上立即回覆", "Online, replies instantly");
+    const IDLE = () => T("線上立即回覆", "Online, replies instantly");
 
     const SCENARIOS_ZH = {
       answer: [
@@ -661,7 +702,7 @@
         },
       ],
     };
-    const SCENARIOS = EN ? SCENARIOS_EN : SCENARIOS_ZH;
+    const scenarios = () => (isEN() ? SCENARIOS_EN : SCENARIOS_ZH);
 
     let run = 0;
     let auto = true;
@@ -804,7 +845,7 @@
         m.append(chips);
       }
       scrollDown();
-      presence.textContent = IDLE;
+      presence.textContent = IDLE();
       presence.removeAttribute("data-typing");
       if (chips && a.pick != null) {
         await wait(id, 1300);
@@ -815,9 +856,9 @@
 
     const play = async (name, id) => {
       body.replaceChildren();
-      presence.textContent = IDLE;
+      presence.textContent = IDLE();
       presence.removeAttribute("data-typing");
-      for (const step of SCENARIOS[name]) {
+      for (const step of scenarios()[name]) {
         if (step.user) {
           if (!reduceMotion && !(body.lastElementChild?.querySelector?.("[data-picked]"))) await typeInput(id, step.user);
           addUser(step.user);
@@ -832,7 +873,9 @@
     };
 
     let tabs;
+    let playing = "answer";
     const start = async (name) => {
+      playing = name;
       const id = ++run;
       try {
         await whenVisible();
@@ -866,5 +909,11 @@
     ).observe(think);
 
     start("answer");
+    // a switch replays the current scenario from the top in the new language
+    I18N.onChange(() => {
+      input.textContent = T("輸入你的問題…", "Type your question…");
+      inputWrap.removeAttribute("data-filled");
+      start(playing);
+    });
   }
 })();

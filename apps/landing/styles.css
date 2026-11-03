@@ -3275,3 +3275,23 @@ html[lang="en"] .intro__title {
   display: inline-block;
   white-space: nowrap;
 }
+
+/* language switch: a soft crossfade instead of a page reload */
+html.lang-vt::view-transition-old(root) {
+  animation: lang-out 0.22s cubic-bezier(0.4, 0, 1, 1) both;
+}
+html.lang-vt::view-transition-new(root) {
+  animation: lang-in 0.38s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+@keyframes lang-out {
+  to {
+    opacity: 0;
+    filter: blur(6px);
+  }
+}
+@keyframes lang-in {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+  }
+}

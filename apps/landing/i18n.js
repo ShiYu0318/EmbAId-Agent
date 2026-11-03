@@ -1,5 +1,6 @@
 // Landing i18n. Traditional Chinese is the source language and lives in index.html;
-// English is applied at load time from the dictionary below, keyed by the Chinese text.
+// English comes from the dictionary below, keyed by the Chinese text. Switching swaps
+// text in place (no reload): every translated node remembers its Chinese source.
 // Runs as a classic script in <head> so boot.js and app.js can read the language.
 (() => {
   const KEY = "embaid-lang";
@@ -18,7 +19,7 @@
     return browser.startsWith("zh") ? "zh-TW" : "en";
   };
 
-  const lang = pick();
+  let lang = pick();
   try {
     localStorage.setItem(KEY, lang);
   } catch {
@@ -268,62 +269,126 @@
   // Inside code samples only the sample question is translated.
   const CODE_EN = { "退貨要幾天內申請？": "How long do I have to return it?" };
 
-  const norm = (s) => s.replace(/\s+/g, " ").trim();
+  const norm = (v) => v.replace(/\s+/g, " ").trim();
   const hasCJK = /[㐀-鿿]/;
   const ATTRS = ["aria-label", "placeholder", "title", "alt"];
+  // English → Chinese, for nodes cloned from already-translated content.
+  const ZH = Object.fromEntries(Object.entries(EN).map(([zh, en]) => [en, zh]));
 
-  const apply = () => {
-    if (lang !== "en") return;
-    document.title = EN[norm(document.title)] ?? document.title;
-    const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.content = EN[norm(desc.content)] ?? desc.content;
+  const source = new WeakMap(); // text node → its Chinese text
+  const attrSource = new WeakMap(); // element → { attr: Chinese value }
 
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const toEnglish = (zh) => {
+    const hit = EN[norm(zh)];
+    if (hit === undefined) return zh;
+    return zh.match(/^\s*/)[0] + hit + zh.match(/\s*$/)[0];
+  };
+  const codeToEnglish = (zh) => {
+    let out = zh;
+    for (const [from, to] of Object.entries(CODE_EN)) out = out.split(from).join(to);
+    return out;
+  };
+  const codeToChinese = (en) => {
+    let out = en;
+    for (const [from, to] of Object.entries(CODE_EN)) out = out.split(to).join(from);
+    return out;
+  };
+
+  // The Chinese source of a piece of text, or null when it has none (not ours to translate).
+  const chineseOf = (value, known, inCode) => {
+    if (known !== undefined && (value === known || value === (inCode ? codeToEnglish(known) : toEnglish(known)))) return known;
+    if (inCode) return hasCJK.test(value) ? value : codeToChinese(value) !== value ? codeToChinese(value) : null;
+    if (hasCJK.test(value)) return value;
+    const zh = ZH[norm(value)];
+    return zh === undefined ? null : value.match(/^\s*/)[0] + zh + value.match(/\s*$/)[0];
+  };
+
+  const translate = (root = document.body) => {
+    const en = lang === "en";
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     for (const node of nodes) {
-      const raw = node.nodeValue;
-      if (!hasCJK.test(raw)) continue;
       const parent = node.parentElement;
-      if (!parent || parent.closest("script, style")) continue;
-      if (parent.closest("pre, code")) {
-        let out = raw;
-        for (const [zh, en] of Object.entries(CODE_EN)) out = out.split(zh).join(en);
-        node.nodeValue = out;
-        continue;
-      }
-      const hit = EN[norm(raw)];
-      if (hit === undefined) continue;
-      const lead = raw.match(/^\s*/)[0];
-      const trail = raw.match(/\s*$/)[0];
-      node.nodeValue = lead + hit + trail;
+      if (!parent || parent.closest("script, style, [data-i18n-skip]")) continue;
+      const inCode = Boolean(parent.closest("pre, code"));
+      const zh = chineseOf(node.nodeValue, source.get(node), inCode);
+      if (zh === null) continue;
+      source.set(node, zh);
+      const next = en ? (inCode ? codeToEnglish(zh) : toEnglish(zh)) : zh;
+      if (node.nodeValue !== next) node.nodeValue = next;
     }
-    document.querySelectorAll(ATTRS.map((a) => `[${a}]`).join(",")).forEach((el) => {
+    const scope = root.querySelectorAll ? root : document;
+    scope.querySelectorAll(ATTRS.map((a) => `[${a}]`).join(",")).forEach((el) => {
+      if (el.closest("[data-i18n-skip]")) return;
+      const known = attrSource.get(el) ?? {};
       for (const a of ATTRS) {
         const v = el.getAttribute(a);
-        if (v && hasCJK.test(v) && EN[norm(v)] !== undefined) el.setAttribute(a, EN[norm(v)]);
+        if (!v) continue;
+        const zh = chineseOf(v, known[a], false);
+        if (zh === null) continue;
+        known[a] = zh;
+        const next = en ? toEnglish(zh) : zh;
+        if (v !== next) el.setAttribute(a, next);
       }
+      attrSource.set(el, known);
     });
+  };
+
+  const head = { title: document.title, desc: document.querySelector('meta[name="description"]')?.content ?? "" };
+  const translateHead = () => {
+    document.documentElement.lang = lang;
+    document.title = lang === "en" ? toEnglish(head.title) : head.title;
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.content = lang === "en" ? toEnglish(head.desc) : head.desc;
+  };
+
+  const apply = () => {
+    translateHead();
+    translate(document.body);
+  };
+
+  const listeners = new Set();
+  const swap = () => {
+    apply();
+    listeners.forEach((fn) => fn(lang));
   };
 
   const setLang = (next) => {
     if (!isLang(next) || next === lang) return;
+    lang = next;
+    api.lang = lang;
+    api.other = lang === "en" ? "zh-TW" : "en";
     try {
-      localStorage.setItem(KEY, next);
+      localStorage.setItem(KEY, lang);
     } catch {
       void 0;
     }
     const url = new URL(location.href);
-    url.searchParams.set("lang", next);
-    location.replace(url.toString());
+    url.searchParams.set("lang", lang);
+    history.replaceState(history.state, "", url);
+
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!document.startViewTransition || still) {
+      swap();
+      return;
+    }
+    const html = document.documentElement;
+    html.classList.add("lang-vt");
+    document.startViewTransition(swap).finished.finally(() => html.classList.remove("lang-vt"));
   };
 
-  window.EMBAID_I18N = {
+  const api = {
     lang,
-    /** Pick the string for the current language. */
-    t: (zh, en) => (lang === "en" ? en : zh),
-    apply,
-    setLang,
     other: lang === "en" ? "zh-TW" : "en",
+    /** Pick the string for the current language (read at call time, so it follows switches). */
+    t: (zh, en) => (lang === "en" ? en : zh),
+    /** Translate the page, or one subtree, into the current language. */
+    apply,
+    translate,
+    setLang,
+    /** Run fn(lang) after every switch, once the static text has been swapped. */
+    onChange: (fn) => listeners.add(fn),
   };
+  window.EMBAID_I18N = api;
 })();

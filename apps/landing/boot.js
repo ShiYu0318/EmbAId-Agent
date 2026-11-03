@@ -5,13 +5,13 @@
   const publishableKey = params.get("key");
   const live = Boolean(apiUrl && projectId && publishableKey);
 
-  const I18N = window.EMBAID_I18N ?? { lang: "zh-TW", t: (zh) => zh };
+  const I18N = window.EMBAID_I18N ?? { lang: "zh-TW", t: (zh) => zh, onChange: () => {} };
   const T = I18N.t;
-  const EN = I18N.lang === "en";
+  const isEN = () => I18N.lang === "en";
   const nativeFetch = window.fetch.bind(window);
   const encoder = new TextEncoder();
 
-  const liveConfig = {
+  const liveConfig = () => ({
     primary_color: "#0033ff",
     greeting: T(
       "嗨，我已連上你的知識庫。問我任何關於你剛上傳文件的問題吧。",
@@ -20,26 +20,26 @@
     starter_questions: [],
     bot_name: params.get("bot") || T("知識助理", "Knowledge assistant"),
     theme: "dark",
-    locale: EN ? "en" : "zh-TW",
-  };
+    locale: isEN() ? "en" : "zh-TW",
+  });
 
-  const demoConfig = {
+  const demoConfig = () => ({
     primary_color: "#0033ff",
     greeting: T(
       "嗨，我是 EmbAId Agent。試著問我檢索原理、如何嵌入，或資料安全。",
       "Hi, I'm EmbAId Agent. Ask me how retrieval works, how to embed me, or how your data is kept safe.",
     ),
-    starter_questions: EN
+    starter_questions: isEN()
       ? ["How does RAG avoid making things up?", "How do I embed the agent on my site?", "Is my data safe?"]
       : ["RAG 如何避免亂編答案？", "怎麼把助理嵌到我的網站？", "我的資料安全嗎？"],
     bot_name: "EmbAId Agent",
     theme: "dark",
-    locale: EN ? "en" : "zh-TW",
-  };
+    locale: isEN() ? "en" : "zh-TW",
+  });
 
   const frame = (event, data) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 
-  const demoAnswers = [
+  const demoAnswers = () => [
     {
       match: ["檢索", "亂", "幻覺", "hallucin", "準", "來源", "信心", "出處", "rag", "retriev", "make", "source", "accura"],
       text: T(
@@ -66,19 +66,19 @@
     },
   ];
 
-  const demoFallback = {
+  const demoFallback = () => ({
     text: T(
       "我是 EmbAId Agent 的示範。它把你的文件變成會查證、可客製化的 AI Agent：查詢改寫、混合檢索、Cross-encoder 重排序、低信心自動婉拒，還有可稽核的 Retrieval Trace。想看真實效果，請登入上傳文件後從儀表板試用。",
       "I'm a demo of EmbAId Agent. It turns your documents into a verifiable, customizable AI agent: query rewriting, hybrid retrieval, cross-encoder reranking, automatic refusal at low confidence, and an auditable retrieval trace. To see it on your own content, upload documents and try it from the dashboard.",
     ),
     cite: null,
-  };
+  });
 
   const pickDemo = (message) => {
     const lower = message.toLowerCase();
     return (
-      demoAnswers.find((a) => a.match.some((k) => lower.includes(k.toLowerCase()))) ??
-      demoFallback
+      demoAnswers().find((a) => a.match.some((k) => lower.includes(k.toLowerCase()))) ??
+      demoFallback()
     );
   };
 
@@ -147,7 +147,7 @@
     const url = String(typeof input === "string" ? input : input?.url ?? "");
 
     if (url.includes("/widget-config")) {
-      return new Response(JSON.stringify(live ? liveConfig : demoConfig), {
+      return new Response(JSON.stringify(live ? liveConfig() : demoConfig()), {
         headers: { "Content-Type": "application/json" },
       });
     }
@@ -172,16 +172,37 @@
   if (live) {
     const banner = document.createElement("div");
     banner.className = "live-banner";
-    banner.innerHTML =
+    const bannerText = () =>
       T("已連上你的知識庫，這個 Agent 正在讀取你上傳的文件", "Connected to your knowledge base: this agent is reading the documents you uploaded");
+    banner.textContent = bannerText();
     document.body.appendChild(banner);
+    I18N.onChange(() => (banner.textContent = bannerText()));
     document.body.setAttribute("data-live", "true");
   }
 
-  const widget = document.createElement("script");
-  widget.src = "./widget.js";
-  widget.setAttribute("data-key", live ? publishableKey : "pub_demo");
-  widget.setAttribute("data-project", live ? projectId : "proj_demo");
-  widget.setAttribute("data-api-url", live ? apiUrl : "https://demo.embaid.chat");
-  document.body.appendChild(widget);
+  const loadWidget = () => {
+    const widget = document.createElement("script");
+    widget.src = "./widget.js";
+    widget.setAttribute("data-key", live ? publishableKey : "pub_demo");
+    widget.setAttribute("data-project", live ? projectId : "proj_demo");
+    widget.setAttribute("data-api-url", live ? apiUrl : "https://demo.embaid.chat");
+    document.body.appendChild(widget);
+    return widget;
+  };
+  let widgetScript = loadWidget();
+
+  // The widget reads its locale once, when it mounts. On a language switch mount a
+  // fresh one and drop the old one only after the new one is in, so the bubble never blinks.
+  I18N.onChange(() => {
+    const old = [...document.querySelectorAll("[data-embaid-widget]")];
+    const watcher = new MutationObserver(() => {
+      const fresh = [...document.querySelectorAll("[data-embaid-widget]")].some((el) => !old.includes(el));
+      if (!fresh) return;
+      watcher.disconnect();
+      old.forEach((el) => el.remove());
+    });
+    watcher.observe(document.body, { childList: true });
+    widgetScript.remove();
+    widgetScript = loadWidget();
+  });
 })();
