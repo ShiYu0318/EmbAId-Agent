@@ -35,12 +35,15 @@ const zhTW = {
   stageCacheHit: "找到相似的已答問題",
   stageSearch: "搜尋知識庫",
   stageRerank: "比對 {n} 段候選內容",
+  stageRerankOne: "比對 {n} 段候選內容",
   stageCompose: "整理 {n} 份來源，組織回答",
+  stageComposeOne: "整理 {n} 份來源，組織回答",
   stageAbstain: "證據不足，不想用猜的",
   stageAbstainDetail: "最高信心 {c}，低於門檻 {t}",
   stageWorking: "正在查詢資料",
   retry: "重試",
   sourceCount: "{n} 份來源",
+  sourceCountOne: "{n} 份來源",
 } as const;
 
 export type MessageKey = keyof typeof zhTW;
@@ -77,12 +80,15 @@ const en: Partial<Record<MessageKey, string>> = {
   stageCacheHit: "Found a similar answered question",
   stageSearch: "Searching the knowledge base",
   stageRerank: "Comparing {n} candidate passages",
+  stageRerankOne: "Comparing {n} candidate passage",
   stageCompose: "Drafting from {n} sources",
+  stageComposeOne: "Drafting from {n} source",
   stageAbstain: "Not enough evidence to answer",
   stageAbstainDetail: "Best match {c}, below threshold {t}",
   stageWorking: "Looking that up",
   retry: "Retry",
   sourceCount: "{n} sources",
+  sourceCountOne: "{n} source",
 };
 
 const DICTIONARIES: Record<Locale, Partial<Record<MessageKey, string>>> = {

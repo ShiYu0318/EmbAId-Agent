@@ -352,7 +352,7 @@ export class ChatWidget {
       case "cache_hit":
         return {
           label: this.t("stageCacheHit"),
-          note: format(this.t("sourceCount"), { n: n("sources") }),
+          note: format(this.t(n("sources") === 1 ? "sourceCountOne" : "sourceCount"), { n: n("sources") }),
           warn: false,
         };
       case "search":
@@ -362,9 +362,9 @@ export class ChatWidget {
           warn: false,
         };
       case "rerank":
-        return { label: format(this.t("stageRerank"), { n: n("candidates") }), note: "", warn: false };
+        return { label: format(this.t(n("candidates") === 1 ? "stageRerankOne" : "stageRerank"), { n: n("candidates") }), note: "", warn: false };
       case "compose":
-        return { label: format(this.t("stageCompose"), { n: n("sources") }), note: "", warn: false };
+        return { label: format(this.t(n("sources") === 1 ? "stageComposeOne" : "stageCompose"), { n: n("sources") }), note: "", warn: false };
       case "abstain":
         return {
           label: this.t("stageAbstain"),
