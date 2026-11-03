@@ -1,5 +1,5 @@
 import { SseParser } from "./sse";
-import type { Citation, EmbedOptions, Feedback, WidgetConfig } from "./types";
+import type { Citation, EmbedOptions, Feedback, StreamHandlers, WidgetConfig } from "./types";
 
 export const DEFAULT_CONFIG: WidgetConfig = {
   primaryColor: "#0033ff",
@@ -13,14 +13,7 @@ export const DEFAULT_CONFIG: WidgetConfig = {
   locale: "zh-TW",
 };
 
-export interface StreamHandlers {
-  onConversation?(conversationId: string, messageId: string): void;
-  onStatus?(stage: string, detail: Record<string, unknown>): void;
-  onToken?(text: string): void;
-  onCitations?(citations: Citation[]): void;
-  onDone?(answered: boolean): void;
-  onError?(error: Error): void;
-}
+export type { StreamHandlers } from "./types";
 
 function normalizeConfig(raw: Record<string, unknown>): WidgetConfig {
   const config = { ...DEFAULT_CONFIG };
@@ -135,8 +128,16 @@ export class ApiClient {
         handlers.onToken?.(String((payload as Record<string, unknown>).text ?? ""));
       } else if (event === "citations") {
         handlers.onCitations?.(parseCitations(payload));
+      } else if (event === "quick_replies") {
+        const items = (payload as { items?: unknown }).items;
+        if (Array.isArray(items)) handlers.onQuickReplies?.(items.map(String).filter(Boolean));
       } else if (event === "done") {
-        handlers.onDone?.(Boolean((payload as Record<string, unknown>).answered));
+        const record = (payload ?? {}) as Record<string, unknown>;
+        handlers.onDone?.({
+          answered: Boolean(record.answered),
+          confidence: typeof record.confidence === "number" ? record.confidence : null,
+          flagged: Boolean(record.flagged),
+        });
       }
     };
 

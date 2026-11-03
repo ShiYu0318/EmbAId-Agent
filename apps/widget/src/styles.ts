@@ -515,12 +515,14 @@ export const STYLES = `
 
 /* ---------- starters ---------- */
 
-.starters {
+/* suggestions sit just above the composer: starter questions first, follow-up choices later */
+.tray {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 2px;
+  padding: 2px 16px 10px;
 }
+.tray:empty { display: none; }
 .starter {
   padding: 7px 12px;
   border-radius: 999px;
@@ -539,6 +541,67 @@ export const STYLES = `
 .starter:focus-visible { outline: 2px solid var(--paw-primary); outline-offset: 2px; }
 @media (hover: hover) and (pointer: fine) {
   .starter:hover { background: var(--paw-primary); color: var(--paw-on-primary); border-color: var(--paw-primary); }
+}
+
+/* ---------- confidence and knowledge gaps ---------- */
+
+.confidence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--paw-faint);
+  font-variant-numeric: tabular-nums;
+  animation: paw-fade 300ms ease 80ms both;
+}
+.confidence-bar {
+  position: relative;
+  flex: 0 0 72px;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--paw-border-strong);
+  overflow: hidden;
+}
+.confidence-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--w, 0%);
+  border-radius: inherit;
+  background: var(--paw-good);
+  animation: paw-grow 600ms var(--paw-ease) both;
+}
+.confidence[data-low="true"] .confidence-bar::after { background: var(--paw-warn); }
+@keyframes paw-grow { from { width: 0; } }
+.gap-note {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--paw-warn) 80%, var(--paw-text));
+  background: color-mix(in srgb, var(--paw-warn) 12%, transparent);
+  animation: paw-fade 300ms ease 120ms both;
+}
+
+/* ---------- inline mode: fills its container, always open, no launcher ---------- */
+
+.root[data-mode="inline"] {
+  position: static;
+  z-index: auto;
+  height: 100%;
+  display: block;
+  pointer-events: auto;
+}
+.root[data-mode="inline"] .panel {
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+  transform: none;
+  filter: none;
+  visibility: visible;
+  pointer-events: auto;
+  transition: none;
 }
 
 /* ---------- composer ---------- */

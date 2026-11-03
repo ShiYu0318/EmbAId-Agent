@@ -2,7 +2,7 @@ import { ApiClient, DEFAULT_CONFIG } from "./api";
 import { createTranslator, format, resolveLocale, type MessageKey, type Translator } from "./i18n";
 import { renderMarkdown } from "./markdown";
 import { STYLES } from "./styles";
-import type { Citation, EmbedOptions, WidgetConfig } from "./types";
+import type { Citation, DoneInfo, EmbedOptions, Transport, WidgetConfig } from "./types";
 
 const CONVERSATION_STORAGE_KEY = "embaid-conversation-id";
 // Each reported stage stays on screen at least this long, so fast pipelines still read as steps.
@@ -36,6 +36,8 @@ interface Turn {
   finished: boolean;
   citations: Citation[];
   messageId: string | null;
+  done: DoneInfo | null;
+  quickReplies: string[];
 }
 
 type IconKind = "chat" | "close" | "up" | "down" | "send";
@@ -45,6 +47,9 @@ export class ChatWidget {
   private readonly shadow: ShadowRoot;
   private readonly api: ApiClient;
   private readonly doc: Document;
+  private readonly options: EmbedOptions;
+  private readonly inline: boolean;
+  private persist = true;
 
   private config: WidgetConfig = { ...DEFAULT_CONFIG };
   private t: Translator = createTranslator(DEFAULT_CONFIG.locale);
@@ -61,13 +66,17 @@ export class ChatWidget {
   private sendButton!: HTMLButtonElement;
   private status!: HTMLElement;
   private presence!: HTMLElement;
-  private startersRow: HTMLElement | null = null;
+  /** Tappable suggestions above the composer: starter questions, then follow-up choices. */
+  private tray!: HTMLElement;
 
   constructor(options: EmbedOptions, doc: Document = document) {
     this.doc = doc;
+    this.options = options;
+    this.inline = options.mode === "inline";
     this.api = new ApiClient(options);
     this.host = doc.createElement("div");
     this.host.setAttribute("data-embaid-widget", "");
+    if (this.inline) this.host.style.cssText = "display:block;height:100%;";
     this.shadow = this.host.attachShadow({ mode: "closed" });
   }
 
@@ -76,16 +85,74 @@ export class ChatWidget {
   }
 
   async mount(target: HTMLElement): Promise<void> {
-    this.config = await this.api.loadConfig();
-    this.t = createTranslator(resolveLocale(this.config.locale));
-    this.conversationId = this.readStoredConversation();
+    const base = this.options.fetchConfig === false ? { ...DEFAULT_CONFIG } : await this.api.loadConfig();
+    this.config = { ...base, ...this.options.config };
+    this.persist = this.options.persist ?? !this.inline;
+    this.conversationId = this.persist ? this.readStoredConversation() : null;
     this.reduceMotion = Boolean(
       this.doc.defaultView?.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
     );
+    this.render();
+    target.appendChild(this.host);
+  }
 
+  /** Apply new settings in place (the conversation starts over). */
+  update(config: Partial<WidgetConfig>): void {
+    this.config = { ...this.config, ...config };
+    this.render();
+  }
+
+  /** Clear the conversation and show the greeting again. */
+  reset(): void {
+    this.conversationId = null;
+    if (this.persist) {
+      try {
+        this.doc.defaultView?.sessionStorage.removeItem(CONVERSATION_STORAGE_KEY);
+      } catch {
+        // storage unavailable: nothing to clear
+      }
+    }
+    this.render();
+  }
+
+  destroy(): void {
+    this.generation += 1;
+    this.host.remove();
+  }
+
+  /** Send a question as if the visitor asked it; `typed` plays it into the input first. */
+  async ask(question: string, { typed = false }: { typed?: boolean } = {}): Promise<void> {
+    if (this.busy) return;
+    if (typed && !this.reduceMotion) {
+      const generation = this.generation;
+      this.input.value = "";
+      for (const ch of question) {
+        if (generation !== this.generation) return;
+        this.input.value += ch;
+        this.syncComposer();
+        await new Promise<void>((resolve) => this.later(resolve, 40 + Math.random() * 50));
+      }
+      await new Promise<void>((resolve) => this.later(resolve, 220));
+      if (generation !== this.generation) return;
+    }
+    this.input.value = question;
+    await this.submit();
+  }
+
+  get isBusy(): boolean {
+    return this.busy;
+  }
+
+  // Bumped on every render so async work from an old layout stops touching the new one.
+  private generation = 0;
+
+  private render(): void {
+    this.generation += 1;
+    this.busy = false;
+    this.t = createTranslator(resolveLocale(this.config.locale));
+    this.shadow.replaceChildren();
     this.build();
     this.applyTheme();
-    target.appendChild(this.host);
   }
 
   private readStoredConversation(): string | null {
@@ -114,15 +181,16 @@ export class ChatWidget {
 
     this.root = this.el("div", "root");
     this.root.setAttribute("data-position", this.config.position);
+    this.root.setAttribute("data-mode", this.inline ? "inline" : "floating");
     this.root.style.setProperty("--paw-primary", this.config.primaryColor);
 
     this.panel = this.el("div", "panel");
     this.panel.setAttribute("role", "dialog");
     this.panel.setAttribute("aria-modal", "false");
     this.panel.setAttribute("aria-label", this.t("panelLabel"));
-    this.panel.setAttribute("data-open", "false");
+    this.panel.setAttribute("data-open", String(this.inline || this.open));
     this.panel.addEventListener("keydown", (event) => {
-      if ((event as KeyboardEvent).key === "Escape") {
+      if (!this.inline && (event as KeyboardEvent).key === "Escape") {
         this.setOpen(false);
         this.launcher.focus();
       }
@@ -140,6 +208,9 @@ export class ChatWidget {
     this.status.setAttribute("aria-live", "polite");
     this.panel.appendChild(this.status);
 
+    this.tray = this.el("div", "tray");
+    this.panel.appendChild(this.tray);
+
     this.panel.appendChild(this.buildComposer());
     this.panel.appendChild(this.buildBranding());
 
@@ -152,7 +223,7 @@ export class ChatWidget {
     this.launcher.addEventListener("click", () => this.setOpen(!this.open));
 
     this.root.appendChild(this.panel);
-    this.root.appendChild(this.launcher);
+    if (!this.inline) this.root.appendChild(this.launcher);
     this.shadow.appendChild(this.root);
 
     this.renderGreeting();
@@ -186,7 +257,8 @@ export class ChatWidget {
     close.appendChild(this.icon("close", 18));
     close.addEventListener("click", () => this.setOpen(false));
 
-    header.append(avatar, titleWrap, close);
+    header.append(avatar, titleWrap);
+    if (!this.inline) header.append(close);
     return header;
   }
 
@@ -241,27 +313,31 @@ export class ChatWidget {
     row.appendChild(bubble);
     this.log.appendChild(row);
 
-    if (this.config.starterQuestions.length === 0) return;
+    this.showSuggestions(this.config.starterQuestions, "startersLabel");
+  }
 
-    const starters = this.el("div", "starters");
-    starters.setAttribute("aria-label", this.t("startersLabel"));
-    this.config.starterQuestions.forEach((question, index) => {
+  private showSuggestions(items: string[], label: MessageKey): void {
+    this.tray.replaceChildren();
+    this.tray.removeAttribute("aria-label");
+    if (items.length === 0) return;
+    this.tray.setAttribute("aria-label", this.t(label));
+    items.forEach((text, index) => {
       const chip = this.doc.createElement("button");
       chip.className = "starter";
       chip.type = "button";
       chip.style.setProperty("--i", String(index));
-      chip.textContent = question;
+      chip.textContent = text;
       chip.addEventListener("click", () => {
-        this.input.value = question;
+        if (this.busy) return;
+        this.input.value = text;
         void this.submit();
       });
-      starters.appendChild(chip);
+      this.tray.appendChild(chip);
     });
-    this.startersRow = starters;
-    this.log.appendChild(starters);
   }
 
   private setOpen(open: boolean): void {
+    if (this.inline) return;
     this.open = open;
     this.panel.setAttribute("data-open", String(open));
     this.launcher.setAttribute("aria-expanded", String(open));
@@ -345,6 +421,10 @@ export class ChatWidget {
 
   private stageText(stage: Stage): { label: string; note: string; warn: boolean } {
     const d = stage.detail;
+    // A host (e.g. a scripted demo) may word a step itself.
+    if (typeof d.label === "string" && d.label) {
+      return { label: d.label, note: typeof d.note === "string" ? d.note : "", warn: Boolean(d.warn) };
+    }
     const n = (key: string): number => Number(d[key] ?? 0);
     switch (stage.name) {
       case "understand":
@@ -450,6 +530,7 @@ export class ChatWidget {
     if (turn.title) {
       turn.title.textContent = format(this.t(turn.abstained ? "thoughtWarn" : "thoughtDone"), {
         s: seconds,
+        n: turn.steps?.children.length ?? 0,
       });
     }
     turn.thought.open = false;
@@ -528,8 +609,10 @@ export class ChatWidget {
     if (turn.container && turn.bubble) {
       this.paint(turn, false);
       this.renderCitations(turn.container, turn.citations);
+      if (turn.done) this.renderConfidence(turn.container, turn.done);
       if (turn.messageId) this.renderFeedback(turn.container, turn.messageId);
     }
+    if (turn.quickReplies.length > 0) this.showSuggestions(turn.quickReplies, "quickRepliesLabel");
     this.setPresence("presenceOnline");
     this.setBusy(false);
     this.scroll();
@@ -591,6 +674,26 @@ export class ChatWidget {
     target.appendChild(block);
   }
 
+  private renderConfidence(target: HTMLElement, done: DoneInfo): void {
+    if (done.confidence !== null) {
+      const row = this.el("div", "confidence");
+      row.setAttribute("data-low", String(!done.answered));
+      const label = this.el("span", "confidence-label");
+      label.textContent = this.t("confidence");
+      const bar = this.el("i", "confidence-bar");
+      bar.style.setProperty("--w", `${Math.round(Math.max(0, Math.min(1, done.confidence)) * 100)}%`);
+      const value = this.el("span", "confidence-value");
+      value.textContent = done.confidence.toFixed(2);
+      row.append(label, bar, value);
+      target.appendChild(row);
+    }
+    if (done.flagged) {
+      const note = this.el("div", "gap-note");
+      note.textContent = this.t("gapLogged");
+      target.appendChild(note);
+    }
+  }
+
   private renderFeedback(target: HTMLElement, messageId: string): void {
     const meta = this.el("div", "meta-row");
     const row = this.el("div", "feedback");
@@ -623,8 +726,8 @@ export class ChatWidget {
     if (!message || this.busy) return;
 
     this.input.value = "";
-    this.startersRow?.remove();
-    this.startersRow = null;
+    this.showSuggestions([], "startersLabel");
+    const generation = this.generation;
 
     const userRow = this.messageRow("user");
     const bubble = this.el("div", "bubble");
@@ -656,6 +759,8 @@ export class ChatWidget {
       finished: false,
       citations: [],
       messageId: null,
+      done: null,
+      quickReplies: [],
     };
 
     turn.typingTimer = this.later(() => {
@@ -669,31 +774,43 @@ export class ChatWidget {
       this.scroll();
     }, TYPING_DELAY_MS);
 
-    await this.api.stream(message, this.conversationId, {
-      onConversation: (conversationId, messageId) => {
-        this.storeConversation(conversationId);
+    const transport: Transport =
+      this.options.transport ?? ((text, id, handlers) => this.api.stream(text, id, handlers));
+    // Ignore a reply that finishes after the widget was re-rendered or reset.
+    const live = <A extends unknown[]>(fn: (...args: A) => void) => (...args: A): void => {
+      if (generation === this.generation) fn(...args);
+    };
+    await transport(message, this.conversationId, {
+      onConversation: live((conversationId, messageId) => {
+        if (this.persist) this.storeConversation(conversationId);
+        else this.conversationId = conversationId;
         turn.messageId = messageId;
         const receipt = this.el("div", "receipt");
         receipt.textContent = this.t("received");
         userRow.appendChild(receipt);
-      },
-      onStatus: (stage, detail) => {
+      }),
+      onStatus: live((stage, detail) => {
         if (stage) this.pushStage(turn, { name: stage, detail });
-      },
-      onToken: (text) => {
+      }),
+      onToken: live((text) => {
         turn.received += text;
         this.reveal(turn);
-      },
-      onCitations: (citations) => {
+      }),
+      onCitations: live((citations) => {
         turn.citations = citations;
-      },
-      onDone: () => {
+      }),
+      onQuickReplies: live((items) => {
+        turn.quickReplies = items;
+      }),
+      onDone: live((info) => {
+        turn.done = info;
         turn.streamDone = true;
         this.reveal(turn);
-      },
-      onError: () => this.fail(turn),
+      }),
+      onError: live(() => this.fail(turn)),
     });
 
+    if (generation !== this.generation) return;
     if (!turn.streamDone && !turn.finished) {
       turn.streamDone = true;
       this.reveal(turn);
