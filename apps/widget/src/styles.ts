@@ -326,6 +326,9 @@ export const STYLES = `
   color: var(--paw-muted);
   animation: paw-in 320ms var(--paw-ease) both;
   overflow: hidden;
+  /* overflow: hidden drops the flex min-height to 0, so without this a long
+     conversation squeezes the open steps out of view instead of scrolling */
+  flex-shrink: 0;
 }
 .thought summary {
   display: flex;
