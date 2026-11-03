@@ -64,6 +64,11 @@ you control. When a visitor asks something, the agent works through the question
 evidence is strong enough — and only then writes a grounded answer, streamed token by token and
 linked back to the passages it came from.
 
+It is not a chatbot that just keeps the conversation going. Before every answer the agent searches
+your knowledge base, weighs the evidence and decides whether to answer, ask a clarifying question,
+or decline. Next on the list is letting it call tools on its own and reflect between rounds of
+retrieval to correct course; see the [roadmap](#roadmap-agentic-retrieval).
+
 Every step is reported as it happens. Visitors watch the agent think ("searching the knowledge
 base…", "comparing 18 candidate passages…") instead of staring at a spinner, and operators get the
 full retrieval trace for every answer afterwards. When the evidence does not clear the bar, the

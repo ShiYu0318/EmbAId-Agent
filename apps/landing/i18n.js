@@ -120,8 +120,8 @@
     "實際運作的 Agent 推理過程": "The agent's reasoning, live",
     "它會先推理、查證，": "It reasons and checks first,",
     "證據不足就不亂答。": "and won't guess without evidence.",
-    "每一則回答前，Agent 都會讓訪客看見它正在做什麼：理解問題、改寫查詢、混合檢索、重排序、評估證據信心。":
-      "Before every answer, the agent shows the visitor what it is doing: understanding the question, rewriting the query, hybrid retrieval, reranking and weighing the evidence.",
+    "這不是只會接話的聊天機器人。每一則回答前，Agent 都會先搜尋、比對、查證，並讓訪客看見它正在做什麼：理解問題、改寫查詢、混合檢索、重排序、評估證據信心，最後決定要回答、反問還是婉拒。":
+      "This is not a chatbot that just keeps the conversation going. Before every answer the agent searches, compares and checks, and shows the visitor what it is doing: understanding the question, rewriting the query, hybrid retrieval, reranking and weighing the evidence, then deciding whether to answer, ask back or decline.",
     "示範情境": "Demo scenarios",
     "找得到答案": "Answer found",
     "需要追問": "Needs a follow-up",
