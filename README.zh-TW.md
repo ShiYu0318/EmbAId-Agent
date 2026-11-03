@@ -93,7 +93,7 @@ EmbAId Agent 把你自己的內容變成一個住在你網站上的 AI Agent。�
 | **官網首頁。** WebGL 粒子在十個形狀之間變形，講述產品從匯入到回答的流程。 | **一段 script。** 開場區附上嵌入程式碼與 RAG 管線的階段。 |
 | ![儀表板總覽](.github/assets/screenshots/dashboard-overview.png) | ![對話測試與推理步驟](.github/assets/screenshots/dashboard-playground.png) |
 | **儀表板總覽。** 上線進度、建議下一步，以及附趨勢的關鍵指標。 | **對話測試。** 上線前試答，並展開 Agent 的推理步驟。 |
-| ![嵌入設定與安裝驗證](.github/assets/screenshots/dashboard-embed.png) | ![嵌入網站的 Agent](.github/assets/screenshots/widget-on-site.png) |
+| ![嵌入設定與安裝驗證](.github/assets/screenshots/dashboard-embed.png) | ![證據不足時婉拒並記錄知識缺口的 Agent](.github/assets/screenshots/widget-demo.png) |
 | **嵌入設定。** 金鑰、允許網域、嵌入程式碼，以及自動安裝驗證。 | **在你的網站上。** Agent 顯示推理過程，依據你的文件回答並附上出處。 |
 
 ---

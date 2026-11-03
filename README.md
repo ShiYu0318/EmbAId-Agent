@@ -113,7 +113,7 @@ runner, so a full instance starts with one command and no Docker.
 | **Landing page.** A WebGL particle field morphs through ten shapes that tell the product story. | **One script tag.** The intro section, with the embed snippet and the RAG pipeline stages. |
 | ![Dashboard overview](.github/assets/screenshots/dashboard-overview.png) | ![Playground with reasoning steps](.github/assets/screenshots/dashboard-playground.png) |
 | **Dashboard overview.** Launch progress, suggested next steps, and KPIs with trends. | **Playground.** Test answers before going live and unfold the agent's reasoning steps. |
-| ![Embed settings with install verification](.github/assets/screenshots/dashboard-embed.png) | ![Agent embedded on a website](.github/assets/screenshots/widget-on-site.png) |
+| ![Embed settings with install verification](.github/assets/screenshots/dashboard-embed.png) | ![The agent declining a question it has no evidence for and logging a knowledge gap](.github/assets/screenshots/widget-demo.png) |
 | **Embed settings.** Keys, allowed sites, the snippet, and automatic install verification. | **On your site.** The agent shows its reasoning, answers from your documents, and cites them. |
 
 ---
