@@ -44,7 +44,7 @@
     "部署": "Deploy",
     "開發者": "Developers",
     "登入": "Sign in",
-    "免費開始": "Get started",
+    "建立 Agent": "Build your agent",
     "從內容到回答的粒子動畫": "Particle animation from content to answer",
     "往下捲動": "Scroll down",
 
@@ -61,7 +61,7 @@
     "只需一段 script，就能讓 EmbAId Agent 以你的網站、文件與知識庫回答訪客。每個回答都經過 RAG 檢索與重排序並附上出處，證據不足時不會生成錯誤的回覆。名稱、人格、外觀與模型都能客製，資料留在你選的地方。":
       "With a single script tag, EmbAId Agent answers your visitors from your website, documents and knowledge base. Every answer goes through RAG retrieval and reranking and cites its sources, and when the evidence is thin it does not make one up. Name, persona, look and model are all yours to set, and your data stays where you choose.",
     "複製嵌入程式碼": "Copy the embed snippet",
-    "免費開始建立": "Start building free",
+    "建立你的 Agent": "Build your agent",
 
     // marquee
     "適用場景": "Use cases",
