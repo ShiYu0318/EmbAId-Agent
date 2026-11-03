@@ -222,7 +222,8 @@ async def chat(
             "done",
             {
                 "answered": prepared.trace.answered,
-                "confidence": round(prepared.confidence, 2),
+                # a semantic-cache hit skips retrieval, so there is no evidence score to report
+                "confidence": None if prepared.trace.cache_hit else round(prepared.confidence, 2),
                 # a low-confidence refusal is logged as a knowledge gap (pipeline.flag_question)
                 "flagged": prepared.trace.refusal_reason == "low_confidence",
             },
