@@ -1,9 +1,9 @@
 "use client";
 
 import type { StreamStage } from "@/lib/api/chat";
-import { useI18n, type TranslateFn } from "@/lib/i18n";
+import { quote, useI18n, type Locale, type TranslateFn } from "@/lib/i18n";
 
-function describe(t: TranslateFn, stage: StreamStage): { label: string; note: string; warn: boolean } {
+function describe(t: TranslateFn, locale: Locale, stage: StreamStage): { label: string; note: string; warn: boolean } {
   const n = (key: string) => Number(stage[key] ?? 0);
   switch (stage.stage) {
     case "understand":
@@ -13,7 +13,7 @@ function describe(t: TranslateFn, stage: StreamStage): { label: string; note: st
     case "search":
       return {
         label: t("thinking.search"),
-        note: typeof stage.query === "string" && stage.query ? `「${stage.query}」` : "",
+        note: typeof stage.query === "string" && stage.query ? quote(locale, stage.query) : "",
         warn: false,
       };
     case "rerank":
@@ -44,7 +44,7 @@ export function ThinkingSteps({
   settled: boolean;
   seconds: number | null;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   if (stages.length === 0) return null;
 
   const warn = stages.some((s) => s.stage === "abstain");
@@ -62,7 +62,7 @@ export function ThinkingSteps({
       </summary>
       <ol className="thinking__steps">
         {stages.map((stage, i) => {
-          const { label, note, warn: isWarn } = describe(t, stage);
+          const { label, note, warn: isWarn } = describe(t, locale, stage);
           const last = i === stages.length - 1;
           const stepState = last && !settled ? "active" : isWarn ? "warn" : "done";
           return (

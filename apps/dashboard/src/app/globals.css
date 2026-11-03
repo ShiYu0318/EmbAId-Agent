@@ -427,6 +427,7 @@ select {
 }
 
 .auth-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -3203,4 +3204,27 @@ body {
   font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
   letter-spacing: normal;
+}
+
+/* ---------- login language switch ---------- */
+
+.auth-panel > .auth-lang {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: auto;
+  margin: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.auth-panel > .auth-lang:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
 }

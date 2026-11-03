@@ -45,14 +45,28 @@ function isLocale(value: string | null): value is Locale {
   return value === "zh-TW" || value === "en";
 }
 
+/** ?lang= (e.g. from the landing page) wins, then the saved choice, then the browser. */
+export function initialLocale(): Locale {
+  const fromQuery = new URLSearchParams(window.location.search).get("lang");
+  if (isLocale(fromQuery)) return fromQuery;
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  if (isLocale(stored)) return stored;
+  const browser = (navigator.languages?.[0] ?? navigator.language ?? "").toLowerCase();
+  return browser.startsWith("zh") ? "zh-TW" : browser ? FALLBACK_LOCALE : DEFAULT_LOCALE;
+}
+
+/** Wraps a quoted phrase in the quotation marks the locale uses. */
+export function quote(locale: Locale, text: string): string {
+  return locale === "zh-TW" ? `「${text}」` : `“${text}”`;
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (isLocale(stored)) {
-      setLocaleState(stored);
-    }
+    const next = initialLocale();
+    setLocaleState(next);
+    window.localStorage.setItem(STORAGE_KEY, next);
   }, []);
 
   useEffect(() => {

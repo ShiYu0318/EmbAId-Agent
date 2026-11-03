@@ -33,6 +33,8 @@ const baseTrace: RetrievalTrace = {
 };
 
 function renderTrace(trace: RetrievalTrace) {
+  // The assertions read the Traditional Chinese copy; pin it instead of following the browser.
+  window.localStorage.setItem("embaid.locale", "zh-TW");
   return render(
     <I18nProvider>
       <TraceViewer trace={trace} />

@@ -6,13 +6,14 @@ import { Suspense, useEffect, useState } from "react";
 import { ApiError } from "@/lib/api/errors";
 import { apiBaseUrl } from "@/lib/api/config";
 import { useAuth } from "@/lib/auth/context";
-import { useI18n } from "@/lib/i18n";
+import { LOCALE_LABELS, LOCALES, useI18n } from "@/lib/i18n";
 import { Button, Field, Input, InlineError } from "@/components/ui";
 
 type Mode = "login" | "signup";
 
 function LoginForm() {
-  const { t } = useI18n();
+  const { t, locale, setLocale } = useI18n();
+  const otherLocale = LOCALES[(LOCALES.indexOf(locale) + 1) % LOCALES.length];
   const { ready, user, login, signup } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
@@ -92,7 +93,7 @@ function LoginForm() {
         </div>
         <div className="auth-demo">
           <div className="auth-demo__head">
-            <span className="auth-demo__avatar">智</span>
+            <span className="auth-demo__avatar">E</span>
             <span className="auth-demo__name">{t("auth.demoLabel")}</span>
           </div>
           <div className="auth-demo__bubble auth-demo__bubble--user">
@@ -106,6 +107,15 @@ function LoginForm() {
       </aside>
 
       <section className="auth-panel">
+        <button
+          type="button"
+          className="auth-lang"
+          onClick={() => setLocale(otherLocale)}
+          aria-label={t("nav.language")}
+          lang={otherLocale}
+        >
+          {LOCALE_LABELS[otherLocale]}
+        </button>
         <div className="auth-brand">
           <span className="auth-brand__mark">E</span>
           <span className="auth-brand__name">{t("common.appName")}</span>
