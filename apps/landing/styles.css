@@ -3254,26 +3254,17 @@ html {
 
 /* ---------- language switch ---------- */
 
+/* Same box and hover as the theme toggle; only the label is text. */
 .lang-btn {
-  height: 30px;
-  padding: 0 10px;
-  border: 1px solid var(--line-2);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--ink-2);
   font-family: var(--sans);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
-  cursor: pointer;
-  transition:
-    color 0.2s ease,
-    border-color 0.2s ease;
-}
-@media (hover: hover) and (pointer: fine) {
-  .lang-btn:hover {
-    color: var(--ink);
-    border-color: var(--ink-3);
-  }
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  width: auto;
+  min-width: 36px;
+  padding: 0 6px;
 }
 html[lang="en"] .intro__title {
   font-size: clamp(34px, 4.4vw, 60px);
