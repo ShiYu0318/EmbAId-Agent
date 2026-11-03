@@ -740,7 +740,7 @@
       float gr = length(gq.xy);
       float bgStar = step(1.2, abs(gq.z));
       float glow = exp(-gr * gr * 10.) * (1. - bgStar);
-      vec3 gc = mix(vec3(1., .9, 1.), vec3(.6, .42, 1.), smoothstep(.06, .45, gr));
+      vec3 gc = mix(vec3(.92, .84, 1.), vec3(.56, .4, 1.), smoothstep(.06, .45, gr));
       gc = mix(gc, vec3(.26, .38, 1.), smoothstep(.5, 1.3, gr));
       gc = mix(gc, vec3(.9, .93, 1.), step(.9, aR.z));
       gc = mix(gc, vec3(1., .5, .86), step(aR.x, .02));
@@ -759,7 +759,7 @@
       vColor = mix(base, gc, gw * uGalPal);
       // the galaxy runs well past the depth fade, so it mostly opts out of it
       float depth = mix(mix(.3, 1., smoothstep(-5.6, -3.2, mv.z)), mix(.55, 1., smoothstep(-7.5, -3.6, mv.z)), gw);
-      float galAlpha = mix((1. - bgStar * .3) * (1. - glow * .7), .55 * (1. - glow * .3), dust);
+      float galAlpha = mix((.72 - bgStar * .25) * (1. - glow * .7), .32 * (1. - glow * .5), dust);
       vAlpha = depth * (1. - uScatter * .9) * mix(1., galAlpha, gw);
     }`;
   const frag = `
