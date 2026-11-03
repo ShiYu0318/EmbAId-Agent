@@ -44,7 +44,7 @@
     "部署": "Deploy",
     "開發者": "Developers",
     "登入": "Sign in",
-    "建立 Agent": "Build your agent",
+    "開始建立 Agent": "Start building",
     "從內容到回答的粒子動畫": "Particle animation from content to answer",
     "往下捲動": "Scroll down",
 
@@ -81,7 +81,7 @@
     "匯入你的內容": "Bring in your content",
     "在你核准的範圍內爬取網站與 Sitemap，或上傳 PDF、Word、Markdown，也能接 Notion 與 Google Docs。每份來源都看得到擷取狀態與抽出的文字（Ingestion）。":
       "Crawl your site and sitemap within the scope you approve, upload PDF, Word or Markdown, or connect Notion and Google Docs. Every source shows its ingestion status and the text that was extracted.",
-    "切塊、嵌入、建索引": "Chunk, embed, index",
+    "切塊、詞嵌入、建索引": "Chunk, embed, index",
     "以遞迴切塊（Recursive Chunking，相鄰段落保留重疊）處理中英混排內容，產生 Dense Embedding 寫入向量索引（FAISS／pgvector），同時建立 BM25 全文索引。可開啟 Contextual Retrieval，為每段補上定位脈絡，引用時仍顯示原文。":
       "Recursive chunking with overlapping neighbours handles mixed Chinese and English text, writes dense embeddings to a vector index (FAISS or pgvector) and builds a BM25 full-text index alongside. Turn on contextual retrieval to give each chunk a locating sentence; citations still show the original passage.",
     "混合檢索、重排序、判斷": "Hybrid retrieval, rerank, decide",

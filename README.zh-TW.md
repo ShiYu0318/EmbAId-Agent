@@ -572,7 +572,7 @@ pnpm --filter @embaid/widget build
 cd apps/landing && pnpm serve          # 建置 widget，於 :4180 提供服務
 ```
 
-建置公開版官網時，若沒有公開架設的儀表板，可以把登入按鈕隱藏、讓「建立 Agent」按鈕導向安裝說明：
+建置公開版官網時，若沒有公開架設的儀表板，可以把登入按鈕隱藏、讓「開始建立 Agent」按鈕導向安裝說明：
 
 ```bash
 LANDING_DASHBOARD_URL="" node apps/landing/build.mjs              # 不連到儀表板
