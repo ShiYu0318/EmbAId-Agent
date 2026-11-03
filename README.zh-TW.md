@@ -20,7 +20,7 @@
 </div>
 
 <p align="center">
-  <img src=".github/assets/screenshots/widget-on-site.png" alt="嵌入在書店網站上的 EmbAId Agent，顯示推理步驟與附出處的回答" width="880" />
+  <img src=".github/assets/screenshots/hero-zh-TW.png" alt="EmbAId Agent 官網的星系首頁，展開的聊天視窗裡有提問、推理步驟與附出處的回答" width="880" />
 </p>
 
 ---

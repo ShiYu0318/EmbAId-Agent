@@ -20,7 +20,7 @@ evidence with citations, and declines instead of guessing when the evidence is n
 </div>
 
 <p align="center">
-  <img src=".github/assets/screenshots/widget-on-site.png" alt="EmbAId Agent embedded on a bookstore website, showing its reasoning steps and a cited answer" width="880" />
+  <img src=".github/assets/screenshots/hero-en.png" alt="The EmbAId Agent landing page with its galaxy hero and the chat open, showing a question, the reasoning steps and a cited answer" width="880" />
 </p>
 
 ---
