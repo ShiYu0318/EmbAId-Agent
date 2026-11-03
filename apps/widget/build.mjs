@@ -10,6 +10,8 @@ const options = {
   outfile: "dist/widget.js",
   bundle: true,
   format: "iife",
+  // Pages can also build their own instance: new EmbAIdWidget.ChatWidget({...}).
+  globalName: "EmbAIdWidget",
   target: ["es2020"],
   platform: "browser",
   minify: !watch,
