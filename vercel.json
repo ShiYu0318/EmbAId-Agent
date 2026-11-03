@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "pnpm install --frozen-lockfile --filter ./apps/widget",
+  "buildCommand": "LANDING_DASHBOARD_URL= node apps/landing/build.mjs",
+  "outputDirectory": "apps/landing/dist",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- apps/landing apps/widget vercel.json"
+}
