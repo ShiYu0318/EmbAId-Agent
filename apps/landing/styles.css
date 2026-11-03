@@ -783,7 +783,6 @@ pre {
   margin-left: 12px;
 }
 
-
 /* ---------- story (pinned scroll) ---------- */
 
 .story {
@@ -1159,114 +1158,9 @@ pre {
 
 .chatmock {
   position: relative;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
   height: 560px;
-  border-radius: 22px;
-  background: var(--panel), var(--surface);
-  border: 1px solid var(--line);
-  box-shadow:
-    var(--shadow),
-    0 0 0 1px oklch(0.485 0.291 264 / 0.08),
-    0 50px 120px -50px oklch(0.485 0.291 264 / 0.45);
-  overflow: hidden;
-}
-.chatmock__bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--line);
-}
-.chatmock__bar b {
-  display: block;
-  font-size: 14.5px;
-  font-weight: 600;
-}
-.chatmock__bar small {
-  display: block;
-  color: var(--ink-3);
-  font-size: 12px;
-  transition: color 0.3s ease;
-}
-.chatmock__bar small[data-typing] {
-  color: var(--accent-hi);
-}
-.ava {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  flex: none;
-  border-radius: 12px;
-  background: linear-gradient(160deg, oklch(0.6 0.24 264), var(--accent) 60%, oklch(0.38 0.22 266));
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
-}
-.ava i {
-  position: absolute;
-  right: -2px;
-  bottom: -2px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--good);
-  border: 2px solid var(--surface);
-}
-.chatmock__body {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 18px;
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 60px);
-  mask-image: linear-gradient(to bottom, transparent, #000 60px);
-}
-.chatmock__input {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0 14px 14px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid var(--line-2);
-  background: oklch(1 0 0 / 0.025);
-  color: var(--ink-3);
-  font-size: 14px;
-}
-.chatmock__input[data-filled] span {
-  color: var(--ink);
-}
-
-.m {
-  max-width: 86%;
-  padding: 11px 14px;
-  border-radius: 16px;
-  font-size: 14px;
-  line-height: 1.65;
-  animation: msg-in 0.45s var(--ease-out) both;
-  transform-origin: bottom left;
-}
-.m--u {
-  align-self: flex-end;
-  background: var(--accent);
-  color: #fff;
-  border-bottom-right-radius: 6px;
-  transform-origin: bottom right;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18);
-}
-.m--a {
-  align-self: flex-start;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  border-bottom-left-radius: 6px;
-}
-.m--a b {
-  color: var(--ink);
+  border-radius: 20px;
+  box-shadow: 0 50px 120px -50px oklch(0.485 0.291 264 / 0.45);
 }
 @keyframes msg-in {
   from {
@@ -1274,30 +1168,10 @@ pre {
     transform: translateY(8px) scale(0.96);
   }
 }
-.caret {
-  display: inline-block;
-  width: 7px;
-  height: 1em;
-  margin-left: 2px;
-  vertical-align: -2px;
-  border-radius: 2px;
-  background: var(--accent-hi);
-  animation: caret 1s steps(2) infinite;
-}
 @keyframes caret {
   50% {
     opacity: 0;
   }
-}
-
-.thought {
-  align-self: flex-start;
-  width: min(86%, 380px);
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: oklch(1 0 0 / 0.02);
-  animation: msg-in 0.45s var(--ease-out) both;
-  overflow: hidden;
 }
 .thought__head {
   display: flex;
@@ -1307,101 +1181,16 @@ pre {
   font-size: 12.5px;
   color: var(--ink-3);
 }
-.thought__head .orb {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, var(--accent), var(--accent-hi), transparent 70%, var(--accent));
-  -webkit-mask: radial-gradient(circle, transparent 3.5px, #000 4px);
-  mask: radial-gradient(circle, transparent 3.5px, #000 4px);
-  animation: spin 0.9s linear infinite;
-}
-.thought[data-done] .orb {
-  animation: none;
-  background: var(--good);
-  -webkit-mask: none;
-  mask: none;
-  transform: scale(0.6);
-}
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
-}
-.thought ol {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-  padding: 0 12px 10px;
-  list-style: none;
-  transition:
-    opacity 0.3s ease,
-    margin 0.3s var(--ease-out);
-}
-.thought[data-done] ol {
-  display: none;
-}
-.thought li {
-  display: grid;
-  grid-template-columns: 16px 1fr;
-  gap: 8px;
-  align-items: start;
-  padding: 3px 0;
-  font-size: 12.5px;
-  color: var(--ink-2);
-  animation: step-in 0.35s var(--ease-out) both;
-}
-.thought li small {
-  display: block;
-  color: var(--ink-3);
-  font-family: var(--mono);
-  font-size: 11px;
 }
 @keyframes step-in {
   from {
     opacity: 0;
     transform: translateY(-4px);
   }
-}
-.thought li .tick {
-  position: relative;
-  width: 14px;
-  height: 14px;
-  margin-top: 3px;
-  border-radius: 50%;
-  border: 1.5px solid var(--line-2);
-}
-.thought li[data-state="active"] .tick {
-  border-color: var(--accent-hi);
-  border-right-color: transparent;
-  animation: spin 0.8s linear infinite;
-}
-.thought li[data-state="done"] .tick {
-  border-color: var(--good);
-  background: var(--good);
-}
-.thought li[data-state="done"] .tick::after {
-  content: "";
-  position: absolute;
-  left: 3.5px;
-  top: 1px;
-  width: 3px;
-  height: 6px;
-  border: solid var(--surface);
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(45deg);
-}
-.thought li[data-state="warn"] .tick {
-  border-color: var(--warn);
-  background: var(--warn);
-}
-.thought li[data-state="active"] .lbl {
-  background: linear-gradient(90deg, var(--ink-3) 0%, var(--ink) 45%, var(--ink-3) 90%);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: shimmer 1.6s linear infinite;
 }
 @keyframes shimmer {
   from {
@@ -1411,102 +1200,16 @@ pre {
     background-position: -100% 0;
   }
 }
-.cites {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-}
-.cites span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 9px;
-  border-radius: 7px;
-  background: var(--accent-soft);
-  color: var(--accent-hi);
-  font-size: 12px;
-  animation: chip-in 0.4s var(--ease-out) both;
-  animation-delay: calc(var(--i, 0) * 70ms);
-}
-.cites span::before {
-  content: attr(data-n);
-  font-family: var(--mono);
-  font-size: 10.5px;
-  opacity: 0.7;
-}
 @keyframes chip-in {
   from {
     opacity: 0;
     transform: scale(0.9);
   }
 }
-.conf {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--ink-3);
-}
-.conf i {
-  position: relative;
-  width: 72px;
-  height: 4px;
-  border-radius: 4px;
-  background: var(--line);
-  overflow: hidden;
-}
-.conf i::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  width: var(--w);
-  border-radius: inherit;
-  background: var(--c, var(--good));
-  transform-origin: left;
-  animation: grow 0.8s var(--ease-out) both;
-}
 @keyframes grow {
   from {
     transform: scaleX(0);
   }
-}
-.quick {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-.quick span {
-  padding: 5px 11px;
-  border-radius: 999px;
-  border: 1px solid oklch(0.485 0.291 264 / 0.45);
-  color: var(--accent-hi);
-  font-size: 12.5px;
-  animation: chip-in 0.4s var(--ease-out) both;
-  animation-delay: calc(var(--i, 0) * 70ms);
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
-}
-.quick span[data-picked] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-.flag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-  padding: 3px 9px;
-  border-radius: 7px;
-  background: oklch(0.8 0.14 75 / 0.1);
-  color: var(--warn);
-  font-size: 12px;
-  animation: chip-in 0.4s var(--ease-out) both;
 }
 
 /* ---------- bento ---------- */
@@ -3211,28 +2914,6 @@ html {
 }
 
 /* the demo's send button mirrors the embedded widget: rounded square, arrow up, dim until there is text */
-.chatmock__send {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
-  background: var(--accent);
-  color: #fff;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22);
-  opacity: 0.35;
-  transition:
-    opacity 0.15s ease,
-    transform 0.15s var(--ease-out);
-}
-.chatmock__input[data-filled] .chatmock__send {
-  opacity: 1;
-}
-.chatmock__input {
-  padding: 6px 6px 6px 14px;
-  border-radius: 16px;
-}
 
 /* Numbers and labels use the UI face. Monospace stays for code only: its zero carries a
    slash (to tell 0 from O in code), which is noise in figures and captions. */
@@ -3241,9 +2922,6 @@ html {
 .chunks__legend,
 .rank__row > span:first-child,
 .rank__row em,
-.thought li small,
-.cites span::before,
-.conf,
 .art-hybrid .merge,
 .art-gap em,
 .mode__tag {

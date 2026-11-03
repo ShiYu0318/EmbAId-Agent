@@ -548,15 +548,9 @@
     }
   }
 
-  // ---------- thinking demo ----------
+  // ---------- thinking demo: the real widget, inline, playing a script ----------
   const think = document.querySelector("[data-think]");
   if (think) {
-    const body = think.querySelector("[data-think-body]");
-    const input = think.querySelector("[data-think-input]");
-    const inputWrap = input.parentElement;
-    const presence = think.querySelector("[data-think-presence]");
-    const IDLE = () => T("線上立即回覆", "Online, replies instantly");
-
     const SCENARIOS_ZH = {
       answer: [
         { user: "退貨要幾天內申請？可以退回信用卡嗎？" },
@@ -704,6 +698,61 @@
     };
     const scenarios = () => (isEN() ? SCENARIOS_EN : SCENARIOS_ZH);
 
+    // boot.js loads widget.js, which exposes the widget class as window.EmbAIdWidget.
+    const widgetClass = () =>
+      new Promise((resolve) => {
+        const check = () => (window.EmbAIdWidget?.ChatWidget ? resolve(window.EmbAIdWidget.ChatWidget) : setTimeout(check, 60));
+        check();
+      });
+    const demoConfig = () => ({
+      primaryColor: "#0033ff",
+      botName: "EmbAId Agent",
+      greeting: T("嗨，有什麼可以幫你的嗎？", "Hi, how can I help?"),
+      starterQuestions: [],
+      theme: root.dataset.theme === "light" ? "light" : "dark",
+      locale: isEN() ? "en" : "zh-TW",
+    });
+
+    // Replies for the scenario being played, in order. The widget asks; the script answers
+    // through the same stream events the API sends.
+    let replies = [];
+    const transport = async (_message, _id, h) => {
+      const reply = replies.shift();
+      if (!reply) {
+        h.onDone?.({ answered: true, confidence: null, flagged: false });
+        return;
+      }
+      const [thought, answer] = reply;
+      h.onConversation?.("demo", "");
+      for (const step of thought.think) {
+        const note = step.note ? step.note.replace("{n}", String(step.count ?? "")) : "";
+        // only a refusal counts as "not enough evidence"; a follow-up question is not one
+        h.onStatus?.("demo", { label: step.label, note, warn: Boolean(step.warn && answer.low) });
+        if (!reduceMotion) await sleep(step.ms);
+      }
+      h.onToken?.(answer.answer.map(([segment, bold]) => (bold ? `**${segment}**` : segment)).join(""));
+      if (answer.cites) {
+        h.onCitations?.(answer.cites.map((title) => ({ chunkId: "", documentId: "", title, url: null, snippet: "" })));
+      }
+      if (answer.quick) h.onQuickReplies?.(answer.quick);
+      h.onDone?.({ answered: !answer.low, confidence: answer.conf ?? null, flagged: Boolean(answer.flag) });
+    };
+
+    const widgetReady = widgetClass().then(async (ChatWidget) => {
+      const widget = new ChatWidget({
+        apiKey: "",
+        projectId: "demo",
+        apiUrl: "",
+        mode: "inline",
+        fetchConfig: false,
+        persist: false,
+        transport,
+        config: demoConfig(),
+      });
+      await widget.mount(think);
+      return widget;
+    });
+
     let run = 0;
     let auto = true;
     let visible = false;
@@ -711,164 +760,27 @@
     const order = ["answer", "clarify", "abstain"];
     const cancelled = (id) => id !== run;
     const wait = async (id, ms) => {
-      if (reduceMotion) return;
       await sleep(ms);
       if (cancelled(id)) throw new Error("cancel");
     };
     const whenVisible = () => (visible ? Promise.resolve() : new Promise((r) => waiters.push(r)));
-    const scrollDown = () => {
-      while (body.scrollHeight > body.clientHeight && body.children.length > 6) body.firstElementChild.remove();
-    };
-
-    const typeInput = async (id, text) => {
-      inputWrap.setAttribute("data-filled", "");
-      input.textContent = "";
-      for (const ch of text) {
-        input.textContent += ch;
-        await wait(id, 45 + Math.random() * 55);
-      }
-      await wait(id, 260);
-      input.textContent = T("輸入你的問題…", "Type your question…");
-      inputWrap.removeAttribute("data-filled");
-    };
-
-    const addUser = (text) => {
-      const m = document.createElement("div");
-      m.className = "m m--u";
-      m.textContent = text;
-      body.append(m);
-      scrollDown();
-    };
-
-    const ticker = async (id, el, template, n) => {
-      const start = performance.now();
-      const dur = reduceMotion ? 0 : 650;
-      for (;;) {
-        const p = dur ? Math.min(1, (performance.now() - start) / dur) : 1;
-        el.textContent = template.replace("{n}", String(Math.round(n * (1 - Math.pow(1 - p, 3)))));
-        if (p >= 1) return;
-        await new Promise(requestAnimationFrame);
-        if (cancelled(id)) throw new Error("cancel");
-      }
-    };
-
-    const runThought = async (id, steps) => {
-      const box = document.createElement("div");
-      box.className = "thought";
-      box.innerHTML = `<div class="thought__head"><span class="orb"></span><span data-h>${T("思考中…", "Thinking…")}</span></div><ol></ol>`;
-      const list = box.querySelector("ol");
-      const head = box.querySelector("[data-h]");
-      body.append(box);
-      scrollDown();
-      presence.textContent = T("正在思考…", "Thinking…");
-      presence.setAttribute("data-typing", "");
-      const started = performance.now();
-      for (const s of steps) {
-        const li = document.createElement("li");
-        li.dataset.state = "active";
-        li.innerHTML = `<span class="tick"></span><div><span class="lbl">${s.label}</span>${s.note ? "<small></small>" : ""}</div>`;
-        list.append(li);
-        scrollDown();
-        const small = li.querySelector("small");
-        if (small) {
-          if (s.count) ticker(id, small, s.note, s.count).catch(() => {});
-          else small.textContent = s.note;
-        }
-        await wait(id, s.ms);
-        li.dataset.state = s.warn ? "warn" : "done";
-      }
-      await wait(id, 250);
-      const secs = reduceMotion ? 2.4 : (performance.now() - started) / 1000;
-      head.textContent = T(`已思考 ${secs.toFixed(1)} 秒，共 ${steps.length} 個步驟`, `Thought for ${secs.toFixed(1)} s, ${steps.length} steps`);
-      box.setAttribute("data-done", "");
-    };
-
-    const runAnswer = async (id, a) => {
-      const m = document.createElement("div");
-      m.className = "m m--a";
-      body.append(m);
-      presence.textContent = T("正在輸入…", "Typing…");
-      const text = document.createElement("span");
-      m.append(text);
-      const caret = document.createElement("span");
-      caret.className = "caret";
-      m.append(caret);
-      for (const [segment, bold] of a.answer) {
-        const holder = bold ? document.createElement("b") : document.createTextNode("");
-        text.append(holder);
-        const chars = [...segment];
-        for (let i = 0; i < chars.length; ) {
-          const take = 1 + Math.floor(Math.random() * 3);
-          const piece = chars.slice(i, i + take).join("");
-          i += take;
-          holder.textContent += piece;
-          scrollDown();
-          const pause = /[，。、！？：；,.!?]$/.test(piece) ? 140 + Math.random() * 200 : 22 + Math.random() * 38;
-          await wait(id, pause);
-        }
-      }
-      caret.remove();
-      if (a.cites) {
-        const c = document.createElement("div");
-        c.className = "cites";
-        a.cites.forEach((t, i) => {
-          const s = document.createElement("span");
-          s.dataset.n = String(i + 1);
-          s.style.setProperty("--i", String(i));
-          s.textContent = t;
-          c.append(s);
-        });
-        m.append(c);
-      }
-      if (a.flag) {
-        const f = document.createElement("div");
-        f.className = "flag";
-        f.textContent = a.flag;
-        m.append(f);
-      }
-      if (a.conf != null) {
-        const c = document.createElement("div");
-        c.className = "conf";
-        c.innerHTML = `<span>${T("信心", "Confidence")}</span><i style="--w:${Math.round(a.conf * 100)}%;${a.low ? "--c: var(--warn)" : ""}"></i><span>${a.conf.toFixed(2)}</span>`;
-        m.append(c);
-      }
-      let chips = null;
-      if (a.quick) {
-        chips = document.createElement("div");
-        chips.className = "quick";
-        a.quick.forEach((q, i) => {
-          const s = document.createElement("span");
-          s.style.setProperty("--i", String(i));
-          s.textContent = q;
-          chips.append(s);
-        });
-        m.append(chips);
-      }
-      scrollDown();
-      presence.textContent = IDLE();
-      presence.removeAttribute("data-typing");
-      if (chips && a.pick != null) {
-        await wait(id, 1300);
-        chips.children[a.pick].setAttribute("data-picked", "");
-        await wait(id, 450);
-      }
-    };
 
     const play = async (name, id) => {
-      body.replaceChildren();
-      presence.textContent = IDLE();
-      presence.removeAttribute("data-typing");
-      for (const step of scenarios()[name]) {
-        if (step.user) {
-          if (!reduceMotion && !(body.lastElementChild?.querySelector?.("[data-picked]"))) await typeInput(id, step.user);
-          addUser(step.user);
-          await wait(id, 380);
-        } else if (step.think) {
-          await runThought(id, step.think);
-          await wait(id, 200);
-        } else {
-          await runAnswer(id, step);
-        }
+      const widget = await widgetReady;
+      if (cancelled(id)) return;
+      widget.update(demoConfig()); // fresh conversation, current theme and language
+      const steps = scenarios()[name];
+      const asks = [];
+      replies = [];
+      steps.forEach((step, i) => {
+        if (step.user) asks.push(step.user);
+        else if (step.think) replies.push([step, steps[i + 1]]);
+      });
+      for (let i = 0; i < asks.length; i++) {
+        // the first question is typed; a later one is the visitor tapping a follow-up choice
+        await wait(id, i === 0 ? 500 : 1400);
+        await widget.ask(asks[i], { typed: i === 0 });
+        while (widget.isBusy) await wait(id, 120);
       }
     };
 
@@ -909,11 +821,8 @@
     ).observe(think);
 
     start("answer");
-    // a switch replays the current scenario from the top in the new language
-    I18N.onChange(() => {
-      input.textContent = T("輸入你的問題…", "Type your question…");
-      inputWrap.removeAttribute("data-filled");
-      start(playing);
-    });
+    // a language or theme switch replays the current scenario in the new look
+    I18N.onChange(() => start(playing));
+    new MutationObserver(() => start(playing)).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
   }
 })();

@@ -47,6 +47,7 @@
         "EmbAId Agent finds passages with **hybrid retrieval** (dense vectors + BM25) and reranks them with a cross-encoder. When the evidence is too weak it won't make up an answer, so every answer cites a source.",
       ),
       cite: { title: T("檢索管線設計", "Retrieval pipeline"), snippet: "hybrid retrieval + cross-encoder rerank" },
+      confidence: 0.92,
     },
     {
       match: ["嵌", "embed", "安裝", "整合", "script", "api", "sdk", "網站", "接", "install", "site", "integrat"],
@@ -55,6 +56,7 @@
         "Paste one **script** tag with your publishable key and project id and a bubble appears in the bottom-right corner. It runs in a **Shadow DOM**, so your CSS can't affect it. For deeper integrations, use the REST API or the TypeScript SDK.",
       ),
       cite: { title: T("嵌入與整合指南", "Embedding guide"), snippet: "script embed / REST / SDK" },
+      confidence: 0.88,
     },
     {
       match: ["安全", "隱私", "資料", "privacy", "合規", "gdpr", "自架", "私有", "safe", "secur", "data", "self-host"],
@@ -63,6 +65,7 @@
         "Data is fully isolated **per project**, and API keys come in three permission levels: publishable, secret and sandbox. The code is open source and self-hostable; apart from the model provider you choose, your data never leaves your server, and the model can be a local Ollama.",
       ),
       cite: { title: T("安全與多租戶", "Security and tenancy"), snippet: "project-scoped isolation, self-host" },
+      confidence: 0.9,
     },
   ];
 
@@ -139,7 +142,7 @@
         }),
       });
     }
-    frames.push({ delay: 120, data: frame("done", { answered: answer.cite !== null }) });
+    frames.push({ delay: 120, data: frame("done", { answered: true, confidence: answer.cite ? answer.confidence : null, flagged: false }) });
     return frames;
   };
 
@@ -194,9 +197,10 @@
   // The widget reads its locale once, when it mounts. On a language switch mount a
   // fresh one and drop the old one only after the new one is in, so the bubble never blinks.
   I18N.onChange(() => {
-    const old = [...document.querySelectorAll("[data-embaid-widget]")];
+    // only the floating one; the reasoning demo mounts its own inline widget
+    const old = [...document.querySelectorAll("body > [data-embaid-widget]")];
     const watcher = new MutationObserver(() => {
-      const fresh = [...document.querySelectorAll("[data-embaid-widget]")].some((el) => !old.includes(el));
+      const fresh = [...document.querySelectorAll("body > [data-embaid-widget]")].some((el) => !old.includes(el));
       if (!fresh) return;
       watcher.disconnect();
       old.forEach((el) => el.remove());
