@@ -339,6 +339,10 @@ export class ChatWidget {
 
   // ---------- thinking ----------
 
+  private quote(text: string): string {
+    return resolveLocale(this.config.locale) === "zh-TW" ? `「${text}」` : `“${text}”`;
+  }
+
   private stageText(stage: Stage): { label: string; note: string; warn: boolean } {
     const d = stage.detail;
     const n = (key: string): number => Number(d[key] ?? 0);
@@ -354,7 +358,7 @@ export class ChatWidget {
       case "search":
         return {
           label: this.t("stageSearch"),
-          note: typeof d.query === "string" && d.query ? `「${d.query}」` : "",
+          note: typeof d.query === "string" && d.query ? this.quote(d.query) : "",
           warn: false,
         };
       case "rerank":

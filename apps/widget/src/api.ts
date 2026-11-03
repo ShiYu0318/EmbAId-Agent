@@ -4,9 +4,10 @@ import type { Citation, EmbedOptions, Feedback, WidgetConfig } from "./types";
 export const DEFAULT_CONFIG: WidgetConfig = {
   primaryColor: "#0033ff",
   position: "bottom-right",
-  greeting: "您好，有什麼可以協助您的嗎？",
+  // Empty on purpose: the widget falls back to its own copy in the visitor's language.
+  greeting: "",
   starterQuestions: [],
-  botName: "AI 助理",
+  botName: "",
   botAvatarUrl: null,
   theme: "auto",
   locale: "zh-TW",
