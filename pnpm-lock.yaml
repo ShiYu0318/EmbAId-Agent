@@ -10,6 +10,9 @@ importers:
 
   apps/dashboard:
     dependencies:
+      '@embaid/widget':
+        specifier: workspace:*
+        version: link:../widget
       next:
         specifier: 15.1.11
         version: 15.1.11(@babel/core@7.29.7)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)

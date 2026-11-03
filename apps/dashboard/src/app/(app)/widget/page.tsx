@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { IconArrowRight } from "@/components/icons";
+import { DEFAULT_ACCENT, previewTransport, toEmbedConfig, useChatWidget } from "@/components/live-widget";
 import { PageHeader, RequireProject } from "@/components/page";
 import {
   Button,
@@ -22,7 +22,7 @@ import {
 import { useAuth } from "@/lib/auth/context";
 import type { ProjectTemplate, WidgetConfig } from "@/lib/api/types";
 import { errorMessage, useAsyncData } from "@/lib/hooks";
-import { useI18n, type TranslateFn } from "@/lib/i18n";
+import { useI18n, type Locale, type TranslateFn } from "@/lib/i18n";
 
 const DEFAULT_CONFIG: WidgetConfig = {
   greeting: "",
@@ -30,10 +30,10 @@ const DEFAULT_CONFIG: WidgetConfig = {
   bot_name: "",
   bot_avatar_url: null,
   persona: "",
-  accent_color: "#2f6df6",
+  accent_color: DEFAULT_ACCENT,
 };
 
-function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
+function Studio({ projectId, t, locale }: { projectId: string; t: TranslateFn; locale: Locale }) {
   const { api } = useAuth();
   const router = useRouter();
   const { data, loading, error } = useAsyncData(
@@ -66,6 +66,32 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
       active = false;
     };
   }, [api]);
+
+  const previewConfig = {
+    ...toEmbedConfig(config, locale),
+    greeting: config.greeting || t("widget.previewGreetingFallback"),
+  };
+
+  // The preview is the real widget, inline, answering with a canned reply.
+  const previewRef = useRef<HTMLDivElement>(null);
+  useChatWidget(
+    loading || error
+      ? null
+      : {
+          apiKey: "",
+          projectId,
+          apiUrl: `preview:${locale}`,
+          mode: "inline",
+          fetchConfig: false,
+          transport: previewTransport({
+            query: t("widget.previewSampleQuery"),
+            answer: t("widget.previewSampleAnswer"),
+            source: t("widget.previewSampleSource"),
+          }),
+        },
+    () => previewRef.current,
+    previewConfig,
+  );
 
   if (loading) return <LoadingBlock label={t("common.loading")} />;
   if (error) return <StateBlock title={t("common.loadFailed")} text={errorMessage(t, error)} />;
@@ -119,17 +145,6 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
     }
   }
 
-  const botName = config.bot_name || t("common.appName");
-  const greeting = config.greeting || t("widget.previewGreetingFallback");
-  const chips = config.suggested_questions.map((q) => q.trim()).filter(Boolean);
-  const avatarStyle = config.bot_avatar_url
-    ? {
-        backgroundImage: `url("${config.bot_avatar_url}")`,
-        backgroundSize: "cover" as const,
-        backgroundPosition: "center" as const,
-      }
-    : undefined;
-
   return (
     <div className="widget-studio">
       <Card>
@@ -170,11 +185,21 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
             />
           </Field>
           <Field label={t("widget.accentColor")}>
-            <Input
-              type="color"
-              value={config.accent_color}
-              onChange={(e) => set("accent_color", e.target.value)}
-            />
+            <div className="color-field">
+              <input
+                type="color"
+                className="color-field__swatch"
+                value={/^#[0-9a-f]{6}$/i.test(config.accent_color) ? config.accent_color : DEFAULT_ACCENT}
+                onChange={(e) => set("accent_color", e.target.value)}
+                aria-label={t("widget.accentColor")}
+              />
+              <Input
+                value={config.accent_color}
+                maxLength={7}
+                spellCheck={false}
+                onChange={(e) => set("accent_color", e.target.value.trim())}
+              />
+            </div>
           </Field>
           <Field label={t("widget.avatarUrl")}>
             <Input
@@ -235,49 +260,8 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
       <Card>
         <CardHeader title={t("widget.preview")} />
         <CardBody>
-          <div className="widget-chat">
-            <div className="widget-chat__header" style={{ background: config.accent_color }}>
-              <span className="widget-chat__avatar" style={avatarStyle}>
-                {config.bot_avatar_url ? null : botName.slice(0, 1).toUpperCase()}
-              </span>
-              <span className="widget-chat__name">{botName}</span>
-            </div>
-
-            <div className="widget-chat__log">
-              <div className="widget-chat__bubble">{greeting}</div>
-            </div>
-
-            <div className="widget-chat__footer">
-              {chips.length > 0 && (
-                <div className="widget-chat__starters">
-                  {chips.map((q, i) => (
-                    <span key={i} className="widget-chat__starter">
-                      {q}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className="widget-chat__composer">
-                <input
-                  className="widget-chat__input"
-                  placeholder={t("widget.previewInputPlaceholder")}
-                  disabled
-                  aria-hidden
-                />
-                <span
-                  className="widget-chat__send"
-                  style={{ background: config.accent_color }}
-                  aria-hidden
-                >
-                  <IconArrowRight size={18} />
-                </span>
-              </div>
-            </div>
-
-            <div className="widget-chat__branding">
-              {t("widget.poweredBy")} <strong>EmbAId</strong>
-            </div>
-          </div>
+          <div className="widget-preview" ref={previewRef} />
+          <p className="muted widget-preview__hint">{t("widget.previewHint")}</p>
         </CardBody>
       </Card>
 
@@ -303,11 +287,11 @@ function Studio({ projectId, t }: { projectId: string; t: TranslateFn }) {
 }
 
 export default function WidgetPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   return (
     <>
       <PageHeader title={t("widget.title")} subtitle={t("widget.subtitle")} />
-      <RequireProject>{(projectId) => <Studio projectId={projectId} t={t} />}</RequireProject>
+      <RequireProject>{(projectId) => <Studio projectId={projectId} t={t} locale={locale} />}</RequireProject>
     </>
   );
 }
