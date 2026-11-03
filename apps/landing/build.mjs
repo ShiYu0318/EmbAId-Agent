@@ -12,7 +12,7 @@ execSync("node build.mjs", { cwd: widgetDir, stdio: "inherit" });
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
 
-const staticFiles = ["index.html", "styles.css", "app.js", "hero.js", "boot.js"];
+const staticFiles = ["index.html", "styles.css", "i18n.js", "app.js", "hero.js", "boot.js"];
 for (const file of staticFiles) {
   copyFileSync(join(root, file), join(dist, file));
 }

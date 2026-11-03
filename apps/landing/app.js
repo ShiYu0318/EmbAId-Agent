@@ -4,6 +4,18 @@
   const root = document.documentElement;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+  // ---------- language: translate the static page before anything reads its text ----------
+  const I18N = window.EMBAID_I18N ?? { lang: "zh-TW", t: (zh) => zh, apply: () => {}, setLang: () => {}, other: "en" };
+  const T = I18N.t;
+  const EN = I18N.lang === "en";
+  I18N.apply();
+  document.querySelectorAll("[data-lang-toggle]").forEach((button) => {
+    button.textContent = I18N.other === "en" ? "EN" : "中文";
+    button.setAttribute("aria-label", T("切換為英文", "Switch to Traditional Chinese"));
+    button.setAttribute("lang", I18N.other);
+    button.addEventListener("click", () => I18N.setLang(I18N.other));
+  });
+
   // ---------- theme ----------
   const stored = (() => {
     try {
@@ -55,8 +67,8 @@
       a.rel = "noopener";
     });
   } else {
-    document.querySelectorAll("[data-login]").forEach((a) => (a.href = `${dashboardUrl}/login`));
-    document.querySelectorAll("[data-signup]").forEach((a) => (a.href = `${dashboardUrl}/login?mode=signup`));
+    document.querySelectorAll("[data-login]").forEach((a) => (a.href = `${dashboardUrl}/login?lang=${I18N.lang}`));
+    document.querySelectorAll("[data-signup]").forEach((a) => (a.href = `${dashboardUrl}/login?mode=signup&lang=${I18N.lang}`));
   }
 
   // ---------- damped wheel scrolling ----------
@@ -159,7 +171,7 @@
   if (toggle && mobile) {
     const setOpen = (open) => {
       toggle.setAttribute("aria-expanded", String(open));
-      toggle.setAttribute("aria-label", open ? "關閉選單" : "開啟選單");
+      toggle.setAttribute("aria-label", open ? T("關閉選單", "Close menu") : T("開啟選單", "Open menu"));
       mobile.setAttribute("data-open", String(open));
       if (open) nav?.setAttribute("data-scrolled", "");
     };
@@ -225,16 +237,23 @@
       [...node.childNodes].forEach((child) => {
         if (child.nodeType === Node.TEXT_NODE) {
           const frag = document.createDocumentFragment();
-          for (const ch of child.textContent) {
-            if (ch.trim() === "") {
-              frag.append(ch);
+          // Latin words are wrapped whole so a line never breaks inside one.
+          for (const part of child.textContent.split(/(\s+)/)) {
+            if (part === "") continue;
+            if (part.trim() === "") {
+              frag.append(part);
               continue;
             }
-            const span = document.createElement("span");
-            span.className = "char";
-            span.style.setProperty("--i", String(i++));
-            span.textContent = ch;
-            frag.append(span);
+            const word = /^[\x21-\x7e\u2019]+$/.test(part) ? document.createElement("span") : null;
+            if (word) word.className = "word";
+            for (const ch of part) {
+              const span = document.createElement("span");
+              span.className = "char";
+              span.style.setProperty("--i", String(i++));
+              span.textContent = ch;
+              (word ?? frag).append(span);
+            }
+            if (word) frag.append(word);
           }
           child.replaceWith(frag);
         } else if (child.nodeType === Node.ELEMENT_NODE && child.tagName !== "BR") {
@@ -315,7 +334,9 @@
     const steps = [...story.querySelectorAll("[data-step]")];
     const scenes = [...story.querySelectorAll("[data-scene]")];
     const label = story.querySelector("[data-story-label]");
-    const names = ["ingest：匯入來源", "chunk → embed：切塊與嵌入", "hybrid search → rerank", "grounded answer：回答與改善"];
+    const names = EN
+      ? ["ingest", "chunk → embed", "hybrid search → rerank", "grounded answer"]
+      : ["ingest：匯入來源", "chunk → embed：切塊與嵌入", "hybrid search → rerank", "grounded answer：回答與改善"];
     const activate = (i) => {
       steps.forEach((s, k) => s.toggleAttribute("data-active", k === i));
       scenes.forEach((s, k) => s.toggleAttribute("data-active", k === i));
@@ -416,10 +437,10 @@
       const original = button.textContent;
       try {
         await navigator.clipboard.writeText(target.textContent.trim());
-        if (!isIcon) button.textContent = "已複製";
+        if (!isIcon) button.textContent = T("已複製", "Copied");
         button.setAttribute("data-copied", "true");
       } catch {
-        if (!isIcon) button.textContent = "複製失敗";
+        if (!isIcon) button.textContent = T("複製失敗", "Copy failed");
       }
       setTimeout(() => {
         if (!isIcon) button.textContent = original;
@@ -468,7 +489,9 @@
     if (personaRoot) {
       const swatches = [...personaRoot.querySelectorAll(".sw")];
       const text = personaRoot.querySelector("[data-persona]");
-      const tones = ["「親切、簡潔，使用繁體中文」", "「專業精準，附上條款編號」", "「輕鬆一點，像朋友聊天」", "「正式完整，適合公部門」"];
+      const tones = EN
+        ? ["“Friendly, concise, in Traditional Chinese”", "“Precise, with clause numbers”", "“Relaxed, like chatting with a friend”", "“Formal and complete, for public services”"]
+        : ["「親切、簡潔，使用繁體中文」", "「專業精準，附上條款編號」", "「輕鬆一點，像朋友聊天」", "「正式完整，適合公部門」"];
       let k = 0;
       swatches[0]?.classList.add("is-on");
       setInterval(() => {
@@ -491,9 +514,9 @@
     const input = think.querySelector("[data-think-input]");
     const inputWrap = input.parentElement;
     const presence = think.querySelector("[data-think-presence]");
-    const IDLE = "線上立即回覆";
+    const IDLE = T("線上立即回覆", "Online, replies instantly");
 
-    const SCENARIOS = {
+    const SCENARIOS_ZH = {
       answer: [
         { user: "退貨要幾天內申請？可以退回信用卡嗎？" },
         {
@@ -566,6 +589,80 @@
       ],
     };
 
+    const SCENARIOS_EN = {
+      answer: [
+        { user: "How long do I have to return an item? Can the refund go back to my card?" },
+        {
+          think: [
+            { label: "Understand and rewrite", note: "Query rewriting → “return deadline, refund method”", ms: 700 },
+            { label: "Hybrid search", note: "Dense + BM25, {n} candidates", count: 24, ms: 900 },
+            { label: "Cross-encoder rerank", note: "Kept 4, top relevance 0.94", ms: 800 },
+            { label: "Check source freshness", note: "1 passage from an old policy down-weighted", ms: 700 },
+            { label: "Answer from the evidence", ms: 500 },
+          ],
+        },
+        {
+          answer: [
+            ["You can request a return within "],
+            ["21 days", true],
+            [" of delivery, as long as the packaging is intact. Refunds go back the way you paid: card payments arrive in about "],
+            ["7–14 business days", true],
+            ["."],
+          ],
+          cites: ["Returns policy §4", "Payments & refunds FAQ"],
+          conf: 0.94,
+        },
+      ],
+      clarify: [
+        { user: "Can I get an extended warranty?" },
+        {
+          think: [
+            { label: "Understand the question", note: "extended warranty, eligibility", ms: 650 },
+            { label: "Search the knowledge base", note: "{n} candidates", count: 18, ms: 850 },
+            { label: "Compare who it applies to", note: "Members and business customers have different rules", ms: 900, warn: true },
+          ],
+        },
+        {
+          answer: [["Yes, but the rules depend on who you are. Which one applies to you?"]],
+          quick: ["Member", "Business customer"],
+          pick: 0,
+        },
+        { user: "Member" },
+        {
+          think: [
+            { label: "Focus on the member terms", note: "Warranty policy §2.1", ms: 800 },
+            { label: "Write the answer", ms: 450 },
+          ],
+        },
+        {
+          answer: [
+            ["Members can add a one-year extended warranty within "],
+            ["30 days", true],
+            [" of purchase. Request it under “My orders” in your member centre."],
+          ],
+          cites: ["Warranty policy §2.1"],
+          conf: 0.88,
+        },
+      ],
+      abstain: [
+        { user: "Are you opening a store in Kaohsiung next year?" },
+        {
+          think: [
+            { label: "Understand the question", note: "store openings, Kaohsiung", ms: 650 },
+            { label: "Search the knowledge base", note: "{n} candidates", count: 9, ms: 850 },
+            { label: "Weigh the evidence", note: "Top relevance 0.31, below the 0.55 threshold", ms: 900, warn: true },
+          ],
+        },
+        {
+          answer: [["I can't find anything about next year's store openings in the material I have, so I'd rather not guess. If you like, I can pass this to someone who can confirm."]],
+          flag: "Logged as a knowledge gap so an admin can add the answer",
+          conf: 0.31,
+          low: true,
+        },
+      ],
+    };
+    const SCENARIOS = EN ? SCENARIOS_EN : SCENARIOS_ZH;
+
     let run = 0;
     let auto = true;
     let visible = false;
@@ -590,7 +687,7 @@
         await wait(id, 45 + Math.random() * 55);
       }
       await wait(id, 260);
-      input.textContent = "輸入你的問題…";
+      input.textContent = T("輸入你的問題…", "Type your question…");
       inputWrap.removeAttribute("data-filled");
     };
 
@@ -617,12 +714,12 @@
     const runThought = async (id, steps) => {
       const box = document.createElement("div");
       box.className = "thought";
-      box.innerHTML = '<div class="thought__head"><span class="orb"></span><span data-h>思考中…</span></div><ol></ol>';
+      box.innerHTML = `<div class="thought__head"><span class="orb"></span><span data-h>${T("思考中…", "Thinking…")}</span></div><ol></ol>`;
       const list = box.querySelector("ol");
       const head = box.querySelector("[data-h]");
       body.append(box);
       scrollDown();
-      presence.textContent = "正在思考…";
+      presence.textContent = T("正在思考…", "Thinking…");
       presence.setAttribute("data-typing", "");
       const started = performance.now();
       for (const s of steps) {
@@ -641,7 +738,7 @@
       }
       await wait(id, 250);
       const secs = reduceMotion ? 2.4 : (performance.now() - started) / 1000;
-      head.textContent = `已思考 ${secs.toFixed(1)} 秒，共 ${steps.length} 個步驟`;
+      head.textContent = T(`已思考 ${secs.toFixed(1)} 秒，共 ${steps.length} 個步驟`, `Thought for ${secs.toFixed(1)} s, ${steps.length} steps`);
       box.setAttribute("data-done", "");
     };
 
@@ -649,7 +746,7 @@
       const m = document.createElement("div");
       m.className = "m m--a";
       body.append(m);
-      presence.textContent = "正在輸入…";
+      presence.textContent = T("正在輸入…", "Typing…");
       const text = document.createElement("span");
       m.append(text);
       const caret = document.createElement("span");
@@ -691,7 +788,7 @@
       if (a.conf != null) {
         const c = document.createElement("div");
         c.className = "conf";
-        c.innerHTML = `<span>信心</span><i style="--w:${Math.round(a.conf * 100)}%;${a.low ? "--c: var(--warn)" : ""}"></i><span>${a.conf.toFixed(2)}</span>`;
+        c.innerHTML = `<span>${T("信心", "Confidence")}</span><i style="--w:${Math.round(a.conf * 100)}%;${a.low ? "--c: var(--warn)" : ""}"></i><span>${a.conf.toFixed(2)}</span>`;
         m.append(c);
       }
       let chips = null;
