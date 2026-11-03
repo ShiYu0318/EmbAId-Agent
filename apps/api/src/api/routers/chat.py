@@ -12,6 +12,7 @@ from ...config import get_settings
 from ...db.models import Conversation, Message, Project
 from ...providers.registry import ProviderNotConfiguredError, build_chat_model, build_embeddings
 from ...rag import cache, pipeline
+from ...rag.options import OptionsFilter
 from ...rag.types import ChatTurn
 from ...search.factory import get_search_backend
 from ..deps import KeyDep, SessionDep
@@ -179,11 +180,20 @@ async def chat(
             await session.commit()
 
         collected: list[str] = []
+        choices = OptionsFilter()
         async for token in pipeline.stream_answer(runtime, prepared):
-            collected.append(token)
-            yield _frame("token", {"text": token})
+            visible = choices.feed(token)
+            if visible:
+                collected.append(visible)
+                yield _frame("token", {"text": visible})
+        tail, options = choices.finish()
+        if tail:
+            collected.append(tail)
+            yield _frame("token", {"text": tail})
 
-        answer = "".join(collected)
+        answer = "".join(collected).rstrip()
+        if options:
+            yield _frame("quick_replies", {"items": options})
         yield _frame(
             "citations",
             {"items": [citation.as_dict() for citation in prepared.citations]},
@@ -208,7 +218,15 @@ async def chat(
             )
         await session.commit()
 
-        yield _frame("done", {"answered": prepared.trace.answered})
+        yield _frame(
+            "done",
+            {
+                "answered": prepared.trace.answered,
+                "confidence": round(prepared.confidence, 2),
+                # a low-confidence refusal is logged as a knowledge gap (pipeline.flag_question)
+                "flagged": prepared.trace.refusal_reason == "low_confidence",
+            },
+        )
 
     return StreamingResponse(
         event_stream(),

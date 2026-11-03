@@ -239,6 +239,7 @@ async def test_low_confidence_refuses_and_flags_question(
 
     assert events["done"]["answered"] is False
     assert events["trace"]["answered"] is False
+    assert events["done"]["flagged"] is True
 
     from sqlalchemy import select
 
@@ -328,3 +329,25 @@ async def test_public_widget_config_maps_to_widget_shape(authed_client: AsyncCli
 async def test_public_widget_config_requires_api_key(authed_client: AsyncClient) -> None:
     response = await authed_client.get("/v1/widget-config")
     assert response.status_code == 401
+
+
+async def test_clarifying_choices_arrive_as_quick_replies(
+    authed_client: AsyncClient, backend: FakeSearchBackend, stub_providers: FakeChatModel
+) -> None:
+    project_id, raw_key = await _project_with_key(authed_client)
+    await _seed_chunk(backend, authed_client, project_id)
+    stub_providers.reply = "規定依身分不同，請問你是哪一種？\n[[options: 一般會員 | 企業客戶]]"
+
+    response = await authed_client.post(
+        "/v1/chat",
+        json={"message": "可以延長保固嗎？"},
+        headers={"X-API-Key": raw_key},
+    )
+    events = parse_sse(response.text)
+    shown = "".join(data["text"] for name, data in events if name == "token")
+    found = dict(events)
+
+    assert "[[" not in shown
+    assert found["quick_replies"]["items"] == ["一般會員", "企業客戶"]
+    assert 0 <= found["done"]["confidence"] <= 1
+    assert found["done"]["flagged"] is False
