@@ -44,7 +44,7 @@
       match: ["檢索", "亂", "幻覺", "hallucin", "準", "來源", "信心", "出處", "rag", "retriev", "make", "source", "accura"],
       text: T(
         "EmbAId Agent 用**混合檢索**（Dense 向量 + BM25）找出候選段落，以 RRF 融合後再由 Cross-encoder 重排序。當證據信心低於門檻時，不會生成錯誤的回覆，所以每個答案都查得到出處。",
-        "EmbAId Agent finds candidate passages with **hybrid retrieval** (dense vectors + BM25), fuses them with RRF and reranks them with a cross-encoder. When the evidence falls below the confidence threshold it won't make up an answer, so every answer can be traced to a source.",
+        "EmbAId Agent finds passages with **hybrid retrieval** (dense vectors + BM25) and reranks them with a cross-encoder. When the evidence is too weak it won't make up an answer, so every answer cites a source.",
       ),
       cite: { title: T("檢索管線設計", "Retrieval pipeline"), snippet: "hybrid retrieval + cross-encoder rerank" },
     },
@@ -114,7 +114,7 @@
     const frames = [
       { delay: 160, data: frame("conversation", { conversation_id: "conv_demo", message_id: "msg_demo" }) },
       { delay: 120, data: frame("status", { stage: "understand" }) },
-      { delay: 420, data: frame("status", { stage: "search", query: message.slice(0, 24) }) },
+      { delay: 420, data: frame("status", { stage: "search", query: message }) },
       { delay: 520, data: frame("status", { stage: "rerank", candidates: answer.cite ? 18 : 6 }) },
     ];
     if (answer.cite) {
