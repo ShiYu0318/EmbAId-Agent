@@ -607,37 +607,65 @@
   };
 
   // Reaching everywhere: a barred spiral the size of the Milky Way. Stored flat in xy;
-  // the vertex shader spins it (inner stars faster) and tilts it toward the camera.
+  // the vertex shader spins it (inner stars faster), scales it past the edges of the
+  // screen and tilts it into a steep diagonal view. Points stored with |z| > 1.2 are
+  // distant background stars: the shader leaves them out of the spin and the tilt.
   const galaxy = (n) => {
-    const spiral = (offset, spread, rMin) => () => {
-      const r = rMin + Math.pow(rand(), 0.9) * (1.5 - rMin);
-      const a = offset + Math.log(r / rMin) * 2.9 + gauss() * spread * (0.5 + r * 0.4);
-      const rr = r * (1 + gauss() * 0.03);
-      return [Math.cos(a) * rr, Math.sin(a) * rr, gauss() * 0.028];
-    };
     const bar = 0.45;
+    const rMin = 0.26;
+    const armAngle = (offset, r) => offset + Math.log(r / rMin) * 2.7;
+    const spiral = (offset, spread, from, to) => () => {
+      const r = from + Math.pow(rand(), 0.85) * (to - from);
+      const a = armAngle(offset, r) + gauss() * spread * (0.6 + r * 0.5);
+      const rr = r * (1 + gauss() * 0.045);
+      return [Math.cos(a) * rr, Math.sin(a) * rr, gauss() * 0.03 * (1.3 - r * 0.4)];
+    };
+    // Star-forming knots strung along the arms give them a clumpy, feathered texture.
+    const knots = Array.from({ length: 360 }, () => {
+      const main = rand() < 0.72;
+      const offset = bar + (main ? (rand() < 0.5 ? 0 : Math.PI) : rand() < 0.5 ? Math.PI / 2 : (Math.PI * 3) / 2);
+      const r = 0.32 + Math.pow(rand(), 0.8) * 1.2;
+      const a = armAngle(offset, r) + gauss() * 0.16;
+      return [Math.cos(a) * r, Math.sin(a) * r, 0.018 + rand() * 0.05];
+    });
     return compose(n, [
+      // bright bulge, flattened so the tilt stretches it along the band
+      [0.11, () => [gauss() * 0.2, gauss() * 0.16, gauss() * 0.045]],
       [
-        0.2,
+        0.07,
         () => {
-          const x = gauss() * 0.26;
-          const y = gauss() * 0.085;
-          return [x * Math.cos(bar) - y * Math.sin(bar), x * Math.sin(bar) + y * Math.cos(bar), gauss() * 0.09];
+          const x = gauss() * 0.3;
+          const y = gauss() * 0.07;
+          return [x * Math.cos(bar) - y * Math.sin(bar), x * Math.sin(bar) + y * Math.cos(bar), gauss() * 0.05];
         },
       ],
-      [0.26, spiral(bar, 0.06, 0.28)],
-      [0.26, spiral(bar + Math.PI, 0.06, 0.28)],
-      [0.08, spiral(bar + Math.PI / 2, 0.11, 0.42)],
-      [0.08, spiral(bar + (Math.PI * 3) / 2, 0.11, 0.42)],
+      [0.15, spiral(bar, 0.12, rMin, 1.55)],
+      [0.15, spiral(bar + Math.PI, 0.12, rMin, 1.55)],
+      [0.04, spiral(bar + Math.PI / 2, 0.18, 0.4, 1.5)],
+      [0.04, spiral(bar + (Math.PI * 3) / 2, 0.18, 0.4, 1.5)],
       [
-        0.11,
+        0.14,
         () => {
-          const r = 0.2 + Math.pow(rand(), 0.65) * 1.5;
+          const [x, y, size] = knots[Math.floor(rand() * knots.length)];
+          return [x + gauss() * size, y + gauss() * size, gauss() * 0.025];
+        },
+      ],
+      // an exponential disk fills the gaps between the arms
+      [
+        0.24,
+        () => {
+          const r = Math.min(1.7, 0.08 - Math.log(1 - rand() * 0.97) * 0.42);
           const a = rand() * Math.PI * 2;
-          return [Math.cos(a) * r, Math.sin(a) * r, gauss() * 0.05];
+          return [Math.cos(a) * r, Math.sin(a) * r, gauss() * 0.04];
         },
       ],
-      [0.03, () => [gauss() * 0.95, gauss() * 0.95, gauss() * 0.45]],
+      [
+        0.04,
+        () => {
+          const side = rand() < 0.5 ? -1 : 1;
+          return [(rand() * 2 - 1) * 3.4, (rand() * 2 - 1) * 2.1, side * (1.3 + rand() * 1.4)];
+        },
+      ],
     ]);
   };
 
@@ -673,15 +701,22 @@
     uniform mat4 uProj; uniform mat4 uMV;
     uniform float uT; uniform float uTime; uniform float uGalFrom; uniform float uGalTo; uniform float uGalT;
     uniform vec2 uMouse; uniform float uMouseOn; uniform float uScatter; uniform float uPx; uniform float uAspect;
-    uniform vec3 uC1; uniform vec3 uC2;
-    varying vec3 vColor; varying float vAlpha;
+    uniform vec3 uC1; uniform vec3 uC2; uniform float uGalPal; uniform float uDust;
+    varying vec3 vColor; varying float vAlpha; varying float vSoft;
     vec3 galaxySpin(vec3 q){
+      // distant background stars: a flat field behind the disk, never spun
+      if (abs(q.z) > 1.2) return vec3(q.x, q.y, -.4 - (abs(q.z) - 1.2) * .9);
       float r = length(q.xy);
-      float a = uGalT * (.14 + .13 / (.45 + r));
+      float a = uGalT * (.12 + .11 / (.45 + r));
       float c = cos(a); float s = sin(a);
-      q.xy = vec2(c * q.x - s * q.y, s * q.x + c * q.y);
-      float t = -.9; // with the camera's slight pitch this views the disk from about 45 degrees above
-      return vec3(q.x, q.y * cos(t) - q.z * sin(t), q.y * sin(t) + q.z * cos(t));
+      q.xy = vec2(c * q.x - s * q.y, s * q.x + c * q.y) * 1.55;
+      q.z *= 1.3;
+      // steep tilt (about 70 degrees) so the disk reads as a wide band, then a roll
+      // that runs it diagonally up to the right
+      float t = -1.28;
+      q = vec3(q.x, q.y * cos(t) - q.z * sin(t), q.y * sin(t) + q.z * cos(t));
+      float k = .5;
+      return vec3(q.x * cos(k) - q.y * sin(k), q.x * sin(k) + q.y * cos(k), q.z);
     }
     float ease(float t){ return t < .5 ? 4.*t*t*t : 1. - pow(-2.*t + 2., 3.) / 2.; }
     void main(){
@@ -699,16 +734,43 @@
       float f = uMouseOn * smoothstep(.16, 0., length(delta));
       mv.xy += normalize(delta + 1e-5) * f * .05;
       gl_Position = uProj * mv;
-      gl_PointSize = uPx * aR.y * (1. + f * .35) * (4.2 / -mv.z);
-      vColor = mix(uC1, uC2, clamp(aR.z + f * .35, 0., 1.));
-      vAlpha = mix(.3, 1., smoothstep(-5.6, -3.2, mv.z)) * (1. - uScatter * .9);
+      // Galaxy palette: a warm white core, violet inner disk, blue outer arms.
+      vec3 gq = uGalTo > .5 ? aTo : aFrom;
+      float gw = mix(uGalFrom, uGalTo, e);
+      float gr = length(gq.xy);
+      float bgStar = step(1.2, abs(gq.z));
+      float glow = exp(-gr * gr * 10.) * (1. - bgStar);
+      vec3 gc = mix(vec3(1., .9, 1.), vec3(.6, .42, 1.), smoothstep(.06, .45, gr));
+      gc = mix(gc, vec3(.26, .38, 1.), smoothstep(.5, 1.3, gr));
+      gc = mix(gc, vec3(.9, .93, 1.), step(.9, aR.z));
+      gc = mix(gc, vec3(1., .5, .86), step(aR.x, .02));
+      gc = mix(gc, vec3(.78, .82, 1.), bgStar);
+      // Galaxy stars draw larger and fainter so they pile up into soft, cloudy arms;
+      // the core blooms into a glow.
+      float bright = step(.9, aR.z);
+      // Two populations: large faint dust blobs that pile up into clouds and the core
+      // glow, and small crisp stars on top for texture.
+      // (dark theme only: in the light theme's normal blending the blobs read as smudges)
+      float dust = step(fract(aR.x * 7.31), .74) * (1. - bgStar) * (1. - bright) * uGalPal;
+      float size = 1. + gw * (dust * (7.5 + glow * 9.) * uDust + (1. - dust) * (.2 + glow * .8) - bgStar * .45);
+      vSoft = gw * dust;
+      gl_PointSize = uPx * aR.y * size * (1. + f * .35) * (4.2 / -mv.z);
+      vec3 base = mix(uC1, uC2, clamp(aR.z + f * .35, 0., 1.));
+      vColor = mix(base, gc, gw * uGalPal);
+      // the galaxy runs well past the depth fade, so it mostly opts out of it
+      float depth = mix(mix(.3, 1., smoothstep(-5.6, -3.2, mv.z)), mix(.55, 1., smoothstep(-7.5, -3.6, mv.z)), gw);
+      float galAlpha = mix((1. - bgStar * .3) * (1. - glow * .7), .55 * (1. - glow * .3), dust);
+      vAlpha = depth * (1. - uScatter * .9) * mix(1., galAlpha, gw);
     }`;
   const frag = `
     precision mediump float;
-    varying vec3 vColor; varying float vAlpha;
+    varying vec3 vColor; varying float vAlpha; varying float vSoft;
     void main(){
       float r = length(gl_PointCoord - .5);
-      float a = (smoothstep(.5, .32, r) * .75 + smoothstep(.5, .0, r) * .45) * vAlpha;
+      float crisp = smoothstep(.5, .32, r) * .75 + smoothstep(.5, .0, r) * .45;
+      // galaxy dust: a soft falloff so overlapping points blend into clouds
+      float soft = pow(smoothstep(.5, .0, r), 1.8) * .95;
+      float a = mix(crisp, soft, vSoft) * vAlpha;
       if (a < .01) discard;
       gl_FragColor = vec4(vColor, a);
     }`;
@@ -764,7 +826,7 @@
   bindShape(locTo, Math.max(0, PIN));
 
   const u = Object.fromEntries(
-    ["uProj", "uMV", "uT", "uTime", "uGalFrom", "uGalTo", "uGalT", "uMouse", "uMouseOn", "uScatter", "uPx", "uAspect", "uC1", "uC2"].map(
+    ["uProj", "uMV", "uT", "uTime", "uGalFrom", "uGalTo", "uGalT", "uMouse", "uMouseOn", "uScatter", "uPx", "uAspect", "uC1", "uC2", "uGalPal", "uDust"].map(
       (n) => [n, gl.getUniformLocation(program, n)],
     ),
   );
@@ -819,10 +881,12 @@
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.uniform3f(u.uC1, 0.05, 0.2, 0.92);
       gl.uniform3f(u.uC2, 0.06, 0.08, 0.2);
+      gl.uniform1f(u.uGalPal, 0);
     } else {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
       gl.uniform3f(u.uC1, 0.09, 0.26, 1.0);
       gl.uniform3f(u.uC2, 0.82, 0.88, 1.0);
+      gl.uniform1f(u.uGalPal, 1);
     }
   };
   gl.enable(gl.BLEND);
@@ -877,6 +941,8 @@
     const sway = reduceMotion ? 0 : Math.sin(time * 0.22) * 0.38;
     const fit = aspect < 0.8 ? 0.5 : aspect < 1.4 ? 0.86 : 1;
     const lift = 0.04;
+    // dust blobs shrink with the galaxy on narrow screens so the core doesn't blow out
+    gl.uniform1f(u.uDust, fit < 1 ? fit * 1.25 : 1);
     gl.uniformMatrix4fv(u.uMV, false, modelView(0.12 + mouse.y * -0.16, sway + mouse.x * 0.32, lift, fit, 4.6));
     gl.uniform1f(u.uT, t);
     const target = morphStart >= 0 ? to : from;
