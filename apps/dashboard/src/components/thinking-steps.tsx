@@ -17,9 +17,9 @@ function describe(t: TranslateFn, locale: Locale, stage: StreamStage): { label: 
         warn: false,
       };
     case "rerank":
-      return { label: t("thinking.rerank", { n: n("candidates") }), note: "", warn: false };
+      return { label: t(n("candidates") === 1 ? "thinking.rerankOne" : "thinking.rerank", { n: n("candidates") }), note: "", warn: false };
     case "compose":
-      return { label: t("thinking.compose", { n: n("sources") }), note: "", warn: false };
+      return { label: t(n("sources") === 1 ? "thinking.composeOne" : "thinking.compose", { n: n("sources") }), note: "", warn: false };
     case "abstain":
       return {
         label: t("thinking.abstain"),
