@@ -222,7 +222,36 @@ export const STYLES = `
   animation: paw-in 360ms var(--paw-ease) both;
 }
 .message[data-role="user"] { align-self: flex-end; align-items: flex-end; transform-origin: bottom right; }
-.message[data-role="assistant"] { align-self: flex-start; transform-origin: bottom left; }
+.message[data-role="assistant"] {
+  align-self: flex-start;
+  transform-origin: top left;
+  /* avatar in the first column; the bubble and everything under it in the second */
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 4px;
+  justify-items: start;
+}
+.message[data-role="assistant"] > :not(.who) { grid-column: 2; }
+.who {
+  grid-column: 1;
+  grid-row: 1 / span 8;
+  align-self: start;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--paw-primary) 70%, #fff), var(--paw-primary) 60%, color-mix(in srgb, var(--paw-primary) 70%, #000));
+  color: var(--paw-on-primary);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.who img { width: 100%; height: 100%; object-fit: cover; }
+/* thinking and typing belong to the assistant too: line them up with its bubbles */
+.thought, .typing { margin-left: 36px; }
 @keyframes paw-in {
   from { opacity: 0; transform: translateY(8px) scale(0.97); }
 }
@@ -235,17 +264,42 @@ export const STYLES = `
   word-break: break-word;
 }
 .message[data-role="user"] .bubble {
+  position: relative;
   background: var(--paw-primary);
   color: var(--paw-on-primary);
-  border-bottom-right-radius: 6px;
+  border-top-right-radius: 4px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
   white-space: pre-wrap;
 }
 .message[data-role="assistant"] .bubble {
+  position: relative;
   background: var(--paw-surface-alt);
   border: 1px solid var(--paw-border);
-  border-bottom-left-radius: 6px;
+  border-top-left-radius: 4px;
   box-shadow: var(--paw-sheen);
+}
+/* speech-bubble tails pointing at whoever is talking */
+.message[data-role="assistant"] .bubble::before {
+  content: "";
+  position: absolute;
+  top: 9px;
+  left: -5px;
+  width: 9px;
+  height: 9px;
+  background: var(--paw-surface-alt);
+  border-left: 1px solid var(--paw-border);
+  border-bottom: 1px solid var(--paw-border);
+  transform: rotate(45deg);
+}
+.message[data-role="user"] .bubble::after {
+  content: "";
+  position: absolute;
+  top: 9px;
+  right: -4px;
+  width: 9px;
+  height: 9px;
+  background: var(--paw-primary);
+  transform: rotate(45deg);
 }
 .bubble:empty { display: none; }
 .bubble p { margin: 0 0 8px; }
@@ -295,7 +349,7 @@ export const STYLES = `
   gap: 4px;
   padding: 13px 15px;
   border-radius: 18px;
-  border-bottom-left-radius: 6px;
+  border-top-left-radius: 4px;
   background: var(--paw-surface-alt);
   border: 1px solid var(--paw-border);
   animation: paw-in 300ms var(--paw-ease) both;

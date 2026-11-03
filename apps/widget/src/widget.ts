@@ -370,7 +370,23 @@ export class ChatWidget {
   private messageRow(role: "user" | "assistant"): HTMLElement {
     const row = this.el("div", "message");
     row.setAttribute("data-role", role);
+    // The assistant speaks with a face: its avatar sits beside each of its messages.
+    if (role === "assistant") row.appendChild(this.speakerAvatar());
     return row;
+  }
+
+  private speakerAvatar(): HTMLElement {
+    const who = this.el("div", "who");
+    who.setAttribute("aria-hidden", "true");
+    if (this.config.botAvatarUrl) {
+      const image = this.doc.createElement("img");
+      image.setAttribute("src", this.config.botAvatarUrl);
+      image.setAttribute("alt", "");
+      who.appendChild(image);
+    } else {
+      who.textContent = (this.config.botName || this.t("botNameDefault")).slice(0, 1);
+    }
+    return who;
   }
 
   private icon(kind: IconKind, size = 22, className = ""): SVGElement {
