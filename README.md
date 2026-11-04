@@ -753,6 +753,8 @@ the widget.
   `docker compose -f docker/docker-compose.yml exec ollama ollama pull llama3`.
 - **Ports in use:** move them with `API_PORT`, `DASHBOARD_PORT`, `POSTGRES_PORT`, or `REDIS_PORT`,
   e.g. `POSTGRES_PORT=5433 docker compose -f docker/docker-compose.yml up --build`.
+- **Optional extras:** add them to the API image with `UV_EXTRAS`, e.g.
+  `UV_EXTRAS="--extra bedrock --extra rerank" docker compose -f docker/docker-compose.yml up --build`.
 - **Not on localhost:** the dashboard is compiled with the API address baked in. Build it with
   the API's public URL: `PUBLIC_API_URL=https://api.example.com docker compose ... up --build`.
 
@@ -825,9 +827,9 @@ Every setting in `apps/api/.env` can also be passed as an environment variable o
 
 | Setting | Options | Notes |
 | --- | --- | --- |
-| `DEFAULT_CHAT_PROVIDER` | `anthropic`, `openai`, `ollama`, or an [OpenAI-compatible service](#openai-compatible-services) | Writes the answers. |
+| `DEFAULT_CHAT_PROVIDER` | `anthropic`, `openai`, `ollama`, an [OpenAI-compatible service](#openai-compatible-services), or an [enterprise cloud](#enterprise-clouds) | Writes the answers. |
 | `DEFAULT_CHAT_MODEL` | any model name of that provider | e.g. `claude-sonnet-5`, `llama3` |
-| `DEFAULT_EMBEDDING_PROVIDER` | `openai`, `ollama`, `gemini`, `openai_compatible` | Turns text into vectors for search. |
+| `DEFAULT_EMBEDDING_PROVIDER` | `openai`, `ollama`, `gemini`, `openai_compatible`, `azure_openai`, `bedrock`, `vertex` | Turns text into vectors for search. |
 | `DEFAULT_EMBEDDING_MODEL` | any embedding model of that provider | see the table below |
 | `EMBEDDING_DIMENSIONS` | a number | Must match the embedding model exactly. |
 | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | your keys | Only sent to that provider. |
@@ -859,6 +861,16 @@ Many services speak the OpenAI API at their own address. Set the key, then use t
 
 Model names change often; check each provider's model list. The dashboard marks providers whose
 key is missing as *not configured*.
+
+#### Enterprise clouds
+
+| Provider | Settings | Chat | Embeddings | Install |
+| --- | --- | --- | --- | --- |
+| `azure_openai` | `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, optional `AZURE_OPENAI_API_VERSION` | yes | yes | included |
+| `bedrock` | `AWS_REGION`; credentials from the standard AWS chain (environment, `~/.aws`, IAM role) | yes | yes | `uv sync --extra bedrock` |
+| `vertex` | `GOOGLE_CLOUD_PROJECT`, optional `GOOGLE_CLOUD_LOCATION`; credentials from `gcloud auth application-default login` or a service account | yes | yes | `uv sync --extra vertex` |
+
+With Azure, the model name is the **deployment name** you created in Azure, not the base model's name.
 
 **Changing the embedding model** makes existing vectors incompatible. Re-index each project from
 the dashboard afterwards. With the Postgres backend the vector column has a fixed size, so also

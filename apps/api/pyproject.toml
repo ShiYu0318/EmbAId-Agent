@@ -47,6 +47,12 @@ dev = [
     "ruff>=0.9",
     "mypy>=1.14",
 ]
+bedrock = [
+    "langchain-aws>=0.2",
+]
+vertex = [
+    "langchain-google-vertexai>=2.0",
+]
 
 [build-system]
 requires = ["hatchling"]

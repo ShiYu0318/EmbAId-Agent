@@ -21,6 +21,9 @@ export const CHAT_PROVIDER_OPTIONS: ProviderOption<ChatProvider>[] = [
   { id: "gemini", label: "Google Gemini", example: "gemini-3.8-flash" },
   { id: "deepseek", label: "DeepSeek", example: "deepseek-flash" },
   { id: "openai_compatible", label: null, example: "my-model" },
+  { id: "azure_openai", label: "Azure OpenAI", example: "your-deployment-name" },
+  { id: "bedrock", label: "AWS Bedrock", example: "anthropic.claude-sonnet-5" },
+  { id: "vertex", label: "Google Vertex AI", example: "gemini-3.8-flash" },
 ];
 
 export const EMBEDDING_PROVIDER_OPTIONS: ProviderOption<EmbeddingProvider>[] = [
@@ -28,6 +31,9 @@ export const EMBEDDING_PROVIDER_OPTIONS: ProviderOption<EmbeddingProvider>[] = [
   { id: "ollama", label: "Ollama", example: "nomic-embed-text" },
   { id: "gemini", label: "Google Gemini", example: "gemini-embedding-001" },
   { id: "openai_compatible", label: null, example: "my-embedding-model" },
+  { id: "azure_openai", label: "Azure OpenAI", example: "your-embedding-deployment" },
+  { id: "bedrock", label: "AWS Bedrock", example: "amazon.titan-embed-text-v2:0" },
+  { id: "vertex", label: "Google Vertex AI", example: "text-embedding-005" },
 ];
 
 export interface ApiHealth {

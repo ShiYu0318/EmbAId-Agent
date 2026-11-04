@@ -632,6 +632,8 @@ widget。
   `docker compose -f docker/docker-compose.yml exec ollama ollama pull llama3` 把模型下載進去。
 - **port 被佔用：** 用 `API_PORT`、`DASHBOARD_PORT`、`POSTGRES_PORT`、`REDIS_PORT` 改掉，例如
   `POSTGRES_PORT=5433 docker compose -f docker/docker-compose.yml up --build`。
+- **選用套件：** 用 `UV_EXTRAS` 裝進 API 的映像檔，例如
+  `UV_EXTRAS="--extra bedrock --extra rerank" docker compose -f docker/docker-compose.yml up --build`。
 - **不是在 localhost 使用：** 儀表板在建置時就會把 API 位址寫進去，所以要用 API 的公開網址建置：
   `PUBLIC_API_URL=https://api.example.com docker compose ... up --build`。
 
@@ -694,9 +696,9 @@ LANDING_DASHBOARD_URL=https://app.example.com node apps/landing/build.mjs
 
 | 設定 | 選項 | 說明 |
 | --- | --- | --- |
-| `DEFAULT_CHAT_PROVIDER` | `anthropic`、`openai`、`ollama`，或 [OpenAI 相容服務](#openai-相容服務) | 負責寫出回答。 |
+| `DEFAULT_CHAT_PROVIDER` | `anthropic`、`openai`、`ollama`、[OpenAI 相容服務](#openai-相容服務)或[企業雲](#企業雲) | 負責寫出回答。 |
 | `DEFAULT_CHAT_MODEL` | 該供應商的任一模型名稱 | 例如 `claude-sonnet-5`、`llama3` |
-| `DEFAULT_EMBEDDING_PROVIDER` | `openai`、`ollama`、`gemini`、`openai_compatible` | 把文字轉成搜尋用的向量。 |
+| `DEFAULT_EMBEDDING_PROVIDER` | `openai`、`ollama`、`gemini`、`openai_compatible`、`azure_openai`、`bedrock`、`vertex` | 把文字轉成搜尋用的向量。 |
 | `DEFAULT_EMBEDDING_MODEL` | 該供應商的任一向量模型 | 見下表 |
 | `EMBEDDING_DIMENSIONS` | 數字 | 必須和向量模型完全一致。 |
 | `ANTHROPIC_API_KEY`、`OPENAI_API_KEY` | 你的金鑰 | 只會送給該供應商。 |
@@ -727,6 +729,16 @@ LANDING_DASHBOARD_URL=https://app.example.com node apps/landing/build.mjs
 | `openai_compatible` | `OPENAI_COMPATIBLE_BASE_URL`，`OPENAI_COMPATIBLE_API_KEY` 可不填 | 可 | 可 | 你的伺服器上的模型：vLLM、LM Studio、Together、Mistral、API 閘道 |
 
 模型名稱經常更新，請以各家的模型清單為準。缺少金鑰的供應商，在儀表板會標示「未設定」。
+
+#### 企業雲
+
+| 供應商 | 設定 | 對話 | 向量 | 安裝 |
+| --- | --- | --- | --- | --- |
+| `azure_openai` | `AZURE_OPENAI_ENDPOINT`、`AZURE_OPENAI_API_KEY`，`AZURE_OPENAI_API_VERSION` 可不填 | 可 | 可 | 已內建 |
+| `bedrock` | `AWS_REGION`；憑證走 AWS 標準機制（環境變數、`~/.aws`、IAM 角色） | 可 | 可 | `uv sync --extra bedrock` |
+| `vertex` | `GOOGLE_CLOUD_PROJECT`，`GOOGLE_CLOUD_LOCATION` 可不填；憑證來自 `gcloud auth application-default login` 或服務帳號 | 可 | 可 | `uv sync --extra vertex` |
+
+使用 Azure 時，模型名稱要填你在 Azure 建立的**部署名稱**，不是模型本身的名稱。
 
 **更換向量模型**後，既有的向量就不能用了，之後要在儀表板對每個專案重新索引。使用 Postgres 後端時，向量欄位的
 長度是固定的，還要先刪除一次搜尋用的表格（`DROP TABLE search_chunks, search_cache;`），API 重新啟動時會用新的長度

@@ -6,8 +6,18 @@ export type ChatProvider =
   | "groq"
   | "gemini"
   | "deepseek"
-  | "openai_compatible";
-export type EmbeddingProvider = "openai" | "ollama" | "gemini" | "openai_compatible";
+  | "openai_compatible"
+  | "azure_openai"
+  | "bedrock"
+  | "vertex";
+export type EmbeddingProvider =
+  | "openai"
+  | "ollama"
+  | "gemini"
+  | "openai_compatible"
+  | "azure_openai"
+  | "bedrock"
+  | "vertex";
 export type ApiKeyType = "publishable" | "secret" | "sandbox";
 export type SourceType = "url_crawl" | "sitemap" | "notion" | "google_docs";
 export type DocumentStatus = "pending" | "processing" | "ready" | "failed";

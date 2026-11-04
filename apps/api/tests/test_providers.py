@@ -86,3 +86,63 @@ def test_a_comment_after_an_empty_setting_is_not_a_value() -> None:
     settings = Settings(groq_api_key="# https://console.groq.com/keys")
     assert settings.groq_api_key is None
     assert provider_status(settings)["groq"] is False
+
+
+@pytest.fixture
+def cloud(monkeypatch: pytest.MonkeyPatch) -> Settings:
+    current = Settings(
+        azure_openai_endpoint="https://example.openai.azure.com",
+        azure_openai_api_key="az-key",
+        aws_region="us-east-1",
+        google_cloud_project="my-project",
+    )
+    monkeypatch.setattr(registry, "get_settings", lambda: current)
+    return current
+
+
+def test_azure_uses_the_deployment_name(cloud: Settings) -> None:
+    model = build_chat_model("azure_openai", "my-gpt-deployment")
+    assert model.deployment_name == "my-gpt-deployment"
+    assert model.azure_endpoint == "https://example.openai.azure.com"
+    embeddings = build_embeddings("azure_openai", "my-embedding-deployment")
+    assert embeddings.deployment == "my-embedding-deployment"
+
+
+def test_bedrock_uses_the_configured_region(cloud: Settings) -> None:
+    pytest.importorskip("langchain_aws")
+    model = build_chat_model("bedrock", "anthropic.claude-sonnet-5")
+    assert model.model_id == "anthropic.claude-sonnet-5"
+    assert model.region_name == "us-east-1"
+
+
+def test_vertex_passes_project_and_location(
+    cloud: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    created: dict[str, object] = {}
+
+    class FakeVertex:
+        @staticmethod
+        def ChatVertexAI(**kwargs: object) -> dict[str, object]:  # noqa: N802
+            created.update(kwargs)
+            return kwargs
+
+    monkeypatch.setattr(registry, "_module", lambda name, extra: FakeVertex)
+    build_chat_model("vertex", "gemini-3.8-flash")
+    assert created["project"] == "my-project"
+    assert created["location"] == "us-central1"
+
+
+def test_missing_extra_says_how_to_install_it(
+    cloud: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def missing(name: str) -> object:
+        raise ImportError(name)
+
+    monkeypatch.setattr(registry.importlib, "import_module", missing)
+    with pytest.raises(ProviderNotConfiguredError, match="uv sync --extra vertex"):
+        build_chat_model("vertex", "gemini-3.8-flash")
+
+
+def test_cloud_providers_report_missing_settings() -> None:
+    status = provider_status(Settings())
+    assert not status["azure_openai"] and not status["bedrock"] and not status["vertex"]

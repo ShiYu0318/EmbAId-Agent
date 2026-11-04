@@ -24,12 +24,14 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 WORKDIR /app
 
 COPY apps/api/pyproject.toml ./
-RUN uv sync --no-dev --no-install-project
+# Optional extras, e.g. --build-arg UV_EXTRAS="--extra bedrock --extra rerank"
+ARG UV_EXTRAS=""
+RUN uv sync --no-dev --no-install-project $UV_EXTRAS
 
 COPY apps/api/ ./
 COPY --from=widget /repo/apps/widget/dist/widget.js ./static/widget.js
 # Install the project itself now, so containers start without re-syncing dependencies.
-RUN uv sync --no-dev
+RUN uv sync --no-dev $UV_EXTRAS
 
 EXPOSE 8000
 

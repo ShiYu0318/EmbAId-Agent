@@ -40,6 +40,14 @@ class Settings(BaseSettings):
     deepseek_api_key: str | None = None
     openai_compatible_base_url: str | None = None
     openai_compatible_api_key: str | None = None
+    # Enterprise clouds. Bedrock and Vertex use their standard credential chains
+    # (AWS profiles or roles; gcloud application-default credentials or a service account).
+    azure_openai_endpoint: str | None = None
+    azure_openai_api_key: str | None = None
+    azure_openai_api_version: str = "2024-10-21"
+    aws_region: str | None = None
+    google_cloud_project: str | None = None
+    google_cloud_location: str = "us-central1"
 
     default_chat_provider: Literal[
         "anthropic",
@@ -52,9 +60,9 @@ class Settings(BaseSettings):
         "openai_compatible",
     ] = "anthropic"
     default_chat_model: str = "claude-sonnet-5"
-    default_embedding_provider: Literal["openai", "ollama", "gemini", "openai_compatible"] = (
-        "openai"
-    )
+    default_embedding_provider: Literal[
+        "openai", "ollama", "gemini", "openai_compatible", "azure_openai", "bedrock", "vertex"
+    ] = "openai"
     default_embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
 

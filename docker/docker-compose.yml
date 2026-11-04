@@ -11,6 +11,9 @@ x-api: &api
   build:
     context: ..
     dockerfile: docker/api.Dockerfile
+    args:
+      # e.g. UV_EXTRAS="--extra bedrock --extra rerank" docker compose ... up --build
+      UV_EXTRAS: ${UV_EXTRAS:-}
   env_file:
     - ../apps/api/.env
   environment:

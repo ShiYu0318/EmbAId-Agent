@@ -1,4 +1,6 @@
+import importlib
 from dataclasses import dataclass
+from typing import Any
 
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
@@ -34,12 +36,48 @@ COMPATIBLE_PROVIDERS: dict[str, CompatibleProvider] = {
     ),
 }
 
-CHAT_PROVIDERS: tuple[str, ...] = ("anthropic", "openai", "ollama", *COMPATIBLE_PROVIDERS)
+# Enterprise clouds; Bedrock and Vertex need optional extras (uv sync --extra bedrock / vertex).
+CLOUD_PROVIDERS: tuple[str, ...] = ("azure_openai", "bedrock", "vertex")
+
+CHAT_PROVIDERS: tuple[str, ...] = (
+    "anthropic",
+    "openai",
+    "ollama",
+    *COMPATIBLE_PROVIDERS,
+    *CLOUD_PROVIDERS,
+)
 EMBEDDING_PROVIDERS: tuple[str, ...] = (
     "openai",
     "ollama",
     *(name for name, spec in COMPATIBLE_PROVIDERS.items() if spec.embeddings),
+    *CLOUD_PROVIDERS,
 )
+
+
+def _module(name: str, extra: str) -> Any:
+    try:
+        return importlib.import_module(name)
+    except ImportError as exc:
+        raise ProviderNotConfiguredError(
+            f"{name} is not installed: run `uv sync --extra {extra}`"
+        ) from exc
+
+
+def _cloud_ready(provider: str, settings: Settings) -> None:
+    """Raise ProviderNotConfiguredError unless the cloud provider can be used."""
+    if provider == "azure_openai":
+        if not (settings.azure_openai_endpoint and settings.azure_openai_api_key):
+            raise ProviderNotConfiguredError(
+                "azure_openai_endpoint and azure_openai_api_key must be set"
+            )
+    elif provider == "bedrock":
+        if not settings.aws_region:
+            raise ProviderNotConfiguredError("aws_region is not set")
+        _module("langchain_aws", "bedrock")
+    elif provider == "vertex":
+        if not settings.google_cloud_project:
+            raise ProviderNotConfiguredError("google_cloud_project is not set")
+        _module("langchain_google_vertexai", "vertex")
 
 
 def _compatible_endpoint(name: str, settings: Settings) -> tuple[str, str]:
@@ -66,6 +104,12 @@ def provider_status(settings: Settings | None = None) -> dict[str, bool]:
     for name in COMPATIBLE_PROVIDERS:
         try:
             _compatible_endpoint(name, settings)
+            status[name] = True
+        except ProviderNotConfiguredError:
+            status[name] = False
+    for name in CLOUD_PROVIDERS:
+        try:
+            _cloud_ready(name, settings)
             status[name] = True
         except ProviderNotConfiguredError:
             status[name] = False
@@ -105,6 +149,29 @@ def build_chat_model(provider: str, model: str, streaming: bool = True) -> BaseC
         base_url, key = _compatible_endpoint(provider, settings)
         return ChatOpenAI(model=model, api_key=key, base_url=base_url, streaming=streaming)
 
+    if provider in CLOUD_PROVIDERS:
+        _cloud_ready(provider, settings)
+        if provider == "azure_openai":
+            from langchain_openai import AzureChatOpenAI
+
+            return AzureChatOpenAI(
+                azure_deployment=model,  # Azure addresses models by deployment name
+                azure_endpoint=settings.azure_openai_endpoint,
+                api_key=settings.azure_openai_api_key,
+                api_version=settings.azure_openai_api_version,
+                streaming=streaming,
+            )
+        if provider == "bedrock":
+            aws = _module("langchain_aws", "bedrock")
+            return aws.ChatBedrockConverse(model_id=model, region_name=settings.aws_region)
+        vertex = _module("langchain_google_vertexai", "vertex")
+        return vertex.ChatVertexAI(
+            model_name=model,
+            project=settings.google_cloud_project,
+            location=settings.google_cloud_location,
+            streaming=streaming,
+        )
+
     raise ProviderNotConfiguredError(f"unknown chat provider: {provider}")
 
 
@@ -130,6 +197,27 @@ def build_embeddings(provider: str, model: str) -> Embeddings:
         # Send raw text: OpenAI's tokenizer-based chunking does not apply to other models.
         return OpenAIEmbeddings(
             model=model, api_key=key, base_url=base_url, check_embedding_ctx_length=False
+        )
+
+    if provider in CLOUD_PROVIDERS:
+        _cloud_ready(provider, settings)
+        if provider == "azure_openai":
+            from langchain_openai import AzureOpenAIEmbeddings
+
+            return AzureOpenAIEmbeddings(
+                azure_deployment=model,
+                azure_endpoint=settings.azure_openai_endpoint,
+                api_key=settings.azure_openai_api_key,
+                api_version=settings.azure_openai_api_version,
+            )
+        if provider == "bedrock":
+            aws = _module("langchain_aws", "bedrock")
+            return aws.BedrockEmbeddings(model_id=model, region_name=settings.aws_region)
+        vertex = _module("langchain_google_vertexai", "vertex")
+        return vertex.VertexAIEmbeddings(
+            model_name=model,
+            project=settings.google_cloud_project,
+            location=settings.google_cloud_location,
         )
 
     raise ProviderNotConfiguredError(f"unknown embedding provider: {provider}")
