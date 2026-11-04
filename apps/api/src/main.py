@@ -1,19 +1,35 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 
-from .api.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
+from .api.middleware import RateLimitMiddleware, SecurityHeadersMiddleware, SplitCORSMiddleware
 from .config import get_settings
 from .db.session import create_all, dispose_engine
+from .search.factory import prepare_search_backend
 
 MIN_SECRET_LENGTH = 32
+
+API_ROOT = Path(__file__).resolve().parents[1]
+
+
+def widget_bundle() -> Path | None:
+    """Find the built widget: explicit path, then the Docker image copy, then the monorepo."""
+    configured = get_settings().widget_bundle_path
+    candidates = [Path(configured)] if configured else []
+    candidates += [
+        API_ROOT / "static" / "widget.js",
+        API_ROOT.parent / "widget" / "dist" / "widget.js",
+    ]
+    return next((path for path in candidates if path.is_file()), None)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await create_all()
+    await prepare_search_backend()
     yield
     await dispose_engine()
 
@@ -44,11 +60,8 @@ def create_app() -> FastAPI:
     )
 
     app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origin_list,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        SplitCORSMiddleware,
+        dashboard_origins=settings.cors_origin_list,
     )
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RateLimitMiddleware)
@@ -59,6 +72,22 @@ def create_app() -> FastAPI:
         sentry_sdk.init(dsn=settings.sentry_dsn, environment=settings.environment)
 
     register_routers(app)
+
+    # Self-hosted installs serve the embeddable widget themselves, so an embed snippet only
+    # ever points at the operator's own API and never at a third-party CDN.
+    @app.get("/widget.js", tags=["system"], include_in_schema=False)
+    async def widget_script() -> FileResponse:
+        bundle = widget_bundle()
+        if bundle is None:
+            raise HTTPException(
+                status_code=404,
+                detail="widget.js has not been built: run `pnpm --filter @embaid/widget build`",
+            )
+        return FileResponse(
+            bundle,
+            media_type="application/javascript",
+            headers={"Cache-Control": "public, max-age=300"},
+        )
 
     @app.get("/health", tags=["system"])
     async def health() -> dict[str, object]:
@@ -108,5 +137,3 @@ def register_routers(app: FastAPI) -> None:
 
 
 app = create_app()
-from .search.factory import prepare_search_backend
-    await prepare_search_backend()

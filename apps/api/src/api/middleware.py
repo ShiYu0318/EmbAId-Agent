@@ -1,9 +1,11 @@
+import re
 import time
 from collections import defaultdict, deque
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.types import ASGIApp
+from starlette.middleware.cors import CORSMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from ..config import get_settings
 
@@ -69,3 +71,38 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         window.append(now)
         return await call_next(request)
+
+
+# Endpoints the embeddable widget calls from customers' websites. Any site may reach them;
+# the publishable key's allowed origins (api/deps.py) decide whether the call is served.
+PUBLIC_WIDGET_PATHS = re.compile(r"^/v1/(chat|widget-config|messages/[^/]+/feedback)$")
+
+
+class SplitCORSMiddleware:
+    """Open CORS for the widget's public endpoints, the configured origins for everything else.
+
+    The dashboard API keeps credentialed CORS limited to CORS_ORIGINS, while the widget,
+    which authenticates with an X-API-Key header and sends no cookies, works on any site.
+    """
+
+    def __init__(self, app: ASGIApp, dashboard_origins: list[str]) -> None:
+        self.public = CORSMiddleware(
+            app,
+            allow_origins=["*"],
+            allow_credentials=False,
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["Content-Type", "X-API-Key", "X-App-Id"],
+        )
+        self.private = CORSMiddleware(
+            app,
+            allow_origins=dashboard_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and PUBLIC_WIDGET_PATHS.match(scope.get("path", "")):
+            await self.public(scope, receive, send)
+        else:
+            await self.private(scope, receive, send)

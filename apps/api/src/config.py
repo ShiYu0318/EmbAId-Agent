@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     oauth_redirect_base: str = "http://localhost:8000"
 
     sentry_dsn: str | None = None
+    # Built widget served at /widget.js; found automatically in the monorepo and Docker image.
+    widget_bundle_path: str | None = None
 
     @property
     def google_oauth_enabled(self) -> bool:
