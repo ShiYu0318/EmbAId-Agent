@@ -820,9 +820,9 @@ Every setting in `apps/api/.env` can also be passed as an environment variable o
 
 | Setting | Options | Notes |
 | --- | --- | --- |
-| `DEFAULT_CHAT_PROVIDER` | `anthropic`, `openai`, `ollama` | Writes the answers. |
+| `DEFAULT_CHAT_PROVIDER` | `anthropic`, `openai`, `ollama`, or an [OpenAI-compatible service](#openai-compatible-services) | Writes the answers. |
 | `DEFAULT_CHAT_MODEL` | any model name of that provider | e.g. `claude-sonnet-5`, `llama3` |
-| `DEFAULT_EMBEDDING_PROVIDER` | `openai`, `ollama` | Turns text into vectors for search. |
+| `DEFAULT_EMBEDDING_PROVIDER` | `openai`, `ollama`, `gemini`, `openai_compatible` | Turns text into vectors for search. |
 | `DEFAULT_EMBEDDING_MODEL` | any embedding model of that provider | see the table below |
 | `EMBEDDING_DIMENSIONS` | a number | Must match the embedding model exactly. |
 | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | your keys | Only sent to that provider. |
@@ -837,6 +837,23 @@ Common embedding models and their dimensions:
 | Ollama | `nomic-embed-text` | 768 |
 | Ollama | `mxbai-embed-large` | 1024 |
 | Ollama | `bge-m3` (strong on Chinese) | 1024 |
+| Gemini | `gemini-embedding-001` | 3072 |
+
+#### OpenAI-compatible services
+
+Many services speak the OpenAI API at their own address. Set the key, then use the provider name as
+`DEFAULT_CHAT_PROVIDER` (or pick it per project under **Settings**).
+
+| Provider | Key setting | Chat | Embeddings | Example model |
+| --- | --- | --- | --- | --- |
+| `openrouter` | `OPENROUTER_API_KEY` | yes | no | `anthropic/claude-sonnet-5` (hundreds of models behind one key) |
+| `groq` | `GROQ_API_KEY` | yes | no | `llama-3.3-70b-versatile` (very fast) |
+| `gemini` | `GEMINI_API_KEY` | yes | yes | `gemini-3.8-flash`, `gemini-embedding-001` |
+| `deepseek` | `DEEPSEEK_API_KEY` | yes | no | `deepseek-flash` |
+| `openai_compatible` | `OPENAI_COMPATIBLE_BASE_URL`, optional `OPENAI_COMPATIBLE_API_KEY` | yes | yes | whatever your server runs: vLLM, LM Studio, Together, Mistral, a gateway |
+
+Model names change often; check each provider's model list. The dashboard marks providers whose
+key is missing as *not configured*.
 
 **Changing the embedding model** makes existing vectors incompatible. Re-index each project from
 the dashboard afterwards. With the Postgres backend the vector column has a fixed size, so also

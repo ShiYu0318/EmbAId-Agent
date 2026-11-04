@@ -692,9 +692,9 @@ LANDING_DASHBOARD_URL=https://app.example.com node apps/landing/build.mjs
 
 | 設定 | 選項 | 說明 |
 | --- | --- | --- |
-| `DEFAULT_CHAT_PROVIDER` | `anthropic`、`openai`、`ollama` | 負責寫出回答。 |
+| `DEFAULT_CHAT_PROVIDER` | `anthropic`、`openai`、`ollama`，或 [OpenAI 相容服務](#openai-相容服務) | 負責寫出回答。 |
 | `DEFAULT_CHAT_MODEL` | 該供應商的任一模型名稱 | 例如 `claude-sonnet-5`、`llama3` |
-| `DEFAULT_EMBEDDING_PROVIDER` | `openai`、`ollama` | 把文字轉成搜尋用的向量。 |
+| `DEFAULT_EMBEDDING_PROVIDER` | `openai`、`ollama`、`gemini`、`openai_compatible` | 把文字轉成搜尋用的向量。 |
 | `DEFAULT_EMBEDDING_MODEL` | 該供應商的任一向量模型 | 見下表 |
 | `EMBEDDING_DIMENSIONS` | 數字 | 必須和向量模型完全一致。 |
 | `ANTHROPIC_API_KEY`、`OPENAI_API_KEY` | 你的金鑰 | 只會送給該供應商。 |
@@ -709,6 +709,22 @@ LANDING_DASHBOARD_URL=https://app.example.com node apps/landing/build.mjs
 | Ollama | `nomic-embed-text` | 768 |
 | Ollama | `mxbai-embed-large` | 1024 |
 | Ollama | `bge-m3`（中文表現好） | 1024 |
+| Gemini | `gemini-embedding-001` | 3072 |
+
+#### OpenAI 相容服務
+
+很多服務都在自己的網址提供 OpenAI 格式的 API。填好金鑰後，把供應商名稱設為 `DEFAULT_CHAT_PROVIDER`
+（或在儀表板的「設定」為個別專案選擇）就能使用。
+
+| 供應商 | 金鑰設定 | 對話 | 向量 | 範例模型 |
+| --- | --- | --- | --- | --- |
+| `openrouter` | `OPENROUTER_API_KEY` | 可 | 否 | `anthropic/claude-sonnet-5`（一把金鑰就能用上百種模型） |
+| `groq` | `GROQ_API_KEY` | 可 | 否 | `llama-3.3-70b-versatile`（速度很快） |
+| `gemini` | `GEMINI_API_KEY` | 可 | 可 | `gemini-3.8-flash`、`gemini-embedding-001` |
+| `deepseek` | `DEEPSEEK_API_KEY` | 可 | 否 | `deepseek-flash` |
+| `openai_compatible` | `OPENAI_COMPATIBLE_BASE_URL`，`OPENAI_COMPATIBLE_API_KEY` 可不填 | 可 | 可 | 你的伺服器上的模型：vLLM、LM Studio、Together、Mistral、API 閘道 |
+
+模型名稱經常更新，請以各家的模型清單為準。缺少金鑰的供應商，在儀表板會標示「未設定」。
 
 **更換向量模型**後，既有的向量就不能用了，之後要在儀表板對每個專案重新索引。使用 Postgres 後端時，向量欄位的
 長度是固定的，還要先刪除一次搜尋用的表格（`DROP TABLE search_chunks, search_cache;`），API 重新啟動時會用新的長度
