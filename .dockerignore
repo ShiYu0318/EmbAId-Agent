@@ -1,0 +1,11 @@
+**/node_modules
+**/.venv
+**/.next
+**/dist
+**/data
+**/__pycache__
+**/.env
+**/.env.local
+docs
+.git
+.github

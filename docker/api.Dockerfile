@@ -1,3 +1,13 @@
+# Build the embeddable widget so the API can serve it at /widget.js.
+FROM node:20-slim AS widget
+RUN corepack enable
+WORKDIR /repo
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/widget/package.json apps/widget/
+RUN pnpm install --frozen-lockfile --filter @embaid/widget
+COPY apps/widget apps/widget
+RUN pnpm --filter @embaid/widget build
+
 FROM python:3.13-slim
 
 ENV PYTHONUNBUFFERED=1 \
@@ -17,7 +27,10 @@ COPY apps/api/pyproject.toml ./
 RUN uv sync --no-dev --no-install-project
 
 COPY apps/api/ ./
+COPY --from=widget /repo/apps/widget/dist/widget.js ./static/widget.js
+# Install the project itself now, so containers start without re-syncing dependencies.
+RUN uv sync --no-dev
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "--no-sync", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
