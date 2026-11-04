@@ -1,11 +1,13 @@
 from typing import Any
 
 from ..db.session import create_all, dispose_engine
+from ..search.factory import prepare_search_backend
 from .queue import redis_settings
 
 
 async def startup(ctx: dict[str, Any]) -> None:
     await create_all()
+    await prepare_search_backend()
 
 
 async def shutdown(ctx: dict[str, Any]) -> None:

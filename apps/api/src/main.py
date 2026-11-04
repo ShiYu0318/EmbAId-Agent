@@ -108,3 +108,5 @@ def register_routers(app: FastAPI) -> None:
 
 
 app = create_app()
+from .search.factory import prepare_search_backend
+    await prepare_search_backend()
