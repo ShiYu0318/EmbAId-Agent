@@ -18,7 +18,10 @@ x-api: &api
     - ../apps/api/.env
   environment:
     DATABASE_URL: postgresql+asyncpg://embaid:embaid@postgres:5432/embaid
-    SEARCH_BACKEND: postgres
+    # postgres (pgvector in the same database) by default; or SEARCH_BACKEND=qdrant with
+    # --profile qdrant and UV_EXTRAS="--extra qdrant"
+    SEARCH_BACKEND: ${SEARCH_BACKEND:-postgres}
+    QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
     QUEUE_ENABLED: "true"
     REDIS_URL: redis://redis:6379
     # Uploaded files live on a volume shared by the API and the worker. Set
@@ -78,6 +81,14 @@ services:
     ports:
       - "${REDIS_PORT:-6379}:6379"
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    profiles: ["qdrant"]
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+
   ollama:
     image: ollama/ollama:latest
     profiles: ["ollama"]
@@ -90,3 +101,4 @@ volumes:
   app_data:
   postgres_data:
   ollama_data:
+  qdrant_data:

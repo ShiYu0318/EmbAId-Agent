@@ -7,10 +7,20 @@ _backend: SearchBackend | None = None
 def get_search_backend() -> SearchBackend:
     global _backend
     if _backend is None:
-        if get_settings().search_backend == "postgres":
+        backend = get_settings().search_backend
+        if backend == "postgres":
             from .postgres import PostgresBackend
 
             _backend = PostgresBackend()
+        elif backend == "qdrant":
+            try:
+                from .qdrant import QdrantBackend
+            except ImportError as exc:
+                raise RuntimeError(
+                    "SEARCH_BACKEND=qdrant needs the qdrant extra: uv sync --extra qdrant"
+                ) from exc
+
+            _backend = QdrantBackend()
         else:
             from .sqlite_faiss import SqliteFaissBackend
 

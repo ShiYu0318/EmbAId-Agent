@@ -753,6 +753,8 @@ the widget.
   `docker compose -f docker/docker-compose.yml exec ollama ollama pull llama3`.
 - **Ports in use:** move them with `API_PORT`, `DASHBOARD_PORT`, `POSTGRES_PORT`, or `REDIS_PORT`,
   e.g. `POSTGRES_PORT=5433 docker compose -f docker/docker-compose.yml up --build`.
+- **Qdrant instead of pgvector:**
+  `SEARCH_BACKEND=qdrant UV_EXTRAS="--extra qdrant" docker compose -f docker/docker-compose.yml --profile qdrant up --build`.
 - **Optional extras:** add them to the API image with `UV_EXTRAS`, e.g.
   `UV_EXTRAS="--extra bedrock --extra rerank" docker compose -f docker/docker-compose.yml up --build`.
 - **Not on localhost:** the dashboard is compiled with the API address baked in. Build it with
@@ -882,7 +884,8 @@ the new size when the API restarts.
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `DATABASE_URL` | SQLite file in `apps/api/data` | Use `postgresql+asyncpg://…` for Postgres. |
-| `SEARCH_BACKEND` | `sqlite_faiss` | `postgres` uses pgvector plus full-text search in the same database. |
+| `SEARCH_BACKEND` | `sqlite_faiss` | `postgres` uses pgvector plus full-text search in the same database. `qdrant` keeps vectors and keyword search in [Qdrant](https://qdrant.tech) (`uv sync --extra qdrant`). |
+| `QDRANT_URL`, `QDRANT_API_KEY`, `QDRANT_COLLECTION_PREFIX` | `http://localhost:6333` | Used with `SEARCH_BACKEND=qdrant`. Start a server with `docker run -p 6333:6333 qdrant/qdrant`, use Qdrant Cloud, or set `:memory:` to run it in-process. Collections are sized from the first vectors written, so mixed embedding sizes need separate prefixes. |
 | `QUEUE_ENABLED` | `false` | `true` sends ingestion to Redis for a separate worker (`uv run arq src.tasks.worker.WorkerSettings`). If Redis is unreachable the API falls back to running jobs itself. |
 | `REDIS_URL` | `redis://localhost:6379` | Used when the queue is on. |
 | `STORAGE_ENDPOINT_URL`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY`, `STORAGE_BUCKET` | unset | Store uploads in any S3-compatible bucket (AWS S3, Cloudflare R2, MinIO). Unset stores them in `apps/api/data/objects`. |

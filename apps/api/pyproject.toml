@@ -53,6 +53,9 @@ bedrock = [
 vertex = [
     "langchain-google-vertexai>=2.0",
 ]
+qdrant = [
+    "qdrant-client>=1.12",
+]
 
 [build-system]
 requires = ["hatchling"]

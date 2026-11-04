@@ -14,8 +14,12 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
 
     database_url: str = "sqlite+aiosqlite:///./data/embaid.sqlite"
-    search_backend: Literal["sqlite_faiss", "postgres"] = "sqlite_faiss"
+    search_backend: Literal["sqlite_faiss", "postgres", "qdrant"] = "sqlite_faiss"
     faiss_index_dir: str = "./data/indices"
+    # SEARCH_BACKEND=qdrant (uv sync --extra qdrant); ":memory:" runs it in-process
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_api_key: str | None = None
+    qdrant_collection_prefix: str = "embaid"
 
     redis_url: str = "redis://localhost:6379"
     queue_enabled: bool = True

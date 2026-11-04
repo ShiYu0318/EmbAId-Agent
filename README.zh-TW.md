@@ -632,6 +632,8 @@ widget。
   `docker compose -f docker/docker-compose.yml exec ollama ollama pull llama3` 把模型下載進去。
 - **port 被佔用：** 用 `API_PORT`、`DASHBOARD_PORT`、`POSTGRES_PORT`、`REDIS_PORT` 改掉，例如
   `POSTGRES_PORT=5433 docker compose -f docker/docker-compose.yml up --build`。
+- **用 Qdrant 取代 pgvector：**
+  `SEARCH_BACKEND=qdrant UV_EXTRAS="--extra qdrant" docker compose -f docker/docker-compose.yml --profile qdrant up --build`。
 - **選用套件：** 用 `UV_EXTRAS` 裝進 API 的映像檔，例如
   `UV_EXTRAS="--extra bedrock --extra rerank" docker compose -f docker/docker-compose.yml up --build`。
 - **不是在 localhost 使用：** 儀表板在建置時就會把 API 位址寫進去，所以要用 API 的公開網址建置：
@@ -749,7 +751,8 @@ LANDING_DASHBOARD_URL=https://app.example.com node apps/landing/build.mjs
 | 設定 | 預設值 | 作用 |
 | --- | --- | --- |
 | `DATABASE_URL` | `apps/api/data` 裡的 SQLite 檔 | 改成 `postgresql+asyncpg://…` 就會使用 Postgres。 |
-| `SEARCH_BACKEND` | `sqlite_faiss` | `postgres` 會在同一個資料庫裡使用 pgvector 加全文檢索。 |
+| `SEARCH_BACKEND` | `sqlite_faiss` | `postgres` 會在同一個資料庫裡使用 pgvector 加全文檢索。`qdrant` 把向量和關鍵字搜尋都放在 [Qdrant](https://qdrant.tech)（需要 `uv sync --extra qdrant`）。 |
+| `QDRANT_URL`、`QDRANT_API_KEY`、`QDRANT_COLLECTION_PREFIX` | `http://localhost:6333` | 搭配 `SEARCH_BACKEND=qdrant` 使用。可以用 `docker run -p 6333:6333 qdrant/qdrant` 啟動伺服器、使用 Qdrant Cloud，或設成 `:memory:` 直接在 API 程序裡執行。Collection 會依第一次寫入的向量長度建立，向量維度不同的專案要用不同的前綴。 |
 | `QUEUE_ENABLED` | `false` | `true` 會把匯入工作送到 Redis，交給獨立的 worker 處理（`uv run arq src.tasks.worker.WorkerSettings`）。Redis 連不上時，API 會改成自己執行。 |
 | `REDIS_URL` | `redis://localhost:6379` | 開啟佇列時使用。 |
 | `STORAGE_ENDPOINT_URL`、`STORAGE_ACCESS_KEY`、`STORAGE_SECRET_KEY`、`STORAGE_BUCKET` | 未設定 | 把上傳的檔案存到任何 S3 相容的儲存空間（AWS S3、Cloudflare R2、MinIO）。未設定時存在 `apps/api/data/objects`。 |
