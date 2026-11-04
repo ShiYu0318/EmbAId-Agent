@@ -830,7 +830,7 @@ Every setting in `apps/api/.env` can also be passed as an environment variable o
 | Setting | Options | Notes |
 | --- | --- | --- |
 | `DEFAULT_CHAT_PROVIDER` | `anthropic`, `openai`, `ollama`, an [OpenAI-compatible service](#openai-compatible-services), or an [enterprise cloud](#enterprise-clouds) | Writes the answers. |
-| `DEFAULT_CHAT_MODEL` | any model name of that provider | e.g. `claude-sonnet-5`, `llama3` |
+| `DEFAULT_CHAT_MODEL` | any model name of that provider | e.g. `claude-sonnet-5` (default), `claude-sonnet-5-5` (newer Sonnet, same price), `llama3` |
 | `DEFAULT_EMBEDDING_PROVIDER` | `openai`, `ollama`, `gemini`, `openai_compatible`, `azure_openai`, `bedrock`, `vertex` | Turns text into vectors for search. |
 | `DEFAULT_EMBEDDING_MODEL` | any embedding model of that provider | see the table below |
 | `EMBEDDING_DIMENSIONS` | a number | Must match the embedding model exactly. |

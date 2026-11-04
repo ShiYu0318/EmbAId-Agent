@@ -699,7 +699,7 @@ LANDING_DASHBOARD_URL=https://app.example.com node apps/landing/build.mjs
 | 設定 | 選項 | 說明 |
 | --- | --- | --- |
 | `DEFAULT_CHAT_PROVIDER` | `anthropic`、`openai`、`ollama`、[OpenAI 相容服務](#openai-相容服務)或[企業雲](#企業雲) | 負責寫出回答。 |
-| `DEFAULT_CHAT_MODEL` | 該供應商的任一模型名稱 | 例如 `claude-sonnet-5`、`llama3` |
+| `DEFAULT_CHAT_MODEL` | 該供應商的任一模型名稱 | 例如 `claude-sonnet-5`（預設）、`claude-sonnet-5-5`（較新的 Sonnet，同價位）、`llama3` |
 | `DEFAULT_EMBEDDING_PROVIDER` | `openai`、`ollama`、`gemini`、`openai_compatible`、`azure_openai`、`bedrock`、`vertex` | 把文字轉成搜尋用的向量。 |
 | `DEFAULT_EMBEDDING_MODEL` | 該供應商的任一向量模型 | 見下表 |
 | `EMBEDDING_DIMENSIONS` | 數字 | 必須和向量模型完全一致。 |

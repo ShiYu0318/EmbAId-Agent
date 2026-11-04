@@ -7,6 +7,8 @@ from langchain_core.language_models import BaseChatModel
 
 from ..config import Settings, get_settings
 
+ANTHROPIC_MAX_TOKENS = 16000
+
 
 class ProviderNotConfiguredError(RuntimeError):
     pass
@@ -128,7 +130,9 @@ def build_chat_model(provider: str, model: str, streaming: bool = True) -> BaseC
             model=model,
             api_key=settings.anthropic_api_key,
             streaming=streaming,
-            max_tokens=2048,
+            # Current Claude models think before answering by default, and thinking counts
+            # toward max_tokens; a tight cap could cut an answer off. It is a ceiling, not a cost.
+            max_tokens=ANTHROPIC_MAX_TOKENS,
         )
 
     if provider == "openai":

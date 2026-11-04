@@ -146,3 +146,11 @@ def test_missing_extra_says_how_to_install_it(
 def test_cloud_providers_report_missing_settings() -> None:
     status = provider_status(Settings())
     assert not status["azure_openai"] and not status["bedrock"] and not status["vertex"]
+
+
+def test_claude_has_room_to_think_before_answering(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(registry, "get_settings", lambda: Settings(anthropic_api_key="sk-ant"))
+    model = build_chat_model("anthropic", "claude-sonnet-5-5")
+    assert model.max_tokens >= 16000
+    payload = model._get_request_payload([("user", "hi")])
+    assert "temperature" not in payload  # Claude Sonnet 5.5 rejects non-default sampling

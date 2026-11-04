@@ -26,6 +26,8 @@ class Preset:
     values: dict[str, str]
     keys: list[tuple[str, str]] = field(default_factory=list)  # (setting, where to get it)
     ask_chat_model: bool = False
+    # Offered as a numbered choice; the first is the default.
+    chat_model_choices: list[tuple[str, str]] = field(default_factory=list)
 
 
 OLLAMA_EMBEDDINGS = {
@@ -55,6 +57,10 @@ PRESETS: dict[str, Preset] = {
         [
             ("ANTHROPIC_API_KEY", "https://console.anthropic.com/settings/keys"),
             ("OPENAI_API_KEY", "https://platform.openai.com/api-keys"),
+        ],
+        chat_model_choices=[
+            ("claude-sonnet-5", "Claude Sonnet 5 (default)"),
+            ("claude-sonnet-5-5", "Claude Sonnet 5.5, the newest Sonnet, same price"),
         ],
     ),
     "openai": Preset(
@@ -179,6 +185,13 @@ def run(env_path: Path, preset_name: str | None, interactive: bool) -> int:
     name = preset_name or (choose_preset() if interactive else "ollama")
     preset = PRESETS[name]
     values = dict(preset.values)
+    if preset.chat_model_choices and interactive:
+        print("\nWhich Claude model?\n")
+        for index, (_, title) in enumerate(preset.chat_model_choices, start=1):
+            print(f"  {index}. {title}")
+        answer = input(f"\nChoose 1-{len(preset.chat_model_choices)} [1]: ").strip() or "1"
+        if answer.isdigit() and 1 <= int(answer) <= len(preset.chat_model_choices):
+            values["DEFAULT_CHAT_MODEL"] = preset.chat_model_choices[int(answer) - 1][0]
     if preset.ask_chat_model:
         current = get_value(text, "DEFAULT_CHAT_MODEL")
         model = (

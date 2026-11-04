@@ -45,7 +45,7 @@ def test_rerunning_keeps_the_secret_and_switches_models(env_path: Path) -> None:
 def test_interactive_run_stores_the_keys_it_asks_for(
     env_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    answers = iter(["2"])  # Anthropic + OpenAI
+    answers = iter(["2", "2"])  # Anthropic + OpenAI, then Claude Sonnet 5.5
     monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
     keys = iter(["sk-ant-test", ""])  # skip the OpenAI key
     monkeypatch.setattr(setup.getpass, "getpass", lambda prompt="": next(keys))
@@ -54,6 +54,7 @@ def test_interactive_run_stores_the_keys_it_asks_for(
 
     settings = Settings(_env_file=env_path)
     assert settings.default_chat_provider == "anthropic"
+    assert settings.default_chat_model == "claude-sonnet-5-5"
     assert settings.anthropic_api_key == "sk-ant-test"
     assert not settings.openai_api_key
 
