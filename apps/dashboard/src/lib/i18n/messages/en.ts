@@ -222,9 +222,10 @@ const en: LocaleMessages = {
     deleteProject: "Delete project",
     deleteConfirm:
       "Delete this project? All documents, conversations and keys will be removed. This cannot be undone.",
-    providerAnthropic: "Anthropic",
-    providerOpenai: "OpenAI",
-    providerOllama: "Ollama",
+    providerCompatible: "Other OpenAI-compatible service",
+    providerMissing: "{name} (not configured)",
+    modelPlaceholder: "e.g. {example}",
+    embeddingChangeHint: "After changing the embedding provider or model, existing vectors no longer match: re-index every document from the knowledge base.",
   },
   overview: {
     title: "Overview",

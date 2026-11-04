@@ -1,5 +1,13 @@
-export type ChatProvider = "anthropic" | "openai" | "ollama";
-export type EmbeddingProvider = "openai" | "ollama";
+export type ChatProvider =
+  | "anthropic"
+  | "openai"
+  | "ollama"
+  | "openrouter"
+  | "groq"
+  | "gemini"
+  | "deepseek"
+  | "openai_compatible";
+export type EmbeddingProvider = "openai" | "ollama" | "gemini" | "openai_compatible";
 export type ApiKeyType = "publishable" | "secret" | "sandbox";
 export type SourceType = "url_crawl" | "sitemap" | "notion" | "google_docs";
 export type DocumentStatus = "pending" | "processing" | "ready" | "failed";

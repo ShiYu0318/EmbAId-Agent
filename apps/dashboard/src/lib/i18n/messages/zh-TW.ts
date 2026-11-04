@@ -219,9 +219,10 @@ const zhTW = {
     createCta: "建立專案",
     deleteProject: "刪除專案",
     deleteConfirm: "確定要刪除此專案嗎？所有文件、對話與金鑰都會一併移除，且無法復原。",
-    providerAnthropic: "Anthropic",
-    providerOpenai: "OpenAI",
-    providerOllama: "Ollama",
+    providerCompatible: "其他 OpenAI 相容服務",
+    providerMissing: "{name}（未設定）",
+    modelPlaceholder: "例如 {example}",
+    embeddingChangeHint: "更換向量供應商或模型後，既有的向量就不能用了，請到知識庫重新索引所有文件。",
   },
   overview: {
     title: "總覽",

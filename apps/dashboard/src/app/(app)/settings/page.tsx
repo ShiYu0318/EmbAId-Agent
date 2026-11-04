@@ -19,6 +19,7 @@ import {
 } from "@/components/ui";
 import { useAuth } from "@/lib/auth/context";
 import type { ChatProvider, EmbeddingProvider, Project } from "@/lib/api/types";
+import { CHAT_PROVIDER_OPTIONS, EMBEDDING_PROVIDER_OPTIONS, useProviderStatus } from "@/lib/providers";
 import { errorMessage, useAsyncData } from "@/lib/hooks";
 import { useI18n, type TranslateFn } from "@/lib/i18n";
 import { useProjects } from "@/lib/project-context";
@@ -33,6 +34,20 @@ function General({ project, t }: { project: Project; t: TranslateFn }) {
   const [embeddingProvider, setEmbeddingProvider] = useState<EmbeddingProvider>(
     project.embedding_provider,
   );
+  const [chatModel, setChatModel] = useState(project.chat_model);
+  const [embeddingModel, setEmbeddingModel] = useState(project.embedding_model);
+  const providerStatus = useProviderStatus();
+  const embeddingChanged =
+    embeddingProvider !== project.embedding_provider || embeddingModel !== project.embedding_model;
+  const providerLabel = (label: string | null, id: string) => {
+    const name = label ?? t("project.providerCompatible");
+    return providerStatus && providerStatus[id] === false
+      ? t("project.providerMissing", { name })
+      : name;
+  };
+  const chatExample = CHAT_PROVIDER_OPTIONS.find((o) => o.id === chatProvider)?.example ?? "";
+  const embeddingExample =
+    EMBEDDING_PROVIDER_OPTIONS.find((o) => o.id === embeddingProvider)?.example ?? "";
   const [threshold, setThreshold] = useState(project.confidence_threshold);
   const [staleness, setStaleness] = useState(project.staleness_days);
   const [systemPrompt, setSystemPrompt] = useState(project.system_prompt ?? "");
@@ -46,7 +61,9 @@ function General({ project, t }: { project: Project; t: TranslateFn }) {
       await api.projects.update(project.id, {
         name: name.trim() || project.name,
         chat_provider: chatProvider,
+        chat_model: chatModel.trim() || project.chat_model,
         embedding_provider: embeddingProvider,
+        embedding_model: embeddingModel.trim() || project.embedding_model,
         confidence_threshold: threshold,
         staleness_days: staleness,
         system_prompt: systemPrompt || null,
@@ -77,20 +94,62 @@ function General({ project, t }: { project: Project; t: TranslateFn }) {
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label={t("project.chatProvider")}>
-          <Select value={chatProvider} onChange={(e) => setChatProvider(e.target.value as ChatProvider)}>
-            <option value="anthropic">{t("project.providerAnthropic")}</option>
-            <option value="openai">{t("project.providerOpenai")}</option>
-            <option value="ollama">{t("project.providerOllama")}</option>
+          <Select
+            value={chatProvider}
+            onChange={(e) => {
+              const next = e.target.value as ChatProvider;
+              setChatProvider(next);
+              // a model name belongs to its provider: suggest one for the new provider
+              setChatModel(
+                next === project.chat_provider
+                  ? project.chat_model
+                  : (CHAT_PROVIDER_OPTIONS.find((o) => o.id === next)?.example ?? ""),
+              );
+            }}
+          >
+            {CHAT_PROVIDER_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {providerLabel(option.label, option.id)}
+              </option>
+            ))}
           </Select>
+        </Field>
+        <Field label={t("project.chatModel")}>
+          <Input
+            value={chatModel}
+            placeholder={t("project.modelPlaceholder", { example: chatExample })}
+            onChange={(e) => setChatModel(e.target.value)}
+          />
         </Field>
         <Field label={t("project.embeddingProvider")}>
           <Select
             value={embeddingProvider}
-            onChange={(e) => setEmbeddingProvider(e.target.value as EmbeddingProvider)}
+            onChange={(e) => {
+              const next = e.target.value as EmbeddingProvider;
+              setEmbeddingProvider(next);
+              setEmbeddingModel(
+                next === project.embedding_provider
+                  ? project.embedding_model
+                  : (EMBEDDING_PROVIDER_OPTIONS.find((o) => o.id === next)?.example ?? ""),
+              );
+            }}
           >
-            <option value="openai">{t("project.providerOpenai")}</option>
-            <option value="ollama">{t("project.providerOllama")}</option>
+            {EMBEDDING_PROVIDER_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {providerLabel(option.label, option.id)}
+              </option>
+            ))}
           </Select>
+        </Field>
+        <Field
+          label={t("project.embeddingModel")}
+          hint={embeddingChanged ? t("project.embeddingChangeHint") : undefined}
+        >
+          <Input
+            value={embeddingModel}
+            placeholder={t("project.modelPlaceholder", { example: embeddingExample })}
+            onChange={(e) => setEmbeddingModel(e.target.value)}
+          />
         </Field>
         <Field label={t("project.confidenceThreshold")} hint={t("project.confidenceThresholdHint")}>
           <Input
