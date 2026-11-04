@@ -13,7 +13,8 @@ export interface EmbAIdOptions {
   timeout?: number;
 }
 
-const DEFAULT_BASE_URL = "https://api.embaid.chat";
+// Self-hosted only: there is no shared hosted API, so local development is the default.
+const DEFAULT_BASE_URL = "http://localhost:8000";
 
 const PREFIXES: Record<string, KeyType> = {
   pub_: "publishable",

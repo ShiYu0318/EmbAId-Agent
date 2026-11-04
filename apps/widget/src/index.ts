@@ -1,7 +1,14 @@
 import { ChatWidget } from "./widget";
 import type { EmbedOptions } from "./types";
 
-const DEFAULT_API_URL = "https://api.embaid.chat";
+
+function scriptOrigin(script: Element): string {
+  try {
+    return new URL(script.getAttribute("src") ?? "", window.location.href).origin;
+  } catch {
+    return window.location.origin;
+  }
+}
 
 function readOptions(): EmbedOptions | null {
   const script =
@@ -17,7 +24,9 @@ function readOptions(): EmbedOptions | null {
   return {
     apiKey,
     projectId,
-    apiUrl: (script.getAttribute("data-api-url") ?? DEFAULT_API_URL).replace(/\/$/, ""),
+    // Without data-api-url, talk to the server the script came from: a self-hosted API
+    // serves /widget.js itself, so this never reaches a third party by default.
+    apiUrl: (script.getAttribute("data-api-url") ?? scriptOrigin(script)).replace(/\/$/, ""),
   };
 }
 

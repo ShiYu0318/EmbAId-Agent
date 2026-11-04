@@ -188,7 +188,7 @@
     widget.src = "./widget.js";
     widget.setAttribute("data-key", live ? publishableKey : "pub_demo");
     widget.setAttribute("data-project", live ? projectId : "proj_demo");
-    widget.setAttribute("data-api-url", live ? apiUrl : "https://demo.embaid.chat");
+    widget.setAttribute("data-api-url", live ? apiUrl : "https://demo.invalid");
     document.body.appendChild(widget);
     return widget;
   };
