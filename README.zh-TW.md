@@ -42,6 +42,7 @@
 - [建立你的第一個 Agent](#建立你的第一個-agent)
 - [設定](#設定)
 - [嵌入 Agent](#嵌入-agent)
+- [疑難排解](#疑難排解)
 - [使用 SDK](#使用-sdk)
 - [API 參考](#api-參考)
 - [安全模型](#安全模型)
@@ -522,165 +523,291 @@ EmbAId-Chat/
 
 ## 快速開始
 
+EmbAId Agent 有三種執行方式。不論哪一種，文件、向量和對話紀錄都只會存在你自己掌控的機器上。
+
+| 方式 | 需要準備 | 適合情境 |
+| --- | --- | --- |
+| **A. 本機加 Ollama** | Python、Node、[Ollama](https://ollama.com) | 想免費試用，或資料完全不能離開這台電腦。 |
+| **B. 本機加雲端模型** | Python、Node、Anthropic 和（或）OpenAI 的 API 金鑰 | 想要最好的回答品質，可以接受依用量付費給模型供應商。 |
+| **C. Docker** | 有 Compose 的 Docker | 想要接近正式環境的架構：Postgres、Redis 和獨立的 worker。 |
+
+A 和 B 不需要資料庫伺服器、Redis 或 Docker。預設使用 SQLite、FAISS，背景工作直接在 API 裡執行。
+
 ### 前置需求
 
-- Python 3.13 與 [uv](https://github.com/astral-sh/uv)
-- Node.js 20+ 與 pnpm 10
-- 一個模型供應商：Anthropic 或 OpenAI 金鑰，或本地的 [Ollama](https://ollama.com)
-- Docker（可選，只有完整的 Postgres、Redis、MinIO 堆疊才需要）
+| 工具 | 版本 | 安裝方式 |
+| --- | --- | --- |
+| Python | 3.13 | 第一次執行 `uv sync` 時，`uv` 會自動下載 |
+| [uv](https://github.com/astral-sh/uv) | 最新版 | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Node.js | 20 以上 | [nodejs.org](https://nodejs.org) 或 `nvm install 20` |
+| pnpm | 10 | `corepack enable`（repo 已鎖定確切版本） |
+| Ollama | 最新版 | 只有方式 A 需要：[ollama.com/download](https://ollama.com/download) |
+| Docker | 含 Compose v2 | 只有方式 C 需要 |
 
-### 後端
+### 方式 A、B：在本機執行
+
+**1. 下載專案並安裝依賴。**
+
+```bash
+git clone https://github.com/ShiYu0318/EmbAId-Agent.git
+cd EmbAId-Agent
+pnpm install                              # 儀表板、widget 與 SDK
+(cd apps/api && uv sync --extra dev)      # API 與它的依賴
+pnpm --filter @embaid/widget build        # API 會以 /widget.js 提供這個檔案
+```
+
+**2. 建立 API 設定檔。**
 
 ```bash
 cd apps/api
-uv sync --extra dev
-cp .env.example .env          # 設定 JWT_SECRET 與一個模型供應商金鑰
+cp .env.example .env
+```
+
+打開 `apps/api/.env`，每一行都有註解，必填的只有兩項：
+
+- `JWT_SECRET`：貼上 `openssl rand -hex 32` 產生的字串。
+- 模型。**方式 A** 先下載兩個模型，再把預設值改成 Ollama：
+
+  ```bash
+  ollama pull llama3              # 對話模型
+  ollama pull nomic-embed-text    # 向量模型
+  ```
+
+  ```bash
+  DEFAULT_CHAT_PROVIDER=ollama
+  DEFAULT_CHAT_MODEL=llama3
+  DEFAULT_EMBEDDING_PROVIDER=ollama
+  DEFAULT_EMBEDDING_MODEL=nomic-embed-text
+  EMBEDDING_DIMENSIONS=768
+  ```
+
+  **方式 B** 維持預設值，填入 `ANTHROPIC_API_KEY`（對話）和 `OPENAI_API_KEY`（向量）。也可以混著用，
+  例如向量用 Ollama、對話用雲端模型。
+
+這些是**新專案**的預設值。專案會沿用建立當下的模型設定，之後可以在儀表板的「設定」頁修改。
+
+**3. 啟動 API**（第一個終端機）：
+
+```bash
+cd apps/api
 uv run uvicorn src.main:app --reload
 ```
 
-API 位於 `http://localhost:8000`，互動式文件在 `/docs`。預設使用 SQLite、FAISS 與內建工作執行器，不需要
-其他服務。
+打開 `http://localhost:8000/health` 確認狀態。`providers` 會列出哪些模型供應商已經設定好，你選的那個應該是
+`true`。互動式 API 文件在 `/docs`。
 
-可選擴充：
+**4. 啟動儀表板**（第二個終端機，在 repo 根目錄）：
 
 ```bash
-uv sync --extra dev --extra rerank    # Cross-encoder 重排序
-uv sync --extra dev --extra crawl     # 為 JavaScript 為主的頁面提供 Playwright 備援
+pnpm --filter @embaid/dashboard dev
 ```
 
-### 前端 workspace
+打開 `http://localhost:3000` 註冊帳號，接著照著[建立你的第一個 Agent](#建立你的第一個-agent)操作。儀表板預設連到
+`http://localhost:8000`；要改成其他位址，把 `apps/dashboard/.env.example` 複製成 `apps/dashboard/.env.local`，
+再設定 `NEXT_PUBLIC_API_URL`。
+
+**API 的選用功能：**
 
 ```bash
-pnpm install
-pnpm -r build                 # widget、SDK、dashboard
-pnpm -r test
+uv sync --extra dev --extra rerank    # Cross-encoder 重排序（第一次使用時會下載模型）
+uv sync --extra dev --extra crawl     # 爬取大量使用 JavaScript 的網站時，用無頭瀏覽器補抓
+uv run playwright install chromium    # 加了 crawl 之後執行一次
 ```
 
-以開發模式執行儀表板：
+### 方式 C：Docker
 
 ```bash
-pnpm --filter @embaid/dashboard dev    # http://localhost:3000
+cp apps/api/.env.example apps/api/.env    # 照步驟 2 設定 JWT_SECRET 和模型
+docker compose -f docker/docker-compose.yml up --build
 ```
 
-建置 Widget 並開啟隔離示範頁：
+這會啟動 API（`:8000`）、儀表板（`:3000`）、背景 worker、含 pgvector 的 Postgres，以及 Redis。Compose 會自行覆寫
+儲存相關設定：資料和搜尋用 Postgres，工作佇列用 Redis，上傳的檔案存在共用的 volume。API 的映像檔會一併打包並提供
+widget。
+
+- **Ollama：** 容器透過 `host.docker.internal` 連到你電腦上的 Ollama。想把 Ollama 也放進 Docker，加上
+  `--profile ollama`，設定 `OLLAMA_BASE_URL=http://ollama:11434`，再用
+  `docker compose -f docker/docker-compose.yml exec ollama ollama pull llama3` 把模型下載進去。
+- **port 被佔用：** 用 `API_PORT`、`DASHBOARD_PORT`、`POSTGRES_PORT`、`REDIS_PORT` 改掉，例如
+  `POSTGRES_PORT=5433 docker compose -f docker/docker-compose.yml up --build`。
+- **不是在 localhost 使用：** 儀表板在建置時就會把 API 位址寫進去，所以要用 API 的公開網址建置：
+  `PUBLIC_API_URL=https://api.example.com docker compose ... up --build`。
+
+### 其他 workspace
 
 ```bash
-pnpm --filter @embaid/widget build
-# 接著開啟 apps/widget/demo.html
+pnpm -r build                          # widget、SDK 與儀表板
+pnpm -r test                           # 所有 JavaScript 測試
+open apps/widget/demo.html             # widget 隔離示範（需先建置 widget）
+cd apps/landing && pnpm serve          # 官網與實際嵌入的 widget，在 :4180
 ```
 
-啟動附現場 Widget 的官網：
+建置公開版官網時，若沒有公開架設的儀表板，可以把登入按鈕隱藏、讓「開始建立 Agent」按鈕導向安裝說明；或者兩者
+都指向你架設好的儀表板：
 
 ```bash
-cd apps/landing && pnpm serve          # 建置 widget，於 :4180 提供服務
-```
-
-建置公開版官網時，若沒有公開架設的儀表板，可以把登入按鈕隱藏、讓「開始建立 Agent」按鈕導向安裝說明：
-
-```bash
-LANDING_DASHBOARD_URL="" node apps/landing/build.mjs              # 不連到儀表板
+LANDING_DASHBOARD_URL="" node apps/landing/build.mjs
 LANDING_DASHBOARD_URL=https://app.example.com node apps/landing/build.mjs
 ```
-
-### 使用 Docker 啟動完整堆疊
-
-```bash
-docker compose -f docker/docker-compose.yml up --build
-# api :8000 · dashboard :3000 · postgres :5432 · redis :6379 · minio :9000
-```
-
-Postgres（含 pgvector）、Redis 與 MinIO 會以服務形式啟動，API 會自動切換到 Postgres 後端。加上
-`--profile ollama` 可以同時執行本地模型。
 
 ---
 
 ## 建立你的第一個 Agent
 
-從空資料庫到可運作的嵌入，完整流程如下。儀表板的上線檢查清單會依實際專案狀態，逐一勾選這六個步驟：
+從空白的資料庫，到 Agent 在網站上回答問題。儀表板的上線進度條會依專案的實際狀態，一步步幫你打勾。
 
-1. **建立帳號**：到 `http://localhost:3000` 註冊並建立專案。可選擇人格範本來預填 System Prompt 與 Widget 文案。
-2. **匯入知識**：在知識庫頁面拖入 PDF 或 Markdown，或新增網站讓爬蟲展開。文件會立即出現，索引完成後狀態
-   會從處理中變成有效。
-3. **測試並客製化**：在對話測試頁試答，展開推理步驟看看檢索到了什麼；再到元件工作室設定名稱、問候語、人格、
-   主色、頭像與起始問題，右側會即時預覽真實的聊天視窗。
-4. **建立發佈用金鑰**：在嵌入設定頁建立金鑰、設定允許網域並按部署，就會得到可直接貼上的 script，儀表板裡的
-   浮動測試機器人也會解鎖，不用離開主控台就能試用。
-5. **貼上程式碼**：把它放在網站的 `</body>` 之前。嵌入設定頁會等待第一則來自真實網站的對話，收到後就會顯示
-   「已接通」；從儀表板發起的對話會另外標記，不會被誤判為上線。
-6. **持續擴充知識庫**：答不出來的問題會依訪客詢問次數排序，集中在知識缺口佇列。用模型草擬回答、核准後，
-   就會直接寫回並建立索引。
+1. **註冊帳號並建立專案。** 在 `http://localhost:3000` 註冊，接著建立專案。人設範本（客服、技術文件、內部知識）
+   會幫你填好系統提示、問候語和建議問題，之後都可以修改。
+2. **加入知識。** 在「知識庫」拖入 PDF、Word、Markdown 或純文字檔，或是加入網站，讓爬蟲在你允許的網域內沿著
+   連結抓取。每份文件都會顯示狀態，索引完成後會從「處理中」變成「就緒」。點開文件可以檢查抽出的文字和切塊，
+   不該公開的內容可以停用。
+3. **測試回答。** 在「對話測試」提問，展開推理步驟，就能看到檢索到哪些內容、信心多高、引用了哪些來源。
+   「檢索軌跡」可以看任何一則回答的完整細節。
+4. **調整 Agent。** 在「元件工作室」設定名稱、頭像、問候語、人設、主題色和建議問題。右邊的預覽就是真正的
+   widget，你看到的就是訪客看到的。點預覽裡的建議問題，可以看到範例回答的樣子。
+5. **部署。** 在「嵌入設定」建立一把可公開金鑰，並列出允許使用它的網站。你會拿到要貼上的程式碼，儀表板右下角的
+   測試機器人也會解鎖，不用離開儀表板就能試用部署後的 Agent。
+6. **放到你的網站上。** 把程式碼貼在 `</body>` 前面。嵌入設定頁會等待第一則來自真實網站的對話，收到後就會
+   變成綠色；從儀表板發出的對話會另外標記，不會被當成網站已經接上。
+7. **持續改善。** Agent 答不出來的問題會集中到「知識缺口」，依訪客詢問的次數排序。草擬答案、核准之後，
+   就會直接寫回知識庫。
+
+> **沒有網站也能先試嵌入：** 把程式碼存成 `index.html`，在那個資料夾執行 `python3 -m http.server 8080`，
+> 再打開 `http://localhost:8080`。如果金鑰有設定允許網域，要把 `http://localhost:8080` 加進去。
 
 ---
 
 ## 設定
 
-後端設定來自 `apps/api/.env`。最小可用的設定：
+| 位置 | 設定什麼 | 何時讀取 |
+| --- | --- | --- |
+| `apps/api/.env` | API 和 worker：儲存、模型、檢索、登入 | 啟動時 |
+| `apps/dashboard/.env.local` | 儀表板：要連到哪個 API | `next build` 或 `next dev` 時（會編譯進程式） |
+| `docker/docker-compose.yml` | Docker 版的覆寫設定：Postgres、Redis、port | `docker compose up` 時 |
+| 儀表板 →「設定」 | 每個專案的模型、信心門檻、語言 | 立即生效 |
 
-```bash
-ENVIRONMENT=development
-JWT_SECRET=                       # openssl rand -hex 32
-DATABASE_URL=sqlite+aiosqlite:///./data/embaid.sqlite
-SEARCH_BACKEND=sqlite_faiss       # 或 postgres
-QUEUE_ENABLED=false               # 設為 true 需要 Redis
-ANTHROPIC_API_KEY=                # 或 OPENAI_API_KEY，或執行 Ollama
-DEFAULT_CHAT_PROVIDER=anthropic
-DEFAULT_EMBEDDING_PROVIDER=openai
-```
+`apps/api/.env` 裡的每一項設定，也可以用同名的環境變數傳入。`apps/api/.env.example` 對每一項都有說明。
+
+### 模型
+
+| 設定 | 選項 | 說明 |
+| --- | --- | --- |
+| `DEFAULT_CHAT_PROVIDER` | `anthropic`、`openai`、`ollama` | 負責寫出回答。 |
+| `DEFAULT_CHAT_MODEL` | 該供應商的任一模型名稱 | 例如 `claude-sonnet-5`、`llama3` |
+| `DEFAULT_EMBEDDING_PROVIDER` | `openai`、`ollama` | 把文字轉成搜尋用的向量。 |
+| `DEFAULT_EMBEDDING_MODEL` | 該供應商的任一向量模型 | 見下表 |
+| `EMBEDDING_DIMENSIONS` | 數字 | 必須和向量模型完全一致。 |
+| `ANTHROPIC_API_KEY`、`OPENAI_API_KEY` | 你的金鑰 | 只會送給該供應商。 |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama 的位址。 |
+
+常見的向量模型與維度：
+
+| 供應商 | 模型 | `EMBEDDING_DIMENSIONS` |
+| --- | --- | --- |
+| OpenAI | `text-embedding-3-small` | 1536 |
+| OpenAI | `text-embedding-3-large` | 3072 |
+| Ollama | `nomic-embed-text` | 768 |
+| Ollama | `mxbai-embed-large` | 1024 |
+| Ollama | `bge-m3`（中文表現好） | 1024 |
+
+**更換向量模型**後，既有的向量就不能用了，之後要在儀表板對每個專案重新索引。使用 Postgres 後端時，向量欄位的
+長度是固定的，還要先刪除一次搜尋用的表格（`DROP TABLE search_chunks, search_cache;`），API 重新啟動時會用新的長度
+重建。
+
+### 儲存與背景工作
+
+| 設定 | 預設值 | 作用 |
+| --- | --- | --- |
+| `DATABASE_URL` | `apps/api/data` 裡的 SQLite 檔 | 改成 `postgresql+asyncpg://…` 就會使用 Postgres。 |
+| `SEARCH_BACKEND` | `sqlite_faiss` | `postgres` 會在同一個資料庫裡使用 pgvector 加全文檢索。 |
+| `QUEUE_ENABLED` | `false` | `true` 會把匯入工作送到 Redis，交給獨立的 worker 處理（`uv run arq src.tasks.worker.WorkerSettings`）。Redis 連不上時，API 會改成自己執行。 |
+| `REDIS_URL` | `redis://localhost:6379` | 開啟佇列時使用。 |
+| `STORAGE_ENDPOINT_URL`、`STORAGE_ACCESS_KEY`、`STORAGE_SECRET_KEY`、`STORAGE_BUCKET` | 未設定 | 把上傳的檔案存到任何 S3 相容的儲存空間（AWS S3、Cloudflare R2、MinIO）。未設定時存在 `apps/api/data/objects`。 |
+
+在 SQLite 和 Postgres 之間切換不會搬移資料，要重新上傳檔案或重新爬取網站。
 
 ### 檢索調校
 
-檢索相關的預設值會隨專案調整，這裡不列出數字；目前的值請看 `apps/api/src/config.py` 與
+檢索相關的預設值會隨專案演進而調整，因此不在這裡重複列出，目前的數值請見 `apps/api/src/config.py` 與
 `apps/api/.env.example`。
 
-| 變數 | 效果 |
+| 變數 | 作用 |
 | --- | --- |
-| `RETRIEVAL_CANDIDATES` | 融合前每個後端取回的候選數。召回率更高，成本也更高。 |
+| `RETRIEVAL_CANDIDATES` | 融合前從每個後端取回的候選數。越高召回越好，成本也越高。 |
 | `RETRIEVAL_TOP_K` | 重排序後交給模型的段落數。 |
-| `CONFIDENCE_THRESHOLD` | 婉拒門檻的全域預設值，每個專案可覆寫。 |
-| `RERANK_ENABLED` | Cross-encoder 重排序，需要 `rerank` 擴充。 |
-| `RERANK_MODEL` | 重排序使用的 Cross-encoder（預設為多語言模型）。 |
-| `SEMANTIC_CACHE_ENABLED` | 對幾乎相同的問題重用回答。 |
-| `SEMANTIC_CACHE_THRESHOLD` | 命中快取所需的 cosine 相似度。 |
-| `CONTEXTUAL_EMBEDDING_ENABLED` | 建立索引時，由 LLM 為每段寫一句定位說明。 |
-| `DOCUMENT_STALENESS_DAYS` | 超過這個天數未驗證的文件視為過期並降權。 |
-| `EMBEDDING_DIMENSIONS` | 必須與嵌入模型一致，修改後需要重新索引。 |
+| `CONFIDENCE_THRESHOLD` | 拒答門檻的全域預設值，可在每個專案覆寫。 |
+| `RERANK_ENABLED` | Cross-encoder 重排序。需要 `rerank` 選用功能，沒有安裝時會略過。 |
+| `RERANK_MODEL` | 重排序使用的 Cross-encoder（預設為多語模型）。 |
+| `SEMANTIC_CACHE_ENABLED` | 幾乎相同的問題直接重用答案。 |
+| `SEMANTIC_CACHE_THRESHOLD` | 命中快取所需的餘弦相似度。 |
+| `CONTEXTUAL_EMBEDDING_ENABLED` | 建立索引時由 LLM 為每段寫一句定位說明。檢索更準，但每段都要呼叫一次模型。 |
+| `DOCUMENT_STALENESS_DAYS` | 文件超過多久視為過時並降低權重。 |
 
-### 基礎設施
+### 伺服器、安全與登入
 
-| 變數 | 預設值 | 效果 |
+| 設定 | 預設值 | 作用 |
 | --- | --- | --- |
-| `SEARCH_BACKEND` | `sqlite_faiss` | 本機用 `sqlite_faiss`，`postgres` 則使用 pgvector 加 `tsvector`。 |
-| `QUEUE_ENABLED` | `true` | 設為 `false` 時在請求中直接執行匯入，本機方便，正式環境不建議。 |
-| `STORAGE_ENDPOINT_URL` | 未設定 | 使用 S3 或 MinIO 時設定，否則使用本機檔案系統。 |
-| `RATE_LIMIT_PUBLISHABLE` | `20` | 瀏覽器端金鑰每分鐘請求數。 |
-| `RATE_LIMIT_SECRET` | `200` | 伺服器端金鑰每分鐘請求數。 |
-| `CORS_ORIGINS` | `http://localhost:3000` | 以逗號分隔。正式環境不接受萬用字元。 |
+| `JWT_SECRET` | 無 | 簽署登入憑證。必填；正式環境至少 32 個字元。 |
+| `CORS_ORIGINS` | `http://localhost:3000` | 儀表板的網址，以逗號分隔。正式環境不接受萬用字元。widget 用的端點任何網站都能呼叫，由可公開金鑰決定是否提供服務。 |
+| `API_PUBLIC_URL`、`DASHBOARD_URL` | localhost | 對外的網址，用於連結和 OAuth。 |
+| `RATE_LIMIT_PUBLISHABLE` | `20` | 瀏覽器端金鑰每分鐘的請求上限。 |
+| `RATE_LIMIT_SECRET` | `200` | 伺服器端金鑰每分鐘的請求上限。 |
+| `GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET` | 未設定 | 啟用「使用 Google 繼續」和 Google 文件匯入。 |
+| `SENTRY_DSN` | 未設定 | 錯誤回報。留空時不會送出任何資料。 |
 
-正式環境若使用預設的 `JWT_SECRET` 或萬用字元的 CORS 來源，應用程式會拒絕啟動。未列出的設定都是可選的，
-未設定時會安全略過。
+**Google 登入：** 在 Google Cloud Console 建立類型為「網頁應用程式」的 OAuth 用戶端，把
+`<OAUTH_REDIRECT_BASE>/auth/oauth/google/callback`（本機是 `http://localhost:8000/auth/oauth/google/callback`）
+加入已授權的重新導向 URI，再把用戶端 ID 和密鑰填進 `.env`。
+
+正式環境中，若 `JWT_SECRET` 仍是預設值，或 CORS 來源使用萬用字元，API 會拒絕啟動。其他沒有列出的設定都是選用的，
+未設定時會安全地略過。
 
 ---
 
 ## 嵌入 Agent
 
+儀表板的「嵌入設定」頁會幫你產生這段程式碼：
+
 ```html
 <script
-  src="https://cdn.embaid.chat/widget.js"
+  src="https://api.your-domain.com/widget.js"
   data-key="pub_xxxxxxxx"
   data-project="proj_xxxxxxxx"
+  data-api-url="https://api.your-domain.com"
 ></script>
 ```
 
 | 屬性 | 必填 | 用途 |
 | --- | --- | --- |
-| `data-key` | 是 | 發佈用金鑰，可以安全公開，見[安全模型](#安全模型)。 |
-| `data-project` | 是 | Agent 回答的專案。 |
-| `data-api-url` | 否 | 指向你自己的 API，預設為 `https://api.embaid.chat`。 |
+| `src` | 是 | 你的 API 會在 `/widget.js` 提供 widget。若檔案放在 CDN，用 `NEXT_PUBLIC_WIDGET_URL` 指定。 |
+| `data-key` | 是 | 可公開金鑰，放在網頁裡是安全的，詳見[安全模型](#安全模型)。 |
+| `data-project` | 是 | Agent 要回答的專案。 |
+| `data-api-url` | 否 | 你的 API。預設為提供這支 script 的伺服器。 |
 
-Widget 啟動時會從 `GET /v1/widget-config` 讀取外觀與起始問題，所以在儀表板做的修改，重新整理後就會生效，
-不需要修改宿主頁面。它完全渲染在 Shadow DOM 中，宿主的 CSS 不會滲入，它的樣式也不會外洩。
+widget 啟動時會從 `GET /v1/widget-config` 讀取外觀與建議問題，所以在儀表板做的修改，重新整理頁面就會生效，
+不用改動你的網站。它完全在 Shadow DOM 裡渲染，網站的 CSS 不會影響它，它的樣式也不會外洩。
 
-**正式上線前**，請把金鑰的允許網域設成你的網域。限定網域的金鑰若從其他地方送出請求，會被回以 `403` 拒絕。
+**上線前：**
+
+- 用 **https** 提供 API。https 的網頁無法載入 http 的 script，也無法呼叫 http 的 API。
+- 以 API 的公開網址設定 `NEXT_PUBLIC_API_URL` 再建置儀表板，產生的程式碼才會指向它，而不是 `localhost`。
+- 把金鑰的允許網域設成你的網站。任何網站都能連到 widget 的端點，但限定網域的金鑰從其他地方使用時會回傳 `403`。
+
+---
+
+## 疑難排解
+
+| 狀況 | 原因與解法 |
+| --- | --- |
+| 文件一直停在「處理中」 | `QUEUE_ENABLED=true` 但沒有啟動 worker。啟動一個（`uv run arq src.tasks.worker.WorkerSettings`），或改成 `QUEUE_ENABLED=false`。 |
+| 文件最後變成「失敗」 | 在儀表板點開文件看錯誤訊息。通常是向量模型的供應商連不上，或缺少金鑰。 |
+| `provider_unavailable: openai_api_key is not set` | 專案使用的供應商沒有金鑰。補上金鑰，或在「設定」把專案改用其他模型。 |
+| `expected N dimensions, not M` | `EMBEDDING_DIMENSIONS` 和向量模型不一致。改正後參考[更換向量模型](#模型)。 |
+| Ollama：connection refused | 啟動 Ollama（`ollama serve`），並確認 `OLLAMA_BASE_URL`。從 Docker 連線時，主機是 `host.docker.internal`。 |
+| 儀表板連不到 API，或出現 CORS 錯誤 | 把儀表板的網址加進 `CORS_ORIGINS`，並確認 `NEXT_PUBLIC_API_URL`。 |
+| 網站上沒有出現 widget | 打開瀏覽器主控台。`widget.js` 404：建置 widget。`403`：把網站加進金鑰的允許網域。混合內容錯誤：用 https 提供 API。 |
+| 看不到「使用 Google 繼續」 | 設定 `GOOGLE_CLIENT_ID` 和 `GOOGLE_CLIENT_SECRET`。 |
+| 每個問題都被拒答 | 還沒有索引任何內容，或信心門檻對你的內容來說太嚴格。先看檢索軌跡，再到「設定」調低門檻。 |
 
 ---
 
@@ -820,7 +947,7 @@ DATABASE_URL=postgresql+asyncpg://user:pass@host/embaid
 SEARCH_BACKEND=postgres           # pgvector + tsvector
 QUEUE_ENABLED=true                # 另外執行 worker
 REDIS_URL=redis://host:6379
-STORAGE_ENDPOINT_URL=https://s3.example.com
+STORAGE_ENDPOINT_URL=https://s3.example.com   # 也可以省略，上傳檔案改存在共用 volume
 JWT_SECRET=<32 位元組以上的隨機值>
 CORS_ORIGINS=https://console.example.com
 ```
@@ -831,8 +958,8 @@ CORS_ORIGINS=https://console.example.com
 uv run arq src.tasks.worker.WorkerSettings
 ```
 
-`docker/docker-compose.yml` 會啟動整個堆疊（API、儀表板、含 pgvector 的 Postgres、Redis 與 MinIO），適合作為
-單機部署的起點。
+`docker/docker-compose.yml` 會啟動整個堆疊（API、worker、儀表板、含 pgvector 的 Postgres 與 Redis），適合作為
+單機部署的起點。記得備份 `postgres_data` 和 `app_data` 這兩個 volume，所有資料都在裡面。
 
 官網是純靜態網站，可以直接部署到 Vercel 等靜態主機：以 `LANDING_DASHBOARD_URL` 建置後，把
 `apps/landing/dist` 發佈出去即可。

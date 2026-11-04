@@ -43,6 +43,7 @@ evidence with citations, and declines instead of guessing when the evidence is n
 - [Your first agent](#your-first-agent)
 - [Configuration](#configuration)
 - [Embedding the widget](#embedding-the-widget)
+- [Troubleshooting](#troubleshooting)
 - [Using the SDK](#using-the-sdk)
 - [API reference](#api-reference)
 - [Data model](#data-model)
@@ -634,118 +635,225 @@ repository root holds only workspace and orchestration config.
 
 ## Getting started
 
+There are three ways to run EmbAId Agent. All of them keep every document, vector, and
+conversation on machines you control.
+
+| Path | You need | Choose it when |
+| --- | --- | --- |
+| **A. Local with Ollama** | Python, Node, [Ollama](https://ollama.com) | You want to try it for free, or your data must never leave the machine. |
+| **B. Local with cloud models** | Python, Node, an Anthropic and/or OpenAI API key | You want the best answer quality and are fine paying the provider per use. |
+| **C. Docker** | Docker with Compose | You want the production shape: Postgres, Redis, and a separate worker. |
+
+Paths A and B need no database server, no Redis, and no Docker: SQLite, FAISS, and an in-process
+job runner are the defaults.
+
 ### Prerequisites
 
-- Python 3.13 and [uv](https://github.com/astral-sh/uv)
-- Node.js 20+ and pnpm 10
-- One model provider: an Anthropic or OpenAI key, or a local [Ollama](https://ollama.com)
-- Docker (optional — only for the full Postgres, Redis, and MinIO stack)
+| Tool | Version | Install |
+| --- | --- | --- |
+| Python | 3.13 | `uv` downloads it for you on first `uv sync` |
+| [uv](https://github.com/astral-sh/uv) | latest | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Node.js | 20 or newer | [nodejs.org](https://nodejs.org) or `nvm install 20` |
+| pnpm | 10 | `corepack enable` (the repository pins the exact version) |
+| Ollama | latest | Path A only: [ollama.com/download](https://ollama.com/download) |
+| Docker | with Compose v2 | Path C only |
 
-### Backend
+### Path A and B: run it locally
+
+**1. Clone and install.**
+
+```bash
+git clone https://github.com/ShiYu0318/EmbAId-Agent.git
+cd EmbAId-Agent
+pnpm install                              # dashboard, widget, and SDK
+(cd apps/api && uv sync --extra dev)      # API and its dependencies
+pnpm --filter @embaid/widget build        # the API serves this file as /widget.js
+```
+
+**2. Create the API configuration.**
 
 ```bash
 cd apps/api
-uv sync --extra dev
-cp .env.example .env          # set JWT_SECRET and one provider key
+cp .env.example .env
+```
+
+Open `apps/api/.env`. Every line is commented; only two things are required.
+
+- `JWT_SECRET`: paste the output of `openssl rand -hex 32`.
+- The models. For **path A**, pull two models and switch the defaults to Ollama:
+
+  ```bash
+  ollama pull llama3              # chat model
+  ollama pull nomic-embed-text    # embedding model
+  ```
+
+  ```bash
+  DEFAULT_CHAT_PROVIDER=ollama
+  DEFAULT_CHAT_MODEL=llama3
+  DEFAULT_EMBEDDING_PROVIDER=ollama
+  DEFAULT_EMBEDDING_MODEL=nomic-embed-text
+  EMBEDDING_DIMENSIONS=768
+  ```
+
+  For **path B**, keep the defaults and fill in `ANTHROPIC_API_KEY` (chat) and `OPENAI_API_KEY`
+  (embeddings). Mixing works too, for example Ollama embeddings with a cloud chat model.
+
+These are the defaults for **new** projects. A project keeps the models it was created with; change
+them later under **Settings** in the dashboard.
+
+**3. Start the API** (first terminal):
+
+```bash
+cd apps/api
 uv run uvicorn src.main:app --reload
 ```
 
-The API is at `http://localhost:8000`, interactive docs at `/docs`. The default configuration uses
-SQLite, FAISS, and an inline job runner, so nothing else needs to be running.
+Check it at `http://localhost:8000/health`. The `providers` field shows which model providers are
+configured; the one you chose should be `true`. Interactive API docs are at `/docs`.
 
-Optional extras:
-
-```bash
-uv sync --extra dev --extra rerank    # cross-encoder reranking
-uv sync --extra dev --extra crawl     # Playwright fallback for JS-heavy pages
-```
-
-### Frontend workspaces
+**4. Start the dashboard** (second terminal, from the repository root):
 
 ```bash
-pnpm install
-pnpm -r build                 # widget, SDK, dashboard
-pnpm -r test
+pnpm --filter @embaid/dashboard dev
 ```
 
-Run the dashboard in development:
+Open `http://localhost:3000`, create an account, and continue with
+[Your first agent](#your-first-agent). The dashboard talks to `http://localhost:8000` by default;
+to point it elsewhere, copy `apps/dashboard/.env.example` to `apps/dashboard/.env.local` and set
+`NEXT_PUBLIC_API_URL`.
+
+**Optional extras** for the API:
 
 ```bash
-pnpm --filter @embaid/dashboard dev    # http://localhost:3000
+uv sync --extra dev --extra rerank    # cross-encoder reranking (downloads a model on first use)
+uv sync --extra dev --extra crawl     # headless-browser fallback for JavaScript-heavy websites
+uv run playwright install chromium    # once, after adding the crawl extra
 ```
 
-Build the widget and open its isolation demo:
+### Path C: Docker
 
 ```bash
-pnpm --filter @embaid/widget build
-# then open apps/widget/demo.html
+cp apps/api/.env.example apps/api/.env    # set JWT_SECRET and your models as in step 2
+docker compose -f docker/docker-compose.yml up --build
 ```
 
-Serve the marketing site with the live embedded widget:
+This starts the API on `:8000`, the dashboard on `:3000`, a background worker, Postgres with
+pgvector, and Redis. Compose overrides the storage settings itself: Postgres for data and search,
+Redis for the job queue, and a shared volume for uploaded files. The API image builds and serves
+the widget.
+
+- **Ollama:** the containers reach an Ollama running on your machine through
+  `host.docker.internal`. To run Ollama in Docker instead, add `--profile ollama`, set
+  `OLLAMA_BASE_URL=http://ollama:11434`, and pull the models into it with
+  `docker compose -f docker/docker-compose.yml exec ollama ollama pull llama3`.
+- **Ports in use:** move them with `API_PORT`, `DASHBOARD_PORT`, `POSTGRES_PORT`, or `REDIS_PORT`,
+  e.g. `POSTGRES_PORT=5433 docker compose -f docker/docker-compose.yml up --build`.
+- **Not on localhost:** the dashboard is compiled with the API address baked in. Build it with
+  the API's public URL: `PUBLIC_API_URL=https://api.example.com docker compose ... up --build`.
+
+### Other workspaces
 
 ```bash
-cd apps/landing && pnpm serve          # builds the widget, serves on :4180
+pnpm -r build                          # widget, SDK, and dashboard
+pnpm -r test                           # all JavaScript tests
+open apps/widget/demo.html             # widget isolation demo (after building the widget)
+cd apps/landing && pnpm serve          # the marketing site with the live widget, on :4180
 ```
 
-For a public build without a hosted dashboard, hide sign-in and point "get started" at the setup
-guide; or point both at your hosted console:
+For a public build of the marketing site without a hosted dashboard, hide sign-in and point the
+sign-up button at the setup guide; or point both at your hosted console:
 
 ```bash
 LANDING_DASHBOARD_URL="" node apps/landing/build.mjs
 LANDING_DASHBOARD_URL=https://app.example.com node apps/landing/build.mjs
 ```
 
-### Full stack with Docker
-
-```bash
-docker compose -f docker/docker-compose.yml up --build
-# api :8000 · dashboard :3000 · postgres :5432 · redis :6379 · minio :9000
-```
-
-Postgres with pgvector, Redis, and MinIO come up as services and the API switches to the Postgres
-backend automatically. Add `--profile ollama` to run a local model alongside.
-
 ---
 
 ## Your first agent
 
-End to end, from an empty database to a working embed. The dashboard's launch checklist walks the
-same six steps and ticks each one off from real project state:
+From an empty database to an agent answering on a website. The dashboard's launch checklist walks
+the same steps and ticks each one off from real project state.
 
-1. **Create an account** at `http://localhost:3000` and create a project. Optionally pick a persona
-   template to seed the system prompt and widget copy.
-2. **Add knowledge** on the knowledge base page — drag in a PDF or Markdown file, or add a website
-   and let the crawler expand it. Documents appear immediately and flip from processing to ready as
-   indexing completes.
-3. **Test it** in the playground and unfold the reasoning steps to see what was retrieved.
-   **Customize the agent** in the widget studio: bot name, greeting, persona, accent colour,
-   avatar, and starter questions, with a live preview of the real chat window.
-4. **Create a publishable key** on the embed page and press deploy. You get a ready-to-paste script
-   tag, and the floating test bot in the dashboard unlocks so you can try the assistant without
-   leaving the console.
-5. **Paste the snippet** before `</body>` on your site. The embed page watches for the first
-   conversation from a real website and turns green when it arrives — chats you start from the
+1. **Create an account and a project.** Sign up at `http://localhost:3000`, then create a project.
+   A persona template (support, technical docs, internal knowledge) fills in the system prompt,
+   greeting, and starter questions; you can change all of them later.
+2. **Add knowledge.** On **Knowledge base**, drag in PDF, Word, Markdown, or text files, or add a
+   website and let the crawler follow its links within the hosts you allow. Each document shows
+   its status and flips from processing to ready when indexing finishes. Open one to check the
+   extracted text and chunks, and disable anything that should not be public.
+3. **Test the answers.** Ask questions in **Playground** and unfold the reasoning steps to see what
+   was retrieved, how confident the agent was, and which sources it cited. **Retrieval trace**
+   shows the full detail for any answer.
+4. **Shape the agent.** In **Widget studio**, set the name, avatar, greeting, persona, accent
+   colour, and starter questions. The preview on the right is the real widget, so what you see is
+   what visitors get. Tap a starter question there to see a sample answer.
+5. **Deploy.** On **Embed**, create a publishable key and list the websites allowed to use it.
+   You get the snippet to paste, and the floating test bot in the dashboard unlocks so you can try
+   the deployed agent without leaving the console.
+6. **Put it on your site.** Paste the snippet before `</body>`. The embed page watches for the
+   first conversation from a real website and turns green when it arrives; chats from the
    dashboard are tagged separately, so they never count as a live install.
-6. **Grow the knowledge base.** Questions your content could not yet cover collect in the
-   knowledge-gap queue, ranked by how often visitors asked them. Draft an answer with the model,
-   approve it, and it is indexed straight back in.
+7. **Keep improving it.** Questions the agent could not answer collect in **Knowledge gaps**,
+   ranked by how often visitors asked them. Draft an answer, approve it, and it is indexed
+   straight back into the knowledge base.
+
+> **Trying the embed without a website:** save the snippet into an `index.html`, run
+> `python3 -m http.server 8080` in that folder, and open `http://localhost:8080`. If the key has
+> allowed origins, add `http://localhost:8080` to them.
 
 ---
 
 ## Configuration
 
-Backend settings come from `apps/api/.env`. A minimal working file:
+| Where | What it configures | When it is read |
+| --- | --- | --- |
+| `apps/api/.env` | The API and worker: storage, models, retrieval, auth | At startup |
+| `apps/dashboard/.env.local` | The dashboard: which API it talks to | At `next build` / `next dev` (compiled in) |
+| `docker/docker-compose.yml` | Overrides for the Docker stack: Postgres, Redis, ports | At `docker compose up` |
+| Dashboard → **Settings** | Per-project models, confidence threshold, locale | Immediately |
 
-```bash
-ENVIRONMENT=development
-JWT_SECRET=                       # openssl rand -hex 32
-DATABASE_URL=sqlite+aiosqlite:///./data/embaid.sqlite
-SEARCH_BACKEND=sqlite_faiss       # or postgres
-QUEUE_ENABLED=false               # true requires Redis
-ANTHROPIC_API_KEY=                # or OPENAI_API_KEY, or run Ollama
-DEFAULT_CHAT_PROVIDER=anthropic
-DEFAULT_EMBEDDING_PROVIDER=openai
-```
+Every setting in `apps/api/.env` can also be passed as an environment variable of the same name.
+`apps/api/.env.example` documents each one.
+
+### Models
+
+| Setting | Options | Notes |
+| --- | --- | --- |
+| `DEFAULT_CHAT_PROVIDER` | `anthropic`, `openai`, `ollama` | Writes the answers. |
+| `DEFAULT_CHAT_MODEL` | any model name of that provider | e.g. `claude-sonnet-5`, `llama3` |
+| `DEFAULT_EMBEDDING_PROVIDER` | `openai`, `ollama` | Turns text into vectors for search. |
+| `DEFAULT_EMBEDDING_MODEL` | any embedding model of that provider | see the table below |
+| `EMBEDDING_DIMENSIONS` | a number | Must match the embedding model exactly. |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | your keys | Only sent to that provider. |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Where Ollama listens. |
+
+Common embedding models and their dimensions:
+
+| Provider | Model | `EMBEDDING_DIMENSIONS` |
+| --- | --- | --- |
+| OpenAI | `text-embedding-3-small` | 1536 |
+| OpenAI | `text-embedding-3-large` | 3072 |
+| Ollama | `nomic-embed-text` | 768 |
+| Ollama | `mxbai-embed-large` | 1024 |
+| Ollama | `bge-m3` (strong on Chinese) | 1024 |
+
+**Changing the embedding model** makes existing vectors incompatible. Re-index each project from
+the dashboard afterwards. With the Postgres backend the vector column has a fixed size, so also
+drop the search tables once (`DROP TABLE search_chunks, search_cache;`); they are recreated with
+the new size when the API restarts.
+
+### Storage and jobs
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `DATABASE_URL` | SQLite file in `apps/api/data` | Use `postgresql+asyncpg://…` for Postgres. |
+| `SEARCH_BACKEND` | `sqlite_faiss` | `postgres` uses pgvector plus full-text search in the same database. |
+| `QUEUE_ENABLED` | `false` | `true` sends ingestion to Redis for a separate worker (`uv run arq src.tasks.worker.WorkerSettings`). If Redis is unreachable the API falls back to running jobs itself. |
+| `REDIS_URL` | `redis://localhost:6379` | Used when the queue is on. |
+| `STORAGE_ENDPOINT_URL`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY`, `STORAGE_BUCKET` | unset | Store uploads in any S3-compatible bucket (AWS S3, Cloudflare R2, MinIO). Unset stores them in `apps/api/data/objects`. |
+
+Switching between SQLite and Postgres does not migrate data; re-upload or re-crawl your sources.
 
 ### Retrieval tuning
 
@@ -757,52 +865,82 @@ values live in `apps/api/src/config.py` and `apps/api/.env.example`.
 | `RETRIEVAL_CANDIDATES` | Candidates pulled from each backend before fusion. Higher recall, higher cost. |
 | `RETRIEVAL_TOP_K` | Passages passed to the model after reranking. |
 | `CONFIDENCE_THRESHOLD` | Global default for the refusal gate; overridable per project. |
-| `RERANK_ENABLED` | Cross-encoder reranking. Requires the `rerank` extra. |
+| `RERANK_ENABLED` | Cross-encoder reranking. Requires the `rerank` extra; skipped without it. |
 | `RERANK_MODEL` | Cross-encoder used for reranking (multilingual by default). |
 | `SEMANTIC_CACHE_ENABLED` | Reuse answers for near-identical questions. |
 | `SEMANTIC_CACHE_THRESHOLD` | Cosine similarity required for a cache hit. |
-| `CONTEXTUAL_EMBEDDING_ENABLED` | LLM-generated locating sentence per chunk at index time. |
+| `CONTEXTUAL_EMBEDDING_ENABLED` | LLM-written locating sentence per chunk at index time: better retrieval, one model call per chunk. |
 | `DOCUMENT_STALENESS_DAYS` | Age after which a document is treated as stale and down-weighted. |
-| `EMBEDDING_DIMENSIONS` | Must match the embedding model. Changing it requires a re-index. |
 
-### Infrastructure
+### Server, security, and sign-in
 
-| Variable | Default | Effect |
+| Setting | Default | Effect |
 | --- | --- | --- |
-| `SEARCH_BACKEND` | `sqlite_faiss` | `sqlite_faiss` for local, `postgres` for pgvector plus `tsvector`. |
-| `QUEUE_ENABLED` | `true` | `false` runs ingestion inline — convenient locally, not for production. |
-| `STORAGE_ENDPOINT_URL` | unset | Set for S3 or MinIO; falls back to the local filesystem. |
+| `JWT_SECRET` | none | Signs logins. Required; at least 32 characters in production. |
+| `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated dashboard origins. Wildcards are rejected in production. The widget's own endpoints accept any website; publishable keys decide who is served. |
+| `API_PUBLIC_URL`, `DASHBOARD_URL` | localhost | Public addresses, used for links and OAuth. |
 | `RATE_LIMIT_PUBLISHABLE` | `20` | Requests per minute for browser-facing keys. |
 | `RATE_LIMIT_SECRET` | `200` | Requests per minute for server-side keys. |
-| `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated. Wildcards are rejected in production. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | unset | Adds "Continue with Google" and Google Docs import. |
+| `SENTRY_DSN` | unset | Error reporting. Nothing is sent anywhere while it is empty. |
 
-In production the application refuses to start with a default `JWT_SECRET` or a wildcard CORS
-origin. Everything not listed is optional and safely skipped when unset.
+**Google sign-in:** create an OAuth client of type *Web application* in Google Cloud Console, add
+`<OAUTH_REDIRECT_BASE>/auth/oauth/google/callback` (locally
+`http://localhost:8000/auth/oauth/google/callback`) as an authorized redirect URI, and put the
+client ID and secret in `.env`.
+
+In production the API refuses to start with a default `JWT_SECRET` or a wildcard CORS origin.
+Everything not listed is optional and safely skipped when unset.
 
 ---
 
 ## Embedding the widget
 
+The dashboard's **Embed** page generates this snippet for you:
+
 ```html
 <script
-  src="https://cdn.embaid.chat/widget.js"
+  src="https://api.your-domain.com/widget.js"
   data-key="pub_xxxxxxxx"
   data-project="proj_xxxxxxxx"
+  data-api-url="https://api.your-domain.com"
 ></script>
 ```
 
 | Attribute | Required | Purpose |
 | --- | --- | --- |
+| `src` | yes | Your API serves the widget at `/widget.js`. Point it at a CDN with `NEXT_PUBLIC_WIDGET_URL` if you host the file elsewhere. |
 | `data-key` | yes | Publishable key. Safe to expose — see [Security model](#security-model). |
 | `data-project` | yes | Project the widget answers for. |
-| `data-api-url` | no | Point at your own API. Defaults to `https://api.embaid.chat`. |
+| `data-api-url` | no | Your API. Defaults to the server that served the script. |
 
 The widget fetches appearance and starter questions from `GET /v1/widget-config` at boot, so
 changes made in the dashboard take effect on reload without touching the host page. It renders
 entirely inside a Shadow DOM, so no host CSS leaks in and none of its styles leak out.
 
-**Before going live**, set the key's allowed origins to your domain. An origin-scoped key is
-rejected with `403` when presented from anywhere else.
+**Before going live:**
+
+- Serve the API over **https**. A page on https cannot load a script or call an API on plain http.
+- Build the dashboard with `NEXT_PUBLIC_API_URL` set to the API's public URL, so the snippet it
+  generates points there instead of at `localhost`.
+- Set the key's allowed origins to your website. Any site can reach the widget's endpoints, and an
+  origin-scoped key is rejected with `403` from anywhere else.
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+| --- | --- |
+| A document stays at *processing* | `QUEUE_ENABLED=true` with no worker running. Start one (`uv run arq src.tasks.worker.WorkerSettings`) or set `QUEUE_ENABLED=false`. |
+| A document ends in *failed* | Open it in the dashboard to read the error. Usually the embedding provider is unreachable or its key is missing. |
+| `provider_unavailable: openai_api_key is not set` | The project uses a provider without a key. Add the key, or switch the project's models under **Settings**. |
+| `expected N dimensions, not M` | `EMBEDDING_DIMENSIONS` does not match the embedding model. Fix it, then see [Changing the embedding model](#models). |
+| Ollama: connection refused | Start Ollama (`ollama serve`) and check `OLLAMA_BASE_URL`. From Docker, the host is `host.docker.internal`. |
+| The dashboard cannot reach the API, or shows a CORS error | Add the dashboard's address to `CORS_ORIGINS`, and check `NEXT_PUBLIC_API_URL`. |
+| The widget does not appear on a website | Open the browser console. `widget.js` 404: build the widget. `403`: add the site to the key's allowed origins. Mixed-content error: serve the API over https. |
+| "Continue with Google" is missing | Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. |
+| Every answer is a refusal | Nothing indexed yet, or the confidence threshold is too strict for your content. Check the retrieval trace, then lower the threshold under **Settings**. |
 
 ---
 
@@ -1087,7 +1225,7 @@ DATABASE_URL=postgresql+asyncpg://user:pass@host/embaid
 SEARCH_BACKEND=postgres           # pgvector + tsvector
 QUEUE_ENABLED=true                # run workers separately
 REDIS_URL=redis://host:6379
-STORAGE_ENDPOINT_URL=https://s3.example.com
+STORAGE_ENDPOINT_URL=https://s3.example.com   # or omit to keep uploads on a shared volume
 JWT_SECRET=<32+ random bytes>
 CORS_ORIGINS=https://console.example.com
 ```
@@ -1098,8 +1236,9 @@ Run at least one worker alongside the API so ingestion does not compete with req
 uv run arq src.tasks.worker.WorkerSettings
 ```
 
-`docker/docker-compose.yml` brings up the whole stack — API, dashboard, Postgres with pgvector,
-Redis, and MinIO — and is a reasonable starting point for a single-host deployment.
+`docker/docker-compose.yml` brings up the whole stack — API, worker, dashboard, Postgres with
+pgvector, and Redis — and is a reasonable starting point for a single-host deployment. Back up the
+`postgres_data` and `app_data` volumes; together they hold everything.
 
 The landing page is fully static: build it with `LANDING_DASHBOARD_URL` set and publish
 `apps/landing/dist` to any static host such as Vercel.
