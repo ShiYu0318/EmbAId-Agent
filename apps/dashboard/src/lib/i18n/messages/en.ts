@@ -226,6 +226,7 @@ const en: LocaleMessages = {
     providerMissing: "{name} (not configured)",
     modelPlaceholder: "e.g. {example}",
     embeddingChangeHint: "After changing the embedding provider or model, existing vectors no longer match: re-index every document from the knowledge base.",
+    dimensionMismatch: "The server is set to {configured}-dimensional embeddings, but the default model {model} returns {actual}, so uploads will fail. Set EMBEDDING_DIMENSIONS={actual} in apps/api/.env and restart the API.",
   },
   overview: {
     title: "Overview",

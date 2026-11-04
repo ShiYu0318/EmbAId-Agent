@@ -30,20 +30,33 @@ export const EMBEDDING_PROVIDER_OPTIONS: ProviderOption<EmbeddingProvider>[] = [
   { id: "openai_compatible", label: null, example: "my-embedding-model" },
 ];
 
-/** Which providers the API has keys and addresses for, from its public /health endpoint. */
-export function useProviderStatus(): Record<string, boolean> | null {
-  const [status, setStatus] = useState<Record<string, boolean> | null>(null);
+export interface ApiHealth {
+  search_backend?: string;
+  /** Which providers have the keys and addresses they need. */
+  providers?: Record<string, boolean>;
+  /** Startup check of EMBEDDING_DIMENSIONS against the real embedding model. */
+  embeddings?: {
+    status: "pending" | "ok" | "mismatch" | "unavailable";
+    configured_dimensions?: number;
+    actual_dimensions?: number;
+    model?: string;
+  };
+}
+
+/** The API's public /health report, or null while loading or unreachable. */
+export function useApiHealth(): ApiHealth | null {
+  const [health, setHealth] = useState<ApiHealth | null>(null);
   useEffect(() => {
     let active = true;
     fetch(`${apiBaseUrl()}/health`)
       .then((response) => (response.ok ? response.json() : null))
-      .then((body: { providers?: Record<string, boolean> } | null) => {
-        if (active && body?.providers) setStatus(body.providers);
+      .then((body: ApiHealth | null) => {
+        if (active && body) setHealth(body);
       })
       .catch(() => undefined);
     return () => {
       active = false;
     };
   }, []);
-  return status;
+  return health;
 }

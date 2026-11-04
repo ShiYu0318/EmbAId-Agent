@@ -223,6 +223,7 @@ const zhTW = {
     providerMissing: "{name}（未設定）",
     modelPlaceholder: "例如 {example}",
     embeddingChangeHint: "更換向量供應商或模型後，既有的向量就不能用了，請到知識庫重新索引所有文件。",
+    dimensionMismatch: "伺服器設定的向量維度是 {configured}，但預設向量模型 {model} 實際輸出 {actual} 維，上傳文件會失敗。請把 apps/api/.env 的 EMBEDDING_DIMENSIONS 改成 {actual} 後重新啟動 API。",
   },
   overview: {
     title: "總覽",

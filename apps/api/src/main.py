@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -8,6 +9,7 @@ from fastapi.responses import FileResponse
 from .api.middleware import RateLimitMiddleware, SecurityHeadersMiddleware, SplitCORSMiddleware
 from .config import get_settings
 from .db.session import create_all, dispose_engine
+from .providers.checks import check_embedding_dimensions, embedding_check
 from .providers.registry import provider_status
 from .search.factory import prepare_search_backend
 
@@ -31,7 +33,10 @@ def widget_bundle() -> Path | None:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await create_all()
     await prepare_search_backend()
+    # Runs in the background so a slow or missing model provider never delays startup.
+    check = asyncio.create_task(check_embedding_dimensions())
     yield
+    check.cancel()
     await dispose_engine()
 
 
@@ -97,6 +102,7 @@ def create_app() -> FastAPI:
             "environment": settings.environment,
             "search_backend": settings.search_backend,
             "providers": provider_status(settings),
+            "embeddings": embedding_check(),
         }
 
     return app

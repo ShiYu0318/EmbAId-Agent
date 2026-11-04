@@ -19,7 +19,7 @@ import {
 } from "@/components/ui";
 import { useAuth } from "@/lib/auth/context";
 import type { ChatProvider, EmbeddingProvider, Project } from "@/lib/api/types";
-import { CHAT_PROVIDER_OPTIONS, EMBEDDING_PROVIDER_OPTIONS, useProviderStatus } from "@/lib/providers";
+import { CHAT_PROVIDER_OPTIONS, EMBEDDING_PROVIDER_OPTIONS, useApiHealth } from "@/lib/providers";
 import { errorMessage, useAsyncData } from "@/lib/hooks";
 import { useI18n, type TranslateFn } from "@/lib/i18n";
 import { useProjects } from "@/lib/project-context";
@@ -36,7 +36,13 @@ function General({ project, t }: { project: Project; t: TranslateFn }) {
   );
   const [chatModel, setChatModel] = useState(project.chat_model);
   const [embeddingModel, setEmbeddingModel] = useState(project.embedding_model);
-  const providerStatus = useProviderStatus();
+  const health = useApiHealth();
+  const providerStatus = health?.providers ?? null;
+  // Only the pgvector column has a fixed size, so a mismatch breaks uploads there.
+  const dimensionMismatch =
+    health?.search_backend === "postgres" && health.embeddings?.status === "mismatch"
+      ? health.embeddings
+      : null;
   const embeddingChanged =
     embeddingProvider !== project.embedding_provider || embeddingModel !== project.embedding_model;
   const providerLabel = (label: string | null, id: string) => {
@@ -141,6 +147,15 @@ function General({ project, t }: { project: Project; t: TranslateFn }) {
             ))}
           </Select>
         </Field>
+        {dimensionMismatch && (
+          <InlineNotice>
+            {t("project.dimensionMismatch", {
+              configured: dimensionMismatch.configured_dimensions ?? "?",
+              actual: dimensionMismatch.actual_dimensions ?? "?",
+              model: dimensionMismatch.model ?? "",
+            })}
+          </InlineNotice>
+        )}
         <Field
           label={t("project.embeddingModel")}
           hint={embeddingChanged ? t("project.embeddingChangeHint") : undefined}

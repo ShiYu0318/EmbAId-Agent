@@ -595,7 +595,8 @@ uv run uvicorn src.main:app --reload
 ```
 
 打開 `http://localhost:8000/health` 確認狀態。`providers` 會列出哪些模型供應商已經設定好，你選的那個應該是
-`true`。互動式 API 文件在 `/docs`。
+`true`。啟動幾秒後，`embeddings` 會回報 `EMBEDDING_DIMENSIONS` 和向量模型實際輸出的維度是否一致。互動式 API
+文件在 `/docs`。
 
 **4. 啟動儀表板**（第二個終端機，在 repo 根目錄）：
 
@@ -819,7 +820,7 @@ widget 啟動時會從 `GET /v1/widget-config` 讀取外觀與建議問題，所
 | 文件一直停在「處理中」 | `QUEUE_ENABLED=true` 但沒有啟動 worker。啟動一個（`uv run arq src.tasks.worker.WorkerSettings`），或改成 `QUEUE_ENABLED=false`。 |
 | 文件最後變成「失敗」 | 在儀表板點開文件看錯誤訊息。通常是向量模型的供應商連不上，或缺少金鑰。 |
 | `provider_unavailable: openai_api_key is not set` | 專案使用的供應商沒有金鑰。補上金鑰，或在「設定」把專案改用其他模型。 |
-| `expected N dimensions, not M` | `EMBEDDING_DIMENSIONS` 和向量模型不一致。改正後參考[更換向量模型](#模型)。 |
+| `expected N dimensions, not M` | `EMBEDDING_DIMENSIONS` 和向量模型不一致。`/health` 的 `embeddings` 會顯示實際的維度（儀表板的「設定」頁也會提醒）。改正後參考[更換向量模型](#模型)。 |
 | Ollama：connection refused | 啟動 Ollama（`ollama serve`），並確認 `OLLAMA_BASE_URL`。從 Docker 連線時，主機是 `host.docker.internal`。 |
 | 儀表板連不到 API，或出現 CORS 錯誤 | 把儀表板的網址加進 `CORS_ORIGINS`，並確認 `NEXT_PUBLIC_API_URL`。 |
 | 網站上沒有出現 widget | 打開瀏覽器主控台。`widget.js` 404：建置 widget。`403`：把網站加進金鑰的允許網域。混合內容錯誤：用 https 提供 API。 |

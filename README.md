@@ -712,7 +712,9 @@ uv run uvicorn src.main:app --reload
 ```
 
 Check it at `http://localhost:8000/health`. The `providers` field shows which model providers are
-configured; the one you chose should be `true`. Interactive API docs are at `/docs`.
+configured; the one you chose should be `true`. A few seconds after startup, `embeddings` reports
+whether `EMBEDDING_DIMENSIONS` matches what the embedding model really returns. Interactive API docs
+are at `/docs`.
 
 **4. Start the dashboard** (second terminal, from the repository root):
 
@@ -955,7 +957,7 @@ entirely inside a Shadow DOM, so no host CSS leaks in and none of its styles lea
 | A document stays at *processing* | `QUEUE_ENABLED=true` with no worker running. Start one (`uv run arq src.tasks.worker.WorkerSettings`) or set `QUEUE_ENABLED=false`. |
 | A document ends in *failed* | Open it in the dashboard to read the error. Usually the embedding provider is unreachable or its key is missing. |
 | `provider_unavailable: openai_api_key is not set` | The project uses a provider without a key. Add the key, or switch the project's models under **Settings**. |
-| `expected N dimensions, not M` | `EMBEDDING_DIMENSIONS` does not match the embedding model. Fix it, then see [Changing the embedding model](#models). |
+| `expected N dimensions, not M` | `EMBEDDING_DIMENSIONS` does not match the embedding model. `/health` → `embeddings` shows the real size (the dashboard's **Settings** page warns too). Fix it, then see [Changing the embedding model](#models). |
 | Ollama: connection refused | Start Ollama (`ollama serve`) and check `OLLAMA_BASE_URL`. From Docker, the host is `host.docker.internal`. |
 | The dashboard cannot reach the API, or shows a CORS error | Add the dashboard's address to `CORS_ORIGINS`, and check `NEXT_PUBLIC_API_URL`. |
 | The widget does not appear on a website | Open the browser console. `widget.js` 404: build the widget. `403`: add the site to the key's allowed origins. Mixed-content error: serve the API over https. |
