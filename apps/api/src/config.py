@@ -60,6 +60,11 @@ class Settings(BaseSettings):
 
     rerank_enabled: bool = True
     rerank_model: str = "BAAI/bge-reranker-v2-m3"
+    # local: the cross-encoder above (needs the rerank extra); cohere / jina: hosted APIs
+    rerank_provider: Literal["local", "cohere", "jina"] = "local"
+    rerank_api_model: str | None = None
+    cohere_api_key: str | None = None
+    jina_api_key: str | None = None
     retrieval_candidates: int = 30
     retrieval_top_k: int = 6
     confidence_threshold: float = 0.35

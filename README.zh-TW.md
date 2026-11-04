@@ -756,6 +756,8 @@ LANDING_DASHBOARD_URL=https://app.example.com node apps/landing/build.mjs
 | `CONFIDENCE_THRESHOLD` | 拒答門檻的全域預設值，可在每個專案覆寫。 |
 | `RERANK_ENABLED` | Cross-encoder 重排序。需要 `rerank` 選用功能，沒有安裝時會略過。 |
 | `RERANK_MODEL` | 重排序使用的 Cross-encoder（預設為多語模型）。 |
+| `RERANK_PROVIDER` | `local`（上面的 Cross-encoder），或用 `cohere`／`jina` 的託管重排序 API，搭配 `COHERE_API_KEY`／`JINA_API_KEY`。託管版不用額外安裝，但每次提問的候選段落都會送到該服務。 |
+| `RERANK_API_MODEL` | 託管重排序使用的模型，預設為 `rerank-v3.5`（Cohere）或 `jina-reranker-v2-base-multilingual`（Jina）。 |
 | `SEMANTIC_CACHE_ENABLED` | 幾乎相同的問題直接重用答案。 |
 | `SEMANTIC_CACHE_THRESHOLD` | 命中快取所需的餘弦相似度。 |
 | `CONTEXTUAL_EMBEDDING_ENABLED` | 建立索引時由 LLM 為每段寫一句定位說明。檢索更準，但每段都要呼叫一次模型。 |

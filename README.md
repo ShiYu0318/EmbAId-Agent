@@ -889,6 +889,8 @@ values live in `apps/api/src/config.py` and `apps/api/.env.example`.
 | `CONFIDENCE_THRESHOLD` | Global default for the refusal gate; overridable per project. |
 | `RERANK_ENABLED` | Cross-encoder reranking. Requires the `rerank` extra; skipped without it. |
 | `RERANK_MODEL` | Cross-encoder used for reranking (multilingual by default). |
+| `RERANK_PROVIDER` | `local` (the cross-encoder above), or `cohere` / `jina` for their hosted rerank APIs with `COHERE_API_KEY` / `JINA_API_KEY`. Hosted reranking needs no extra install, but sends each question's candidate passages to that service. |
+| `RERANK_API_MODEL` | Model for the hosted reranker; defaults to `rerank-v3.5` (Cohere) or `jina-reranker-v2-base-multilingual` (Jina). |
 | `SEMANTIC_CACHE_ENABLED` | Reuse answers for near-identical questions. |
 | `SEMANTIC_CACHE_THRESHOLD` | Cosine similarity required for a cache hit. |
 | `CONTEXTUAL_EMBEDDING_ENABLED` | LLM-written locating sentence per chunk at index time: better retrieval, one model call per chunk. |

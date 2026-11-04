@@ -4,6 +4,9 @@ import math
 import time
 from typing import Any
 
+import httpx
+
+from ..config import get_settings
 from .timing import elapsed_ms
 from .types import RetrievalTrace, RetrievedChunk
 
@@ -47,6 +50,49 @@ def _sigmoid(value: float) -> float:
     return exponential / (1.0 + exponential)
 
 
+# Hosted rerankers share one request shape: {model, query, documents, top_n} in, a list of
+# {index, relevance_score} out.
+HOSTED_RERANKERS: dict[str, tuple[str, str, str]] = {
+    # provider: (endpoint, key setting, default model)
+    "cohere": ("https://api.cohere.com/v2/rerank", "cohere_api_key", "rerank-v3.5"),
+    "jina": ("https://api.jina.ai/v1/rerank", "jina_api_key", "jina-reranker-v2-base-multilingual"),
+}
+
+
+async def _hosted_scores(provider: str, query: str, documents: list[str]) -> list[float] | None:
+    """Relevance per document from a hosted reranker, or None to keep the fused order."""
+    settings = get_settings()
+    endpoint, key_setting, default_model = HOSTED_RERANKERS[provider]
+    key = getattr(settings, key_setting)
+    if not key:
+        logger.warning(
+            "RERANK_PROVIDER=%s but %s is not set; keeping fused order", provider, key_setting
+        )
+        return None
+    payload = {
+        "model": settings.rerank_api_model or default_model,
+        "query": query,
+        "documents": documents,
+        "top_n": len(documents),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.post(
+                endpoint, json=payload, headers={"Authorization": f"Bearer {key}"}
+            )
+            response.raise_for_status()
+            results = response.json()["results"]
+    except (httpx.HTTPError, KeyError, ValueError) as exc:
+        logger.warning("%s reranking failed (%s); keeping fused order", provider, exc)
+        return None
+    scores = [0.0] * len(documents)
+    for item in results:
+        index = int(item["index"])
+        if 0 <= index < len(scores):
+            scores[index] = min(1.0, max(0.0, float(item["relevance_score"])))
+    return scores
+
+
 async def rerank(
     query: str,
     chunks: list[RetrievedChunk],
@@ -59,20 +105,26 @@ async def rerank(
         return chunks
 
     started = time.perf_counter()
-    encoder = await asyncio.to_thread(_load_encoder, model_name)
-    if encoder is None:
-        return chunks
+    provider = get_settings().rerank_provider
+    if provider in HOSTED_RERANKERS:
+        scores = await _hosted_scores(provider, query, [chunk.content for chunk in chunks])
+        if scores is None:
+            return chunks
+    else:
+        encoder = await asyncio.to_thread(_load_encoder, model_name)
+        if encoder is None:
+            return chunks
+        pairs = [(query, chunk.content) for chunk in chunks]
+        try:
+            raw_scores = await asyncio.to_thread(encoder.predict, pairs)
+        except Exception as exc:
+            logger.warning("reranking failed (%s); keeping fused order", exc)
+            return chunks
+        scores = [_sigmoid(float(raw)) for raw in raw_scores]
 
-    pairs = [(query, chunk.content) for chunk in chunks]
-    try:
-        raw_scores = await asyncio.to_thread(encoder.predict, pairs)
-    except Exception as exc:
-        logger.warning("reranking failed (%s); keeping fused order", exc)
-        return chunks
-
-    for chunk, raw in zip(chunks, raw_scores, strict=False):
-        chunk.rerank_score = _sigmoid(float(raw))
-        chunk.score = chunk.rerank_score
+    for chunk, score in zip(chunks, scores, strict=False):
+        chunk.rerank_score = score
+        chunk.score = score
 
     ranked = sorted(chunks, key=lambda chunk: chunk.score, reverse=True)
     trace.timings_ms["rerank"] = elapsed_ms(started)
