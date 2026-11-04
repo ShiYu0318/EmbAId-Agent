@@ -50,7 +50,7 @@ async def test_create_project_rejects_unknown_template(authed_client: AsyncClien
 
 async def test_create_project_rejects_unknown_chat_provider(authed_client: AsyncClient) -> None:
     response = await authed_client.post(
-        "/v1/projects", json={"name": "x", "chat_provider": "gemini"}
+        "/v1/projects", json={"name": "x", "chat_provider": "mystery-ai"}
     )
 
     assert response.status_code == 400

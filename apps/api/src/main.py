@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from .api.middleware import RateLimitMiddleware, SecurityHeadersMiddleware, SplitCORSMiddleware
 from .config import get_settings
 from .db.session import create_all, dispose_engine
+from .providers.registry import provider_status
 from .search.factory import prepare_search_backend
 
 MIN_SECRET_LENGTH = 32
@@ -95,11 +96,7 @@ def create_app() -> FastAPI:
             "status": "ok",
             "environment": settings.environment,
             "search_backend": settings.search_backend,
-            "providers": {
-                "anthropic": bool(settings.anthropic_api_key),
-                "openai": bool(settings.openai_api_key),
-                "ollama": bool(settings.ollama_base_url),
-            },
+            "providers": provider_status(settings),
         }
 
     return app

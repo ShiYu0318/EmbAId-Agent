@@ -32,10 +32,28 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     openai_api_key: str | None = None
     ollama_base_url: str = "http://localhost:11434"
+    # OpenAI-compatible services (see providers/registry.py)
+    openrouter_api_key: str | None = None
+    groq_api_key: str | None = None
+    gemini_api_key: str | None = None
+    deepseek_api_key: str | None = None
+    openai_compatible_base_url: str | None = None
+    openai_compatible_api_key: str | None = None
 
-    default_chat_provider: Literal["anthropic", "openai", "ollama"] = "anthropic"
+    default_chat_provider: Literal[
+        "anthropic",
+        "openai",
+        "ollama",
+        "openrouter",
+        "groq",
+        "gemini",
+        "deepseek",
+        "openai_compatible",
+    ] = "anthropic"
     default_chat_model: str = "claude-sonnet-5"
-    default_embedding_provider: Literal["openai", "ollama"] = "openai"
+    default_embedding_provider: Literal["openai", "ollama", "gemini", "openai_compatible"] = (
+        "openai"
+    )
     default_embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
 

@@ -7,14 +7,12 @@ from sqlalchemy import select
 
 from ...config import get_settings
 from ...db.models import Organization, Project
+from ...providers.registry import CHAT_PROVIDERS, EMBEDDING_PROVIDERS
 from ..deps import CurrentUser, SessionDep, owned_organization, owned_project
 from ..errors import ApiError
 from ..services.templates import PersonaTemplate, get_template, list_templates, template_keys
 
 router = APIRouter(prefix="/v1", tags=["projects"])
-
-CHAT_PROVIDERS = ("anthropic", "openai", "ollama")
-EMBEDDING_PROVIDERS = ("openai", "ollama")
 
 
 class ProjectCreate(BaseModel):
