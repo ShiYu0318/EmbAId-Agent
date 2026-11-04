@@ -670,14 +670,17 @@ pnpm install                              # dashboard, widget, and SDK
 pnpm --filter @embaid/widget build        # the API serves this file as /widget.js
 ```
 
-**2. Create the API configuration.**
+**2. Create the API configuration.** The quickest way is the setup wizard. It generates
+`JWT_SECRET`, asks which models to use, fills in the matching settings, asks for the keys it needs,
+and tells you which Ollama models to pull:
 
 ```bash
 cd apps/api
-cp .env.example .env
+uv run python -m src.setup                    # or: --preset ollama | anthropic | openai | gemini | groq | openrouter | deepseek
 ```
 
-Open `apps/api/.env`. Every line is commented; only two things are required.
+To configure by hand instead, copy the template: `cp .env.example .env`. Every line is commented;
+only two things are required.
 
 - `JWT_SECRET`: paste the output of `openssl rand -hex 32`.
 - The models. For **path A**, pull two models and switch the defaults to Ollama:

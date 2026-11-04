@@ -556,14 +556,15 @@ pnpm install                              # 儀表板、widget 與 SDK
 pnpm --filter @embaid/widget build        # API 會以 /widget.js 提供這個檔案
 ```
 
-**2. 建立 API 設定檔。**
+**2. 建立 API 設定檔。** 最快的方式是用設定精靈：它會產生 `JWT_SECRET`、問你要用哪種模型、自動填好對應的
+設定、請你輸入需要的金鑰，還會告訴你該下載哪些 Ollama 模型：
 
 ```bash
 cd apps/api
-cp .env.example .env
+uv run python -m src.setup                    # 或加上 --preset ollama | anthropic | openai | gemini | groq | openrouter | deepseek
 ```
 
-打開 `apps/api/.env`，每一行都有註解，必填的只有兩項：
+想手動設定的話，複製範本 `cp .env.example .env`。每一行都有註解，必填的只有兩項：
 
 - `JWT_SECRET`：貼上 `openssl rand -hex 32` 產生的字串。
 - 模型。**方式 A** 先下載兩個模型，再把預設值改成 Ollama：
