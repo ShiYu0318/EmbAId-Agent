@@ -80,3 +80,9 @@ async def test_projects_accept_compatible_providers(authed_client: AsyncClient) 
         f"/v1/projects/{created.json()['id']}", json={"embedding_provider": "groq"}
     )
     assert rejected.status_code == 400
+
+
+def test_a_comment_after_an_empty_setting_is_not_a_value() -> None:
+    settings = Settings(groq_api_key="# https://console.groq.com/keys")
+    assert settings.groq_api_key is None
+    assert provider_status(settings)["groq"] is False

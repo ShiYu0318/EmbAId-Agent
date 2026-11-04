@@ -1,6 +1,7 @@
 from functools import lru_cache
-from typing import Literal
+from typing import Any, Literal
 
+from pydantic import ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -77,6 +78,14 @@ class Settings(BaseSettings):
     sentry_dsn: str | None = None
     # Built widget served at /widget.js; found automatically in the monorepo and Docker image.
     widget_bundle_path: str | None = None
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _comment_means_unset(cls, value: Any, info: ValidationInfo) -> Any:
+        # `KEY=   # note` reads as the value "# note" in a .env file: treat it as unset.
+        if isinstance(value, str) and value.strip().startswith("#"):
+            return cls.model_fields[info.field_name].default
+        return value
 
     @property
     def google_oauth_enabled(self) -> bool:
