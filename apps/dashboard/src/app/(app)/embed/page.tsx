@@ -26,16 +26,13 @@ import { errorMessage, useAsyncData, useCopy } from "@/lib/hooks";
 import { useI18n, type TranslateFn } from "@/lib/i18n";
 import { useProjectKey } from "@/lib/project-key";
 
-// Mirrors DEFAULT_API_URL in apps/widget/src/index.ts — the snippet only pins
-// data-api-url when the dashboard talks to a different API than that default.
-const DEFAULT_WIDGET_API = "https://api.embaid.chat";
-const WIDGET_SRC = process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://cdn.embaid.chat/widget.js";
-
+// The snippet points at this install's own API, which serves the widget at /widget.js.
+// NEXT_PUBLIC_WIDGET_URL overrides the script source, e.g. when the widget sits on a CDN.
 function buildSnippet(projectId: string, key: string): string {
   const base = apiBaseUrl().replace(/\/$/, "");
-  const attrs = [`  data-key="${key}"`, `  data-project="${projectId}"`];
-  if (base !== DEFAULT_WIDGET_API) attrs.push(`  data-api-url="${base}"`);
-  return `<script src="${WIDGET_SRC}"\n${attrs.join("\n")}></script>`;
+  const src = process.env.NEXT_PUBLIC_WIDGET_URL || `${base}/widget.js`;
+  const attrs = [`  data-key="${key}"`, `  data-project="${projectId}"`, `  data-api-url="${base}"`];
+  return `<script src="${src}"\n${attrs.join("\n")}></script>`;
 }
 
 interface KeysStore {
