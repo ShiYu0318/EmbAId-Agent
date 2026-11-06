@@ -1320,7 +1320,7 @@ skipped checks. Live model evaluation and deployment smoke tests are separate fr
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before starting. Coordinate work through Issues, create a
 focused branch from updated `main`, and open a Draft PR early. Commits use English Conventional
-Commits; PR titles and descriptions use Traditional Chinese with English technical names.
+Commits; PR titles and descriptions use English and the Apache Spark-inspired PR template.
 Follow [MAINTAINERS.md](MAINTAINERS.md) for review and merge responsibilities and the
 [Code of Conduct](CODE_OF_CONDUCT.md) when participating.
 

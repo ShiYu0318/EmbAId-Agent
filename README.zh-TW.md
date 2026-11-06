@@ -1033,7 +1033,7 @@ CI 會啟動 PostgreSQL 並安裝 Qdrant、Bedrock extras。執行條件與跳�
 ## 參與貢獻
 
 開始前請閱讀 [CONTRIBUTING.md](CONTRIBUTING.md)。透過 Issue 協調工作，從更新後的 `main` 建立聚焦分支，
-並提早開 Draft PR。Commit 使用英文 Conventional Commits，PR 標題與說明使用繁體中文並保留英文專有名詞。
+並提早開 Draft PR。Commit 使用英文 Conventional Commits；PR 標題與說明使用英文，並採用參考 Apache Spark 的 PR 範本。
 審查與合併責任見 [MAINTAINERS.md](MAINTAINERS.md)，參與討論請遵守[行為準則](CODE_OF_CONDUCT.md)。
 
 ---

@@ -32,7 +32,7 @@ help find problems but does not replace an accountable human approval.
 
 Use a merge commit when a branch contains meaningful commits worth preserving. For noisy
 development branches, agree on a squash merge and use an English Conventional Commit title for
-the resulting commit; the PR title itself remains Traditional Chinese. Never force-push `main`.
+the resulting commit. PR titles and descriptions are written in English. Never force-push `main`.
 Keep source branches when needed to preserve experiments or coursework history. After merging,
 fetch and update local `main` with `git pull --ff-only`; protect any uncommitted work first.
 

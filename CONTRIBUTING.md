@@ -80,10 +80,13 @@ history merely to make the implementation look different.
 
 ## Pull requests and review
 
-PR titles and descriptions use Traditional Chinese, preserving English technical names. The PR
-template has three sections: 摘要, 實作方法, and 實驗結果. Explain the concrete behavior change,
-link the Issue, and report actual checks and any checks you could not run. Include screenshots
-when a visible interface changes and an API example when a public contract changes.
+Write PR titles and descriptions in English so contributors can review work across teams.
+Use a concise title describing the change. The template follows the structure used by Apache Spark:
+proposed changes, motivation, user impact and compatibility, testing, and generative AI disclosure.
+Link the Issue or design discussion, explain observable behavior and migration requirements, and
+report actual checks and any checks you could not run. Include screenshots for visible interface
+changes and an API example when a public contract changes. Disclose generative AI assistance in
+the designated section, including the tool version when known, and explain how its output was checked.
 
 Normal changes need at least one approval from someone other than the author. Authentication,
 tenant isolation, deletion, schema, or credential changes also need a reviewer familiar with that
