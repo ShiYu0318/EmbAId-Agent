@@ -7,7 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { useProjectKey } from "@/lib/project-key";
 
 /**
- * Floating test bot pinned to the dashboard (spec §6). Once the project is deployed it
+ * Floating test bot pinned to the dashboard. Once the project is deployed it
  * is the real embeddable widget, talking to the API with the deployed key, so it looks
  * and behaves exactly like it will on the user's site.
  *

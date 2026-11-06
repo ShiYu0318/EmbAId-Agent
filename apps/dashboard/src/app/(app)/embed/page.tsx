@@ -304,7 +304,7 @@ function SnippetPanel({
   /**
    * The floating bot calls /v1/chat from the dashboard's own origin. If the key is
    * scoped to specific origins, the dashboard must be one of them or the bot gets a
-   * 403 (§7.6).
+   * 403.
    *
    * An empty list already allows every origin, so it is left untouched on purpose:
    * appending here would turn "allow anywhere" into "allow only the dashboard" and

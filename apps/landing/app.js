@@ -76,7 +76,7 @@
   if (configured === "" && !params.get("dashboard")) {
     document.querySelectorAll("[data-login]").forEach((a) => (a.hidden = true));
     document.querySelectorAll("[data-signup]").forEach((a) => {
-      a.href = "https://github.com/ShiYu0318/EmbAId-Chat#getting-started";
+      a.href = "https://github.com/ShiYu0318/EmbAId-Agent#getting-started";
       a.target = "_blank";
       a.rel = "noopener";
     });

@@ -1654,7 +1654,7 @@ button.kb-name__label:disabled {
   align-items: start;
 }
 
-/* Embed settings — keys on the left, snippet and deploy on the right (§5) */
+/* Embed settings: key management and deployment snippet. */
 .embed-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
@@ -1721,7 +1721,7 @@ button.kb-name__label:disabled {
   flex-wrap: wrap;
 }
 
-/* Locked launcher for the dashboard test bot (§6). Once the project is deployed the
+/* Locked launcher for the dashboard test bot. Once the project is deployed the
    real embeddable widget takes its place, so tests match what visitors see. */
 .dashboard-bot {
   position: fixed;

@@ -113,7 +113,7 @@ function Studio({ projectId, t, locale }: { projectId: string; t: TranslateFn; l
   }
 
   function applyTemplate(tpl: ProjectTemplate) {
-    // Full overwrite of the appearance fields the template controls (§4 decision).
+    // Replace only the fields controlled by the template, preserving other appearance settings.
     setConfig((prev) => ({
       ...prev,
       bot_name: tpl.bot_name,
