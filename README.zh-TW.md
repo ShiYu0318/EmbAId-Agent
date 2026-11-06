@@ -2,20 +2,23 @@
 
 # EmbAId Agent
 
-**一段 `<script>`，把會查證、可完整客製化的 AI Agent 嵌入任何網站。**
+**一段 `<script>`，把可客製化、可自架的 AI 助理嵌入網站。**
 
-以你自己的內容為基礎的 Agentic RAG：它會一步步推理並讓你看見過程，只依據檢索到的證據作答並附上出處，
-證據不足時不會生成錯誤的回覆，而是誠實說明資料裡沒有。
+以你自己的內容為基礎的 RAG，提供即時檢索進度、來源引用與可調整的婉拒門檻。
+模型自主選擇工具及處理來源衝突的檢索能力列於研發路線。
 
 [English](README.md) · **繁體中文**
 
-[![CI](https://github.com/ShiYu0318/EmbAId-Chat/actions/workflows/ci.yml/badge.svg)](https://github.com/ShiYu0318/EmbAId-Chat/actions/workflows/ci.yml)
+[![CI](https://github.com/ShiYu0318/EmbAId-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/ShiYu0318/EmbAId-Agent/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.13-black.svg)](https://www.python.org/)
 [![Node](https://img.shields.io/badge/Node-20%2B-black.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-black.svg)](https://www.typescriptlang.org/)
 
 [官方網站](https://embaid-agent.vercel.app) · [快速開始](#快速開始) · [Agent 推理流程](#agent-推理流程)
+
+新加入專案請先閱讀 [CONTRIBUTING.md](CONTRIBUTING.md)，了解開發檢查、模組分工、commit 規範與 PR 流程。
+審查責任與維護方式見 [MAINTAINERS.md](MAINTAINERS.md)，安全問題的私下回報方式見 [SECURITY.md](SECURITY.md)。
 
 </div>
 
@@ -60,12 +63,11 @@ EmbAId Agent 把你自己的內容變成一個住在你網站上的 AI Agent。�
 它會把內容切塊、嵌入，寫進一個由你掌控的向量資料庫。訪客提問時，Agent 會依序處理：理解並改寫問題、
 執行混合檢索、重新排序證據、判斷證據是否足夠，然後才依據證據寫出回答，逐字串流並附上來源段落。
 
-它不是只會接話的聊天機器人。每次回答前，Agent 會自己搜尋知識庫、比對證據、判斷證據夠不夠，再決定要回答、
-反問還是婉拒。下一步會讓它自主調用工具，並在多輪檢索之間自我反思、修正方向，詳見[研發路線](#研發路線agentic-檢索)。
+目前實作沿用預先定義的檢索流程，並可使用語意回答快取。系統根據分數門檻決定生成回答或婉拒。
+模型自主選擇工具、追問澄清與多輪檢索仍在規劃中，詳見[研發路線](#研發路線agentic-檢索)。
 
-每一個步驟都會即時回報。訪客看到的是 Agent 正在做什麼（「搜尋知識庫…」「比對 18 段候選內容…」），
-而不是一個轉圈圈的載入圖示；營運者事後也能看到每則回答完整的檢索軌跡。證據不夠充分時，Agent 會直接
-說明，不會生成看似合理的錯誤回答，並把這個問題放進知識缺口佇列，等你補上內容。
+系統會即時回報「搜尋知識庫」與「比對候選段落」等執行進度，這些是處理階段事件，不是模型的內部思考。
+營運者可以檢視檢索軌跡，低於門檻的問題則會進入知識缺口佇列。引用與門檻提供查核依據，但不保證回答正確。
 
 **它做什麼**
 
@@ -493,7 +495,7 @@ flowchart LR
 ## 專案結構
 
 ```
-EmbAId-Chat/
+EmbAId-Agent/
 ├── apps/
 │   ├── api/                     FastAPI 後端，uv 指令請在此目錄執行
 │   │   ├── src/
@@ -517,7 +519,8 @@ EmbAId-Chat/
 └── .github/                     CI 工作流程與 README 截圖
 ```
 
-`apps/api` 是以 uv 管理的獨立 Python 專案，其餘都是 pnpm workspace。repo 根目錄只放 workspace 與協調用設定。
+`apps/api` 是以 uv 管理的獨立 Python 專案；dashboard、widget 與 SDK 組成 pnpm workspace。
+Landing page 有獨立的 Node 建置腳本，貢獻與維護指南則放在 repository 根目錄。
 
 ---
 
@@ -1003,41 +1006,35 @@ uv run arq src.tasks.worker.WorkerSettings
 
 ## 測試
 
-```bash
-cd apps/api
-uv run pytest              # 後端測試
-uv run ruff check .        # lint
-uv run mypy src            # 型別檢查
+從 repository 根目錄執行：
 
-pnpm -r test               # widget、SDK、dashboard
-pnpm -r typecheck
+```bash
+pnpm -r build
+node apps/landing/build.mjs
 pnpm -r lint
+pnpm -r typecheck
+pnpm -r test
 ```
 
-執行後端測試時，請把本機 `.env` 的供應商與 OAuth 設定隔離開，避免它們影響測試：
+從 `apps/api` 執行：
 
 ```bash
-env DATABASE_URL=sqlite+aiosqlite:///:memory: QUEUE_ENABLED=false \
-  GOOGLE_CLIENT_ID= GOOGLE_CLIENT_SECRET= \
-  DEFAULT_CHAT_PROVIDER=anthropic DEFAULT_EMBEDDING_PROVIDER=openai \
-  RERANK_ENABLED=false CONTEXTUAL_EMBEDDING_ENABLED=false \
-  uv run pytest
+uv run --frozen ruff check .
+uv run --frozen pytest -q
 ```
 
-後端測試完全離線執行：搜尋後端、嵌入與聊天模型都以確定性的假物件替代，所以檢索邏輯、融合計算、婉拒行為與
-租戶規則，都能在沒有網路與 API 金鑰的情況下測試。CI 會在每次 push 時執行兩套測試。
+後端測試會隔離開發者 `.env` 與匯出的供應商設定；單元測試使用模型假物件及記憶體中的應用資料庫。
+PostgreSQL 整合測試需要透過 `TEST_DATABASE_URL` 指定可清除測試資料的獨立資料庫，可選後端也需要對應 extras。
+CI 會啟動 PostgreSQL 並安裝 Qdrant、Bedrock extras。執行條件與跳過項目的回報方式見
+[CONTRIBUTING.md](CONTRIBUTING.md#checks-before-review)。真實模型品質評估與部署檢查是另外的工作。
 
 ---
 
 ## 參與貢獻
 
-歡迎提出 Issue 與 Pull Request。
-
-1. Fork 後從 `main` 開新分支。
-2. 讓變更保持聚焦，一個 Pull Request 只處理一件事。
-3. 行為變更請補上測試，特別是涉及檢索、融合或租戶隔離的部分。
-4. 開 PR 前執行上方完整的檢查。
-5. 依照既有風格：Python 用 `ruff` 與 `mypy`，TypeScript 用 ESLint 與 `tsc`，commit 訊息遵循 Conventional Commits。
+開始前請閱讀 [CONTRIBUTING.md](CONTRIBUTING.md)。透過 Issue 協調工作，從更新後的 `main` 建立聚焦分支，
+並提早開 Draft PR。Commit 使用英文 Conventional Commits，PR 標題與說明使用繁體中文並保留英文專有名詞。
+審查與合併責任見 [MAINTAINERS.md](MAINTAINERS.md)，參與討論請遵守[行為準則](CODE_OF_CONDUCT.md)。
 
 ---
 

@@ -1,0 +1,28 @@
+name: Feature or design proposal
+description: Agree on a problem and its scope before implementing it.
+title: "[Proposal]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and users
+      description: Describe a concrete task, who needs it, and the current limitation.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Proposed outcome
+      description: Explain the intended behavior, scope boundaries, and acceptance criteria.
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: Design and alternatives
+      description: Note affected modules, public contracts, dependencies, and alternatives considered.
+  - type: textarea
+    id: evaluation
+    attributes:
+      label: Evaluation and dependencies
+      description: How will we check the result, and which other tasks or reviewers are needed?

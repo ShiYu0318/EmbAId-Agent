@@ -2,20 +2,24 @@
 
 # EmbAId Agent
 
-**Embed a verifiable, fully customizable AI agent into any website with a single `<script>` tag.**
+**Embed a customizable, self-hostable AI assistant into a website with a single `<script>` tag.**
 
-Agentic RAG over your own content: it reasons in visible steps, answers only from retrieved
-evidence with citations, and declines instead of guessing when the evidence is not there.
+RAG over your own content, with streamed retrieval progress, source citations, and a configurable
+refusal threshold. Model-directed tool use and conflict-aware retrieval are on the research roadmap.
 
 **English** · [繁體中文](README.zh-TW.md)
 
-[![CI](https://github.com/ShiYu0318/EmbAId-Chat/actions/workflows/ci.yml/badge.svg)](https://github.com/ShiYu0318/EmbAId-Chat/actions/workflows/ci.yml)
+[![CI](https://github.com/ShiYu0318/EmbAId-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/ShiYu0318/EmbAId-Agent/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.13-black.svg)](https://www.python.org/)
 [![Node](https://img.shields.io/badge/Node-20%2B-black.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-black.svg)](https://www.typescriptlang.org/)
 
 [Live site](https://embaid-agent.vercel.app) · [Quick start](#getting-started) · [How answering works](#how-answering-works)
+
+Joining the project? Start with [CONTRIBUTING.md](CONTRIBUTING.md) for setup checks, module
+boundaries, commit conventions, and the PR workflow. See [MAINTAINERS.md](MAINTAINERS.md) for review
+responsibilities and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
 
 </div>
 
@@ -65,16 +69,15 @@ you control. When a visitor asks something, the agent works through the question
 evidence is strong enough — and only then writes a grounded answer, streamed token by token and
 linked back to the passages it came from.
 
-It is not a chatbot that just keeps the conversation going. Before every answer the agent searches
-your knowledge base, weighs the evidence and decides whether to answer, ask a clarifying question,
-or decline. Next on the list is letting it call tools on its own and reflect between rounds of
-retrieval to correct course; see the [roadmap](#roadmap-agentic-retrieval).
+The current implementation follows a predefined retrieval pipeline, with an optional semantic
+answer cache. A score threshold determines whether to generate an answer or decline. Model-selected
+tools, clarification, and repeated retrieval are planned; see the
+[roadmap](#roadmap-agentic-retrieval).
 
-Every step is reported as it happens. Visitors watch the agent think ("searching the knowledge
-base…", "comparing 18 candidate passages…") instead of staring at a spinner, and operators get the
-full retrieval trace for every answer afterwards. When the evidence does not clear the bar, the
-agent says so rather than generating a plausible-sounding wrong answer, and the question lands in a
-queue of gaps for you to fill.
+Pipeline progress is reported as it happens, such as "searching the knowledge base" or "comparing
+candidate passages." These are execution events, not the model's private reasoning. Operators can
+inspect retrieval traces, and questions below the threshold enter a knowledge-gap queue. Citations
+and thresholds help inspect answers; they do not guarantee correctness.
 
 Everything the visitor sees is yours to shape: the assistant's name, avatar, greeting, persona,
 accent colour, starter questions, and the model behind it, all editable from the dashboard with a
@@ -604,7 +607,7 @@ shipped** — makes retrieval agentic and evidence-aware:
 ## Project structure
 
 ```
-EmbAId-Chat/
+EmbAId-Agent/
 ├── apps/
 │   ├── api/                     FastAPI backend — run uv commands from here
 │   │   ├── src/
@@ -628,8 +631,9 @@ EmbAId-Chat/
 └── .github/                     CI workflows and README screenshots
 ```
 
-`apps/api` is a standalone Python project managed by uv. Everything else is a pnpm workspace. The
-repository root holds only workspace and orchestration config.
+`apps/api` is a standalone Python project managed by uv. The dashboard, widget, and SDK form the
+pnpm workspace. The landing page has its own Node build script. Contribution and maintenance
+guides live at the repository root.
 
 ---
 
@@ -1286,44 +1290,39 @@ The landing page is fully static: build it with `LANDING_DASHBOARD_URL` set and 
 
 ## Testing
 
-```bash
-cd apps/api
-uv run pytest              # backend suite
-uv run ruff check .        # lint
-uv run mypy src            # type check
+From the repository root:
 
-pnpm -r test               # widget, SDK, dashboard
-pnpm -r typecheck
+```bash
+pnpm -r build
+node apps/landing/build.mjs
 pnpm -r lint
+pnpm -r typecheck
+pnpm -r test
 ```
 
-Isolate the backend suite from your local `.env` so its provider and OAuth settings do not leak
-into the tests:
+From `apps/api`:
 
 ```bash
-env DATABASE_URL=sqlite+aiosqlite:///:memory: QUEUE_ENABLED=false \
-  GOOGLE_CLIENT_ID= GOOGLE_CLIENT_SECRET= \
-  DEFAULT_CHAT_PROVIDER=anthropic DEFAULT_EMBEDDING_PROVIDER=openai \
-  RERANK_ENABLED=false CONTEXTUAL_EMBEDDING_ENABLED=false \
-  uv run pytest
+uv run --frozen ruff check .
+uv run --frozen pytest -q
 ```
 
-The backend suite runs fully offline: search backends, embeddings, and the chat model are replaced
-with deterministic fakes, so retrieval logic, fusion maths, refusal behaviour, and tenancy rules are
-tested without network access or API keys. CI runs both suites on every push.
+The backend suite isolates application settings from developer `.env` files and exported provider
+credentials. Unit tests use deterministic model fakes and an in-memory application database.
+PostgreSQL integration tests require a disposable database via `TEST_DATABASE_URL`; optional
+backends need their extras. CI provisions PostgreSQL and installs the Qdrant and Bedrock extras.
+See [CONTRIBUTING.md](CONTRIBUTING.md#checks-before-review) for execution conditions and reporting
+skipped checks. Live model evaluation and deployment smoke tests are separate from unit tests.
 
 ---
 
 ## Contributing
 
-Issues and pull requests are welcome.
-
-1. Fork and branch from `main`.
-2. Keep changes focused; one concern per pull request.
-3. Add tests for behaviour changes — especially anything touching retrieval, fusion, or tenancy.
-4. Run the full check set above before opening the PR.
-5. Follow the existing style: `ruff` and `mypy` for Python, ESLint and `tsc` for TypeScript,
-   Conventional Commits for messages.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before starting. Coordinate work through Issues, create a
+focused branch from updated `main`, and open a Draft PR early. Commits use English Conventional
+Commits; PR titles and descriptions use Traditional Chinese with English technical names.
+Follow [MAINTAINERS.md](MAINTAINERS.md) for review and merge responsibilities and the
+[Code of Conduct](CODE_OF_CONDUCT.md) when participating.
 
 ---
 

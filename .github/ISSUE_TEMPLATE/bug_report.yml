@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible problem using synthetic or redacted data.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: "Please read CONTRIBUTING.md. Report security vulnerabilities privately through SECURITY.md."
+  - type: textarea
+    id: problem
+    attributes:
+      label: Expected and actual behavior
+      description: Explain what you expected, what happened, and which component is affected.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include a minimal example with synthetic input. Never include credentials or private documents.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include the commit, operating system, runtime versions, deployment mode, and relevant provider/search backend.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs or screenshots
+      description: Redact tokens, identifiers, and private content.

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Contribution workflow
+    url: https://github.com/ShiYu0318/EmbAId-Agent/blob/main/CONTRIBUTING.md
+    about: Setup, commit conventions, checks, and review expectations.
+  - name: Security reporting
+    url: https://github.com/ShiYu0318/EmbAId-Agent/blob/main/SECURITY.md
+    about: Arrange private reporting; do not post vulnerabilities in a public Issue.
