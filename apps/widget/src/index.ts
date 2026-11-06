@@ -1,7 +1,6 @@
 import { ChatWidget } from "./widget";
 import type { EmbedOptions } from "./types";
 
-
 function scriptOrigin(script: Element): string {
   try {
     return new URL(script.getAttribute("src") ?? "", window.location.href).origin;

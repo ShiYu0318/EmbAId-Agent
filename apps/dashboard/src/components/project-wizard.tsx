@@ -15,8 +15,7 @@ export function ProjectWizard({ onClose, onCreated }: { onClose: () => void; onC
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Persona templates are no longer chosen at creation time — they are applied
-  // later on the Widget studio page (§4), so creation only asks for a name.
+  // Persona templates are applied in Widget Studio after project creation.
   async function submit() {
     if (!name.trim() || busy) return;
     setBusy(true);
