@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Response, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import select
 
 from ...config import get_settings
@@ -43,6 +43,19 @@ class ProjectUpdate(BaseModel):
     default_locale: str | None = Field(default=None, max_length=10)
     confidence_threshold: float | None = Field(default=None, ge=0.0, le=1.0)
     staleness_days: int | None = Field(default=None, ge=1, le=3650)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_nulls(cls, data: Any) -> Any:
+        # Leaving a field out means "keep it". Only the system prompt can be cleared
+        # with null; the other columns are required, so a null would fail on write.
+        if isinstance(data, dict):
+            nulls = sorted(
+                name for name, value in data.items() if value is None and name != "system_prompt"
+            )
+            if nulls:
+                raise ValueError(f"{', '.join(nulls)} cannot be null; omit to leave unchanged")
+        return data
 
 
 class ProjectPayload(BaseModel):
