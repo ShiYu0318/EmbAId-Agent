@@ -16,12 +16,26 @@ from ..errors import ApiError, NotFound, ProviderUnavailable
 
 router = APIRouter(prefix="/v1", tags=["knowledge-gaps"])
 
-DRAFT_SYSTEM_PROMPT = (
-    "你是一位知識庫維運助理。使用者提出的問題目前在知識庫中找不到答案。"
-    "請草擬一則簡潔、實用、語氣中性的答覆，供管理者審閱後收錄。"
-    "若你不確定事實內容，請明確指出需要人工補充的部分，不要杜撰。"
-    "請以繁體中文作答。"
-)
+DRAFT_SYSTEM_PROMPTS = {
+    "zh": (
+        "你是一位知識庫維運助理。使用者提出的問題目前在知識庫中找不到答案。"
+        "請草擬一則簡潔、實用、語氣中性的答覆，供管理者審閱後收錄。"
+        "若你不確定事實內容，請明確指出需要人工補充的部分，不要杜撰。"
+        "請以繁體中文作答。"
+    ),
+    "en": (
+        "You maintain a knowledge base. The user's question currently has no answer in it. "
+        "Draft a concise, practical, neutral reply for an administrator to review and publish. "
+        "Where you are unsure of the facts, say what a person needs to fill in; do not invent "
+        "details. Answer in English."
+    ),
+}
+QUESTION_LABELS = {"zh": "問題：", "en": "Question: "}
+
+
+def _language(locale: str | None) -> str:
+    """Drafts follow the project's default locale; anything not Chinese is written in English."""
+    return "zh" if (locale or "zh-TW").lower().startswith("zh") else "en"
 
 
 class GapPayload(BaseModel):
@@ -115,7 +129,10 @@ async def draft_answer(gap_id: str, user: CurrentUser, session: SessionDep) -> D
         raise ProviderUnavailable(str(exc)) from exc
 
     response = await model.ainvoke(
-        [SystemMessage(content=DRAFT_SYSTEM_PROMPT), HumanMessage(content=gap.question_text)]
+        [
+            SystemMessage(content=DRAFT_SYSTEM_PROMPTS[_language(project.default_locale)]),
+            HumanMessage(content=gap.question_text),
+        ]
     )
     content = response.content if isinstance(response.content, str) else str(response.content)
 
@@ -139,7 +156,9 @@ async def approve_gap(
     session.add(document)
     await session.flush()
 
-    body = f"# {title}\n\n問題：{gap.question_text}\n\n{answer}\n"
+    project = await session.get(Project, gap.project_id)
+    label = QUESTION_LABELS[_language(project.default_locale if project else None)]
+    body = f"# {title}\n\n{label}{gap.question_text}\n\n{answer}\n"
     document.storage_key = jobs.storage_key_for(gap.project_id, document.id, "answer.md")
     await get_storage().put(document.storage_key, body.encode(), "text/markdown")
 
