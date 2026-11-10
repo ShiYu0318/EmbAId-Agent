@@ -1,6 +1,7 @@
 # Build the embeddable widget so the API can serve it at /widget.js.
-FROM node:20-slim AS widget
-RUN corepack enable
+FROM node:26-slim AS widget
+# Node 25 and later no longer bundle corepack; keep this version in step with "packageManager".
+RUN npm install --global pnpm@10.33.0
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/widget/package.json apps/widget/
