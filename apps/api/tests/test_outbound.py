@@ -1,3 +1,6 @@
+import ipaddress
+
+import httpx
 import pytest
 from httpx import AsyncClient
 
@@ -207,3 +210,70 @@ async def test_webhook_delivery_refuses_rebound_host(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr(outbound, "_resolve", resolve)
     with pytest.raises(UnsafeUrlError):
         await _HttpxWebhookClient().post("https://rebind.example.com/hook", b"{}", {})
+
+
+class _RecordingTransport(httpx.AsyncBaseTransport):
+    def __init__(self) -> None:
+        self.requests: list[httpx.Request] = []
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        self.requests.append(request)
+        return httpx.Response(200, text="ok")
+
+
+async def test_pinned_transport_connects_to_the_checked_address(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    lookups: list[str] = []
+
+    async def resolve(host: str, port: int) -> list[ipaddress.IPv4Address]:
+        lookups.append(host)
+        return [ipaddress.ip_address("93.184.216.34")]
+
+    monkeypatch.setattr(outbound, "_resolve", resolve)
+    inner = _RecordingTransport()
+
+    async with httpx.AsyncClient(transport=outbound.PinnedTransport(inner)) as client:
+        await client.get("https://docs.example.com/page?x=1")
+
+    sent = inner.requests[0]
+    assert sent.url.host == "93.184.216.34"
+    assert sent.url.path == "/page"
+    assert sent.headers["host"] == "docs.example.com"
+    assert sent.extensions["sni_hostname"] == "docs.example.com"
+    assert lookups == ["docs.example.com"]
+
+
+async def test_pinned_transport_refuses_a_name_that_resolves_inward(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def resolve(host: str, port: int) -> list[ipaddress.IPv4Address]:
+        return [ipaddress.ip_address("10.0.0.5")]
+
+    monkeypatch.setattr(outbound, "_resolve", resolve)
+    inner = _RecordingTransport()
+
+    async with httpx.AsyncClient(transport=outbound.PinnedTransport(inner)) as client:
+        with pytest.raises(outbound.UnsafeUrlError):
+            await client.get("https://rebind.example.com/")
+
+    assert inner.requests == []
+
+
+async def test_headless_requests_are_checked() -> None:
+    assert await web.request_allowed("data:text/plain,hi")
+    assert not await web.request_allowed("http://169.254.169.254/latest/meta-data/")
+    assert not await web.request_allowed("http://localhost:6379/")
+    assert not await web.request_allowed("file:///etc/passwd")
+
+
+def test_headless_browser_pins_the_page_host() -> None:
+    address = ipaddress.ip_address("93.184.216.34")
+    assert web._resolver_args("https://Docs.Example.com/a", address) == [
+        "--host-resolver-rules=MAP docs.example.com 93.184.216.34"
+    ]
+    v6 = ipaddress.ip_address("2606:2800:220:1::1")
+    assert web._resolver_args("https://docs.example.com/", v6) == [
+        "--host-resolver-rules=MAP docs.example.com [2606:2800:220:1::1]"
+    ]
+    assert web._resolver_args("https://docs.example.com/", None) == []

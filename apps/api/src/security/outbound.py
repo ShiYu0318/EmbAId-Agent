@@ -1,7 +1,10 @@
 import asyncio
 import ipaddress
 import socket
+from typing import Any
 from urllib.parse import urlsplit
+
+import httpx
 
 from ..config import get_settings
 
@@ -85,3 +88,49 @@ async def assert_public_url(url: str) -> None:
     addresses = await _resolve(host, port)
     if not addresses or not all(is_public_address(address) for address in addresses):
         raise UnsafeUrlError("url resolves to a private or reserved address")
+
+
+async def resolve_public_address(url: str) -> IpAddress | None:
+    """The address a request to ``url`` must connect to, or None when no pinning applies
+    (private targets are allowed). Raises when any resolved address is not public."""
+    check_url(url)
+    if _private_targets_allowed():
+        return None
+    _, host, port = _split(url)
+    literal = _literal_address(host)
+    if literal is not None:
+        return literal
+    addresses = await _resolve(host, port)
+    if not addresses or not all(is_public_address(address) for address in addresses):
+        raise UnsafeUrlError("url resolves to a private or reserved address")
+    return addresses[0]
+
+
+class PinnedTransport(httpx.AsyncBaseTransport):
+    """Connects to the address that passed the check instead of resolving the name again.
+
+    Checking a hostname and then letting the HTTP client look it up a second time leaves a
+    gap in which the DNS answer can change to an internal address. Here the request is
+    rewritten to the checked address; the Host header and the TLS server name keep the
+    original hostname, so virtual hosting and certificate verification are unaffected.
+    """
+
+    def __init__(self, inner: httpx.AsyncBaseTransport | None = None) -> None:
+        self._inner = inner or httpx.AsyncHTTPTransport()
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        address = await resolve_public_address(str(request.url))
+        if address is not None:
+            hostname = request.url.raw_host.decode("ascii")
+            request.headers["Host"] = request.url.netloc.decode("ascii")
+            request.extensions = {**request.extensions, "sni_hostname": hostname}
+            request.url = request.url.copy_with(host=str(address))
+        return await self._inner.handle_async_request(request)
+
+    async def aclose(self) -> None:
+        await self._inner.aclose()
+
+
+def pinned_client(**kwargs: Any) -> httpx.AsyncClient:
+    """An HTTP client for tenant-supplied URLs: pinned, and never following redirects."""
+    return httpx.AsyncClient(transport=PinnedTransport(), follow_redirects=False, **kwargs)

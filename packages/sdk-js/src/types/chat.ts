@@ -71,11 +71,28 @@ export interface TraceEvent {
   trace: RetrievalTrace;
 }
 
+/** A retrieval stage has started, e.g. `searching` or `generating`. */
+export interface StatusEvent {
+  type: "status";
+  stage: string;
+  /** Everything the server sent with the stage, including `stage` itself. */
+  detail: JsonObject;
+}
+
+/** Suggested follow-up choices the visitor can pick instead of typing. */
+export interface QuickRepliesEvent {
+  type: "quick_replies";
+  items: string[];
+}
+
 export interface DoneEvent {
   type: "done";
-  /** Present when the server reports why it declined to answer. */
-  refusalReason: string | null;
-  confidenceScore: number | null;
+  /** False when the assistant declined to answer. */
+  answered: boolean;
+  /** Evidence score of the answer; null when it was served from the semantic cache. */
+  confidence: number | null;
+  /** True when the question was logged as a knowledge gap. */
+  flagged: boolean;
 }
 
 export interface ErrorEvent {
@@ -93,7 +110,9 @@ export interface UnknownEvent {
 
 export type ChatStreamEvent =
   | ConversationEvent
+  | StatusEvent
   | TokenEvent
+  | QuickRepliesEvent
   | CitationsEvent
   | TraceEvent
   | DoneEvent
@@ -106,6 +125,12 @@ export interface ChatResult {
   trace: RetrievalTrace | null;
   conversationId: string;
   messageId: string;
+  /** False when the assistant declined to answer. */
+  answered: boolean;
+  /** True when the question was logged as a knowledge gap. */
+  flagged: boolean;
+  quickReplies: string[];
+  /** Why the assistant declined, taken from the retrieval trace. */
   refusalReason: string | null;
   confidenceScore: number | null;
 }

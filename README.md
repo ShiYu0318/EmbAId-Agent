@@ -760,6 +760,12 @@ the widget.
   `docker compose -f docker/docker-compose.yml exec ollama ollama pull llama3`.
 - **Ports in use:** move them with `API_PORT`, `DASHBOARD_PORT`, `POSTGRES_PORT`, or `REDIS_PORT`,
   e.g. `POSTGRES_PORT=5433 docker compose -f docker/docker-compose.yml up --build`.
+- **Network exposure:** Postgres, Redis, Qdrant and Ollama are published on `127.0.0.1` only,
+  because they run with default credentials or none. Only the API and the dashboard listen on
+  every interface.
+- **Upgrading an existing install:** the containers now run as an unprivileged user (uid 10001).
+  A data volume created by an earlier version is owned by root; hand it over once with
+  `docker compose -f docker/docker-compose.yml run --rm --user root api chown -R app:app /app/data`.
 - **Qdrant instead of pgvector:**
   `SEARCH_BACKEND=qdrant UV_EXTRAS="--extra qdrant" docker compose -f docker/docker-compose.yml --profile qdrant up --build`.
 - **Optional extras:** add them to the API image with `UV_EXTRAS`, e.g.
@@ -928,6 +934,7 @@ values live in `apps/api/src/config.py` and `apps/api/.env.example`.
 | `RATE_LIMIT_PUBLISHABLE` | `20` | Requests per minute for browser-facing keys. |
 | `RATE_LIMIT_SECRET` | `200` | Requests per minute for server-side keys. |
 | `RATE_LIMIT_PER_IP` | `600` | Requests per minute from one client address across all keys, so made-up keys cannot dodge the per-key limits. `0` turns it off. |
+| `RATE_LIMIT_BACKEND` | `memory` | `memory` counts inside each API process. `redis` counts in `REDIS_URL` so all replicas share one window, falling back to memory while Redis is unreachable. The compose file sets `redis`. |
 | `ALLOW_PRIVATE_NETWORK_TARGETS` | `false` | Lets crawl sources and webhooks reach loopback, private and link-local addresses. Leave off unless you crawl an intranet from a trusted deployment. |
 | `CRAWL_MAX_RESPONSE_BYTES` | `5000000` | Largest page or sitemap the crawler will download. |
 | `API_DOCS_ENABLED` | unset | `/docs`, `/redoc` and `/openapi.json`. Unset means on outside production and off in production. |
@@ -1018,16 +1025,18 @@ const client = new EmbAId({
 for await (const event of client.chat.stream({ message: "What is the refund window?" })) {
   if (event.type === "token") process.stdout.write(event.text);
   if (event.type === "citations") console.log("\nSources:", event.citations.map((c) => c.title));
-  if (event.type === "done" && event.refusalReason) {
-    console.log(`\nDeclined (${event.refusalReason}) — logged as a knowledge gap.`);
+  if (event.type === "done" && event.flagged) {
+    console.log("\nDeclined — logged as a knowledge gap.");
   }
 }
 ```
 
-The stream is a typed `AsyncGenerator` over a discriminated union — `conversation`, `token`,
-`citations`, `trace`, `done`, `error`, plus an `unknown` variant so a future server-side event
-does not break existing clients. Use `chat.send()` instead when you want the collected result
-rather than the stream.
+The stream is a typed `AsyncGenerator` over a discriminated union — `conversation`,
+`status`, `token`, `quick_replies`, `citations`, `trace`, `done`, `error`, plus an `unknown`
+variant so a future server-side event does not break existing clients. `done` carries `answered`,
+`confidence` and `flagged`. Use `chat.send()` instead when you want the collected result rather
+than the stream; it adds `answered`, `flagged`, `quickReplies`, `confidenceScore` and
+`refusalReason` to the answer and citations.
 
 Management calls require a secret key and must run server-side:
 
@@ -1245,10 +1254,17 @@ rate. The `sk_` key that can actually change things never reaches a browser.
 - Outbound requests are checked. Crawl sources, sitemap entries and webhook URLs may not point at
   loopback, private, link-local or cloud-metadata addresses; the check runs when the URL is saved
   and again on every request and redirect hop. `ALLOW_PRIVATE_NETWORK_TARGETS=true` lifts it.
-  The check resolves the hostname before connecting and does not pin the connection to that
-  address, so keep the API off networks that hold services with no authentication of their own.
+  Each connection goes to the address that passed the check, so a DNS answer that changes
+  afterwards (DNS rebinding) cannot redirect it; the hostname is still used for the `Host` header
+  and for TLS verification. With headless rendering, every request the page makes is checked and
+  the page's own host is pinned; requests a page makes to other hosts are checked but resolved by
+  the browser.
 - Rate limits per key (each key's own `rate_limit_per_minute`), per client address, and on the
-  login endpoints. The limiter is in-process: with several API replicas, each keeps its own count.
+  login endpoints. With `RATE_LIMIT_BACKEND=redis` the windows live in Redis and are shared by
+  every API replica; if Redis cannot be reached the API counts in memory until it is back. The
+  default, `memory`, counts inside each process.
+- The Docker images run as an unprivileged user, and the compose file publishes Postgres, Redis,
+  Qdrant and Ollama on `127.0.0.1` only.
 - Security headers on every response: a `default-src 'none'` content security policy,
   `Permissions-Policy`, `X-Frame-Options`, `nosniff`, and HSTS in production. Strict CORS;
   wildcard origins rejected outside development.

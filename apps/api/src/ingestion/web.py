@@ -1,13 +1,18 @@
 import asyncio
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Any, Protocol
 from urllib.parse import urldefrag, urljoin, urlsplit
 from urllib.robotparser import RobotFileParser
 
 from bs4 import BeautifulSoup
 
 from ..config import get_settings
-from ..security.outbound import UnsafeUrlError, assert_public_url
+from ..security.outbound import (
+    UnsafeUrlError,
+    assert_public_url,
+    pinned_client,
+    resolve_public_address,
+)
 
 USER_AGENT = "EmbAId-Agent-Ingest/0.1 (+https://github.com/ShiYu0318/EmbAId-Agent)"
 DEFAULT_MAX_PAGES = 25
@@ -16,6 +21,8 @@ DEFAULT_TIMEOUT_SECONDS = 20.0
 MIN_STATIC_TEXT_CHARS = 200
 MAX_SITEMAP_DEPTH = 2
 MAX_REDIRECTS = 5
+# Requests that never leave the browser.
+_INLINE_SCHEMES = frozenset({"data", "blob", "about"})
 
 _CHROME_TAGS = (
     "script",
@@ -86,14 +93,10 @@ class HttpPageFetcher:
 
     def _ensure_client(self) -> object:
         if self._client is None:
-            import httpx
-
             # Redirects are followed by hand so every hop is checked against the
-            # outbound guard before it is requested.
-            self._client = httpx.AsyncClient(
-                timeout=self.timeout,
-                follow_redirects=False,
-                headers={"user-agent": self.user_agent},
+            # outbound guard, and each connection goes to the address that was checked.
+            self._client = pinned_client(
+                timeout=self.timeout, headers={"user-agent": self.user_agent}
             )
         return self._client
 
@@ -211,17 +214,48 @@ async def render_with_playwright(url: str, timeout: float = DEFAULT_TIMEOUT_SECO
         return None
 
     try:
-        await assert_public_url(url)
+        address = await resolve_public_address(url)
         async with async_playwright() as playwright:
-            browser = await playwright.chromium.launch()
+            browser = await playwright.chromium.launch(args=_resolver_args(url, address))
             try:
                 page = await browser.new_page(user_agent=USER_AGENT)
+                # The page's scripts and subresources are requests too.
+                await page.route("**/*", _guard_route)
                 await page.goto(url, timeout=timeout * 1000, wait_until="networkidle")
                 return await page.content()
             finally:
                 await browser.close()
     except Exception:
         return None
+
+
+def _resolver_args(url: str, address: object | None) -> list[str]:
+    """Chromium flags that make the page's own host resolve to the checked address."""
+    if address is None:
+        return []
+    host = (urlsplit(url).hostname or "").lower()
+    target = f"[{address}]" if ":" in str(address) else str(address)
+    if not host or host == str(address):
+        return []
+    return [f"--host-resolver-rules=MAP {host} {target}"]
+
+
+async def request_allowed(url: str) -> bool:
+    """Whether the headless browser may make this request."""
+    if urlsplit(url).scheme.lower() in _INLINE_SCHEMES:
+        return True
+    try:
+        await assert_public_url(url)
+    except UnsafeUrlError:
+        return False
+    return True
+
+
+async def _guard_route(route: Any) -> None:
+    if await request_allowed(route.request.url):
+        await route.continue_()
+    else:
+        await route.abort()
 
 
 async def fetch_page(

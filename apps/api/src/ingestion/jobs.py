@@ -20,7 +20,7 @@ from ..db.models import (
 from ..db.session import session_scope
 from ..search.base import IndexedChunk
 from ..security.api_keys import sign_payload
-from ..security.outbound import assert_public_url
+from ..security.outbound import pinned_client
 from ..tasks.queue import enqueue
 from . import runtime
 from .chunking import chunk_text
@@ -399,14 +399,10 @@ async def reindex_project(ctx: dict[str, Any], project_id: str) -> dict[str, Any
 
 class _HttpxWebhookClient:
     async def post(self, url: str, content: bytes, headers: dict[str, str]) -> Any:
-        import httpx
-
-        # The target is re-checked at send time because DNS can change after the
-        # endpoint was saved, and redirects are never followed.
-        await assert_public_url(url)
-        async with httpx.AsyncClient(
-            timeout=WEBHOOK_TIMEOUT_SECONDS, follow_redirects=False
-        ) as client:
+        # The target is checked at send time, because DNS can change after the endpoint
+        # was saved, and the connection is pinned to the address that was checked.
+        # Redirects are never followed.
+        async with pinned_client(timeout=WEBHOOK_TIMEOUT_SECONDS) as client:
             return await client.post(url, content=content, headers=headers)
 
 

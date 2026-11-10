@@ -18,8 +18,9 @@ tokens, keys, account identifiers, and uploaded content. Coordinate disclosure w
 The README's [security model](README.md#security-model) lists the controls that ship with the
 code: key scoping and origin allowlists, rate limits per key and per address, checks that stop
 crawl sources and webhooks reaching internal addresses, upload and filename handling, response
-headers, and tenant isolation. Known limits are stated there too: the outbound address check does
-not pin the connection to the address it checked, and the rate limiter counts per process.
+headers, and tenant isolation. Outbound connections are pinned to the address that was checked.
+Rate limits are shared across API replicas when `RATE_LIMIT_BACKEND=redis`; the default counts
+per process, so set it when you run more than one replica.
 
 Settings that widen the attack surface are off by default and should stay off unless you need
 them: `ALLOW_PRIVATE_NETWORK_TARGETS`, `API_DOCS_ENABLED` in production, and wildcard CORS origins.

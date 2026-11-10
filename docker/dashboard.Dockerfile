@@ -1,17 +1,19 @@
 FROM node:20-slim
 
-RUN corepack enable
+# Build and run as the image's unprivileged user.
+RUN corepack enable && mkdir /repo && chown node:node /repo
 
+USER node
 WORKDIR /repo
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/dashboard/package.json apps/dashboard/
-COPY apps/widget/package.json apps/widget/
-COPY packages/sdk-js/package.json packages/sdk-js/
+COPY --chown=node:node package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --chown=node:node apps/dashboard/package.json apps/dashboard/
+COPY --chown=node:node apps/widget/package.json apps/widget/
+COPY --chown=node:node packages/sdk-js/package.json packages/sdk-js/
 RUN pnpm install --frozen-lockfile --filter "@embaid/dashboard..."
 
-COPY apps/dashboard apps/dashboard
-COPY apps/widget apps/widget
+COPY --chown=node:node apps/dashboard apps/dashboard
+COPY --chown=node:node apps/widget apps/widget
 
 # NEXT_PUBLIC_* values are compiled into the browser bundle, so they are build arguments.
 # Set NEXT_PUBLIC_API_URL to the API's public URL when deploying beyond localhost.

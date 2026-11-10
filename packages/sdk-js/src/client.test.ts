@@ -54,7 +54,8 @@ describe("chat.send", () => {
         'event: token\ndata: {"text":"hel"}\n\n',
         'event: token\ndata: {"text":"lo"}\n\n',
         'event: citations\ndata: {"items":[{"chunk_id":"c1","document_id":"d1","title":"T","url":null,"snippet":"s"}]}\n\n',
-        'event: done\ndata: {"answered":true,"refusal_reason":null,"confidence_score":0.8}\n\n',
+        'event: quick_replies\ndata: {"items":["Pricing","Refunds"]}\n\n',
+        'event: done\ndata: {"answered":true,"confidence":0.8,"flagged":false}\n\n',
       ]),
     );
     const client = new EmbAId({ apiKey: "pub_abc", projectId: "proj_1", fetch: fetchMock });
@@ -65,6 +66,31 @@ describe("chat.send", () => {
     expect(result.conversationId).toBe("conv_1");
     expect(result.citations).toHaveLength(1);
     expect(result.confidenceScore).toBe(0.8);
+    expect(result.answered).toBe(true);
+    expect(result.flagged).toBe(false);
+    expect(result.quickReplies).toEqual(["Pricing", "Refunds"]);
+  });
+
+  it("reports a refusal that was logged as a knowledge gap", async () => {
+    const fetchMock = vi.fn(async () =>
+      sseResponse([
+        'event: status\ndata: {"stage":"searching"}\n\n',
+        'event: token\ndata: {"text":"I do not know."}\n\n',
+        'event: trace\ndata: {"refusal_reason":"low_confidence"}\n\n',
+        'event: done\ndata: {"answered":false,"confidence":0.12,"flagged":true}\n\n',
+      ]),
+    );
+    const client = new EmbAId({ apiKey: "pub_abc", projectId: "proj_1", fetch: fetchMock });
+
+    const events = [];
+    for await (const event of client.chat.stream({ message: "hi" })) events.push(event);
+    expect(events[0]).toEqual({ type: "status", stage: "searching", detail: { stage: "searching" } });
+    expect(events.at(-1)).toEqual({ type: "done", answered: false, confidence: 0.12, flagged: true });
+
+    const result = await client.chat.send({ message: "hi" });
+    expect(result.answered).toBe(false);
+    expect(result.flagged).toBe(true);
+    expect(result.refusalReason).toBe("low_confidence");
   });
 });
 
