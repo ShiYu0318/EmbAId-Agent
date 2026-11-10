@@ -88,6 +88,11 @@ class Settings(BaseSettings):
     rate_limit_publishable: int = 20
     rate_limit_secret: int = 200
 
+    # Crawler, sitemap and webhook requests refuse loopback, private and link-local
+    # targets. Enable only when the knowledge base lives on a trusted intranet.
+    allow_private_network_targets: bool = False
+    crawl_max_response_bytes: int = 5_000_000
+
     google_client_id: str | None = None
     google_client_secret: str | None = None
     oauth_redirect_base: str = "http://localhost:8000"

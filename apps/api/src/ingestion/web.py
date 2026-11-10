@@ -6,12 +6,16 @@ from urllib.robotparser import RobotFileParser
 
 from bs4 import BeautifulSoup
 
+from ..config import get_settings
+from ..security.outbound import UnsafeUrlError, assert_public_url
+
 USER_AGENT = "EmbAId-Agent-Ingest/0.1 (+https://github.com/ShiYu0318/EmbAId-Agent)"
 DEFAULT_MAX_PAGES = 25
 DEFAULT_DELAY_SECONDS = 0.5
 DEFAULT_TIMEOUT_SECONDS = 20.0
 MIN_STATIC_TEXT_CHARS = 200
 MAX_SITEMAP_DEPTH = 2
+MAX_REDIRECTS = 5
 
 _CHROME_TAGS = (
     "script",
@@ -84,22 +88,42 @@ class HttpPageFetcher:
         if self._client is None:
             import httpx
 
+            # Redirects are followed by hand so every hop is checked against the
+            # outbound guard before it is requested.
             self._client = httpx.AsyncClient(
                 timeout=self.timeout,
-                follow_redirects=True,
+                follow_redirects=False,
                 headers={"user-agent": self.user_agent},
             )
         return self._client
 
     async def fetch(self, url: str) -> str | None:
         client = self._ensure_client()
+        limit = get_settings().crawl_max_response_bytes
+        current = url
         try:
-            response = await client.get(url)  # type: ignore[attr-defined]
+            for _ in range(MAX_REDIRECTS + 1):
+                await assert_public_url(current)
+                async with client.stream("GET", current) as response:  # type: ignore[attr-defined]
+                    if response.is_redirect:
+                        location = response.headers.get("location")
+                        if not location:
+                            return None
+                        current = urljoin(current, location)
+                        continue
+                    if response.status_code >= 400:
+                        return None
+                    body = bytearray()
+                    async for chunk in response.aiter_bytes():
+                        body.extend(chunk)
+                        if len(body) > limit:
+                            return None
+                    return bytes(body).decode(response.encoding or "utf-8", errors="replace")
+        except UnsafeUrlError:
+            return None
         except Exception:
             return None
-        if response.status_code >= 400:
-            return None
-        return response.text
+        return None
 
     async def aclose(self) -> None:
         if self._client is not None:
@@ -187,6 +211,7 @@ async def render_with_playwright(url: str, timeout: float = DEFAULT_TIMEOUT_SECO
         return None
 
     try:
+        await assert_public_url(url)
         async with async_playwright() as playwright:
             browser = await playwright.chromium.launch()
             try:
@@ -320,6 +345,8 @@ async def expand_sitemap(
         for child in locations:
             if len(collected) >= max_urls:
                 break
+            if not same_origin(sitemap_url, child):
+                continue
             try:
                 collected.extend(
                     await expand_sitemap(
@@ -333,5 +360,11 @@ async def expand_sitemap(
                 continue
         return list(dict.fromkeys(collected))[:max_urls]
 
-    unique = list(dict.fromkeys(normalize_url(url) for url in locations if _is_crawlable(url)))
+    unique = list(
+        dict.fromkeys(
+            normalize_url(url)
+            for url in locations
+            if _is_crawlable(url) and same_origin(sitemap_url, url)
+        )
+    )
     return unique[:max_urls]

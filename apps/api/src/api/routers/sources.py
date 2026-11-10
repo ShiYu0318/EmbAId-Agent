@@ -10,6 +10,7 @@ from ...ingestion import jobs
 from ...storage import get_storage
 from ..deps import CurrentUser, SessionDep, owned_project
 from ..errors import ApiError, NotFound
+from ...security.outbound import UnsafeUrlError, check_url
 from .documents import purge_document
 
 router = APIRouter(prefix="/v1", tags=["ingestion"])
@@ -58,8 +59,14 @@ def _redact(config: dict[str, Any]) -> dict[str, Any]:
 
 
 def _validate_config(source_type: str, config: dict[str, Any]) -> None:
-    if source_type in {"url_crawl", "sitemap"} and not config.get("url"):
-        raise ApiError(f"{source_type} sources require a url in config")
+    if source_type in {"url_crawl", "sitemap"}:
+        url = config.get("url")
+        if not url or not isinstance(url, str):
+            raise ApiError(f"{source_type} sources require a url in config")
+        try:
+            check_url(url)
+        except UnsafeUrlError as exc:
+            raise ApiError(f"source url rejected: {exc}") from exc
     if source_type == "notion" and not config.get("token"):
         raise ApiError("notion sources require a token in config")
     if source_type == "google_docs" and not config.get("document_ids"):
