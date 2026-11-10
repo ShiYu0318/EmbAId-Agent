@@ -21,15 +21,24 @@ RUN apt-get update \
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-WORKDIR /app
+# The API and the worker run as an unprivileged user. /app/data holds the SQLite file,
+# indices and uploads, and is where the compose volume is mounted.
+RUN useradd --system --uid 10001 --home-dir /app --shell /usr/sbin/nologin app \
+    && mkdir -p /app/data \
+    && chown -R app:app /app
+ENV HOME=/app \
+    UV_NO_CACHE=1
 
-COPY apps/api/pyproject.toml ./
+WORKDIR /app
+USER app
+
+COPY --chown=app:app apps/api/pyproject.toml ./
 # Optional extras, e.g. --build-arg UV_EXTRAS="--extra bedrock --extra rerank"
 ARG UV_EXTRAS=""
 RUN uv sync --no-dev --no-install-project $UV_EXTRAS
 
-COPY apps/api/ ./
-COPY --from=widget /repo/apps/widget/dist/widget.js ./static/widget.js
+COPY --chown=app:app apps/api/ ./
+COPY --chown=app:app --from=widget /repo/apps/widget/dist/widget.js ./static/widget.js
 # Install the project itself now, so containers start without re-syncing dependencies.
 RUN uv sync --no-dev $UV_EXTRAS
 
