@@ -876,8 +876,8 @@ const client = new EmbAId({
 for await (const event of client.chat.stream({ message: "退款期限是多久？" })) {
   if (event.type === "token") process.stdout.write(event.text);
   if (event.type === "citations") console.log("\n來源：", event.citations.map((c) => c.title));
-  if (event.type === "done" && event.refusalReason) {
-    console.log(`\n已婉拒（${event.refusalReason}），並記錄為知識缺口。`);
+  if (event.type === "done" && event.flagged) {
+    console.log("\n已婉拒，並記錄為知識缺口。");
   }
 }
 ```

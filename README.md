@@ -1018,8 +1018,8 @@ const client = new EmbAId({
 for await (const event of client.chat.stream({ message: "What is the refund window?" })) {
   if (event.type === "token") process.stdout.write(event.text);
   if (event.type === "citations") console.log("\nSources:", event.citations.map((c) => c.title));
-  if (event.type === "done" && event.refusalReason) {
-    console.log(`\nDeclined (${event.refusalReason}) — logged as a knowledge gap.`);
+  if (event.type === "done" && event.flagged) {
+    console.log("\nDeclined — logged as a knowledge gap.");
   }
 }
 ```

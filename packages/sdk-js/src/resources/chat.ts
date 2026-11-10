@@ -41,8 +41,15 @@ function parseEvent(name: string, data: string): ChatStreamEvent {
         conversationId: String(record.conversation_id ?? ""),
         messageId: String(record.message_id ?? ""),
       };
+    case "status":
+      return { type: "status", stage: String(record.stage ?? ""), detail: record as JsonObject };
     case "token":
       return { type: "token", text: String(record.text ?? "") };
+    case "quick_replies":
+      return {
+        type: "quick_replies",
+        items: Array.isArray(record.items) ? record.items.map(String).filter(Boolean) : [],
+      };
     case "citations":
       return { type: "citations", citations: (record.items as Citation[]) ?? [] };
     case "trace":
@@ -50,8 +57,9 @@ function parseEvent(name: string, data: string): ChatStreamEvent {
     case "done":
       return {
         type: "done",
-        refusalReason: (record.refusal_reason as string | null) ?? null,
-        confidenceScore: (record.confidence_score as number | null) ?? null,
+        answered: Boolean(record.answered),
+        confidence: typeof record.confidence === "number" ? record.confidence : null,
+        flagged: Boolean(record.flagged),
       };
     case "error":
       return {
@@ -93,7 +101,9 @@ export class ChatResource {
     let trace: RetrievalTrace | null = null;
     let conversationId = "";
     let messageId = "";
-    let refusalReason: string | null = null;
+    let answered = false;
+    let flagged = false;
+    let quickReplies: string[] = [];
     let confidenceScore: number | null = null;
 
     for await (const event of this.stream({ ...options, includeTrace: true })) {
@@ -111,9 +121,13 @@ export class ChatResource {
         case "trace":
           trace = event.trace;
           break;
+        case "quick_replies":
+          quickReplies = event.items;
+          break;
         case "done":
-          refusalReason = event.refusalReason;
-          confidenceScore = event.confidenceScore;
+          answered = event.answered;
+          flagged = event.flagged;
+          confidenceScore = event.confidence;
           break;
         case "error":
           throw new EmbAIdStreamError(event.message, { status: 0 });
@@ -122,7 +136,19 @@ export class ChatResource {
       }
     }
 
-    return { answer, citations, trace, conversationId, messageId, refusalReason, confidenceScore };
+    const refusalReason = (trace as RetrievalTrace | null)?.refusal_reason ?? null;
+    return {
+      answer,
+      citations,
+      trace,
+      conversationId,
+      messageId,
+      answered,
+      flagged,
+      quickReplies,
+      refusalReason,
+      confidenceScore,
+    };
   }
 
   feedback(
