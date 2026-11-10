@@ -9,9 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...config import get_settings
 from ...db.models import Organization, Project, User, WebhookDelivery, WebhookEndpoint
+from ...security.outbound import UnsafeUrlError, check_url
 from ..deps import CurrentUser, SessionDep, owned_project
 from ..errors import ApiError, NotFound
-from ...security.outbound import UnsafeUrlError, check_url
 from ..services import events
 
 router = APIRouter(prefix="/v1", tags=["webhooks"])

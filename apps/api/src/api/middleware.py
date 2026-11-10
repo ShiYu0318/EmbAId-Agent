@@ -1,6 +1,4 @@
 import re
-import time
-from collections import defaultdict, deque
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -8,8 +6,8 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from ..config import get_settings
-
-WINDOW_SECONDS = 60
+from ..security.rate_limit import SlidingWindowLimiter, key_identity
+from ..security.rate_limit import limiter as shared_limiter
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -26,50 +24,57 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+def _rate_limited(retry_after: int) -> Response:
+    return Response(
+        content='{"detail":{"code":"rate_limited","message":"rate limit exceeded"}}',
+        status_code=429,
+        media_type="application/json",
+        headers={"Retry-After": str(retry_after)},
+    )
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app: ASGIApp) -> None:
+    """Three sliding windows: per API key, per client address, and per address on /auth/.
+
+    A key's own ``rate_limit_per_minute`` is registered by ``api.deps.key_context`` once
+    the key has been verified; until then the default for its type applies. The address
+    ceiling stops a client from minting fresh buckets with made-up keys.
+    """
+
+    def __init__(self, app: ASGIApp, limiter: SlidingWindowLimiter | None = None) -> None:
         super().__init__(app)
-        self._hits: dict[str, deque[float]] = defaultdict(deque)
+        self.limiter = limiter or shared_limiter
 
-    def _identity(self, request: Request) -> str | None:
-        key = request.headers.get("x-api-key")
-        if key:
-            return f"key:{key[:16]}"
-        if request.url.path.startswith("/auth/"):
-            client = request.client
-            return f"ip:{client.host}" if client else None
-        return None
-
-    def _limit_for(self, request: Request) -> int:
+    @staticmethod
+    def _default_limit(key: str) -> int:
         settings = get_settings()
-        key = request.headers.get("x-api-key", "")
         if key.startswith("sk_"):
             return settings.rate_limit_secret
-        if key:
-            return settings.rate_limit_publishable
         return settings.rate_limit_publishable
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        identity = self._identity(request)
-        if identity is None:
+        if request.method == "OPTIONS":
             return await call_next(request)
 
-        limit = self._limit_for(request)
-        now = time.monotonic()
-        window = self._hits[identity]
-        while window and now - window[0] > WINDOW_SECONDS:
-            window.popleft()
+        settings = get_settings()
+        key = request.headers.get("x-api-key")
+        host = request.client.host if request.client else None
+        checks: list[tuple[str, int]] = []
 
-        if len(window) >= limit:
-            retry_after = int(WINDOW_SECONDS - (now - window[0])) + 1
-            return Response(
-                content='{"detail":{"code":"rate_limited","message":"rate limit exceeded"}}',
-                status_code=429,
-                media_type="application/json",
-                headers={"Retry-After": str(retry_after)},
-            )
+        if key:
+            if host and settings.rate_limit_per_ip > 0:
+                checks.append((f"ip:{host}", settings.rate_limit_per_ip))
+            identity = key_identity(key)
+            limit = self.limiter.known_limit(identity) or self._default_limit(key)
+            checks.append((identity, limit))
+        elif host and request.url.path.startswith("/auth/"):
+            checks.append((f"auth:{host}", settings.rate_limit_publishable))
 
-        window.append(now)
+        for identity, limit in checks:
+            retry_after = self.limiter.hit(identity, limit)
+            if retry_after is not None:
+                return _rate_limited(retry_after)
+
         return await call_next(request)
 
 

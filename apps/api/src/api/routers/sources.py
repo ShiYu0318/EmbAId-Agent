@@ -7,10 +7,10 @@ from sqlalchemy import select
 
 from ...db.models import Document, IngestionSource
 from ...ingestion import jobs
+from ...security.outbound import UnsafeUrlError, check_url
 from ...storage import get_storage
 from ..deps import CurrentUser, SessionDep, owned_project
 from ..errors import ApiError, NotFound
-from ...security.outbound import UnsafeUrlError, check_url
 from .documents import purge_document
 
 router = APIRouter(prefix="/v1", tags=["ingestion"])

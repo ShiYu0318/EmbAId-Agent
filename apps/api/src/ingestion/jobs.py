@@ -19,13 +19,13 @@ from ..db.models import (
 from ..db.session import session_scope
 from ..search.base import IndexedChunk
 from ..security.api_keys import sign_payload
+from ..security.outbound import assert_public_url
 from ..tasks.queue import enqueue
 from . import runtime
 from .chunking import chunk_text
 from .connectors import build_connector
 from .contextual import contextualize, embedding_inputs
 from .loaders import load_document
-from ..security.outbound import assert_public_url
 from .web import crawl_site, expand_sitemap, fetch_page
 
 EMBED_BATCH_SIZE = 64

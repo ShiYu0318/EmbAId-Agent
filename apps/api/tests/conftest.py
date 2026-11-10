@@ -24,6 +24,9 @@ def isolated_settings(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("RERANK_ENABLED", "false")
     monkeypatch.setenv("CONTEXTUAL_EMBEDDING_ENABLED", "false")
     get_settings.cache_clear()
+    from src.security.rate_limit import limiter
+
+    limiter.reset()
     yield
     get_settings.cache_clear()
 

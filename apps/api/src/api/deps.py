@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db.models import ApiKey, Organization, Project, User
 from ..db.session import get_session
 from ..security import api_keys, tokens
+from ..security.rate_limit import key_identity, limiter
 from .errors import Forbidden, NotFound, Unauthorized
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -93,6 +94,9 @@ async def key_context(
         origin = request.headers.get("origin") or request.headers.get("x-app-id")
         if origin not in key.allowed_origins:
             raise Forbidden("origin not allowed for this key")
+
+    # From the next request on, the middleware enforces this key's own limit.
+    limiter.remember_limit(key_identity(x_api_key), key.rate_limit_per_minute)
 
     project = await session.get(Project, key.project_id)
     if project is None:

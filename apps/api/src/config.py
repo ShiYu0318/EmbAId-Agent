@@ -87,6 +87,10 @@ class Settings(BaseSettings):
 
     rate_limit_publishable: int = 20
     rate_limit_secret: int = 200
+    # Ceiling per client address across all API keys; 0 disables it. Run the API with
+    # proxy headers enabled when it sits behind a reverse proxy, or every visitor
+    # shares the proxy's address.
+    rate_limit_per_ip: int = 600
 
     # Crawler, sitemap and webhook requests refuse loopback, private and link-local
     # targets. Enable only when the knowledge base lives on a trusted intranet.
