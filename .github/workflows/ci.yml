@@ -41,9 +41,10 @@ jobs:
         with:
           enable-cache: true
       # qdrant and bedrock so their backend and provider tests run too
-      - run: uv sync --extra dev --extra qdrant --extra bedrock
-      - run: uv run ruff check .
-      - run: uv run pytest -q
+      # --frozen: test exactly what uv.lock pins, and fail if the lockfile is out of date
+      - run: uv sync --frozen --extra dev --extra qdrant --extra bedrock
+      - run: uv run --frozen ruff check .
+      - run: uv run --frozen pytest -q
 
   web:
     runs-on: ubuntu-latest
@@ -60,3 +61,14 @@ jobs:
       - run: pnpm -r lint
       - run: pnpm -r typecheck
       - run: pnpm -r test
+
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f docker/api.Dockerfile -t embaid-api .
+      - run: docker build -f docker/dashboard.Dockerfile -t embaid-dashboard .
+      # Both images must run as an unprivileged user, and the API's environment must load.
+      - run: test "$(docker run --rm embaid-api id -u)" != "0"
+      - run: test "$(docker run --rm embaid-dashboard id -u)" != "0"
+      - run: docker run --rm embaid-api uv run --no-sync python -c "import fastapi, redis, src.config"
