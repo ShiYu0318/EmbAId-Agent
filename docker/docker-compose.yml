@@ -24,6 +24,8 @@ x-api: &api
     QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
     QUEUE_ENABLED: "true"
     REDIS_URL: redis://redis:6379
+    # Count rate limits in Redis so they hold across API replicas.
+    RATE_LIMIT_BACKEND: ${RATE_LIMIT_BACKEND:-redis}
     # Uploaded files live on a volume shared by the API and the worker. Set
     # STORAGE_ENDPOINT_URL / STORAGE_ACCESS_KEY / STORAGE_SECRET_KEY in .env to use S3 instead.
     # Ollama on your machine by default; with --profile ollama use http://ollama:11434.

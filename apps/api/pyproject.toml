@@ -46,6 +46,7 @@ dev = [
     "pytest-cov>=6.0",
     "ruff>=0.9",
     "mypy>=1.14",
+    "fakeredis[lua]>=2.26",
 ]
 bedrock = [
     "langchain-aws>=0.2",

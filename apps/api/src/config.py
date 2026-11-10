@@ -91,6 +91,9 @@ class Settings(BaseSettings):
     # proxy headers enabled when it sits behind a reverse proxy, or every visitor
     # shares the proxy's address.
     rate_limit_per_ip: int = 600
+    # "memory" counts inside each API process. "redis" counts in Redis (REDIS_URL) so
+    # every replica shares one window; it falls back to memory while Redis is unreachable.
+    rate_limit_backend: Literal["memory", "redis"] = "memory"
 
     # Crawler, sitemap and webhook requests refuse loopback, private and link-local
     # targets. Enable only when the knowledge base lives on a trusted intranet.

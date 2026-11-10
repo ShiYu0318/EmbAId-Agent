@@ -6,7 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from ..config import get_settings
-from ..security.rate_limit import SlidingWindowLimiter, key_identity
+from ..security.rate_limit import SharedLimiter, SlidingWindowLimiter, key_identity
 from ..security.rate_limit import limiter as shared_limiter
 
 # The API only serves JSON, an event stream and one script, so its own responses may
@@ -56,6 +56,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: ASGIApp, limiter: SlidingWindowLimiter | None = None) -> None:
         super().__init__(app)
         self.limiter = limiter or shared_limiter
+        self.shared = SharedLimiter(self.limiter)
 
     @staticmethod
     def _default_limit(key: str) -> int:
@@ -83,7 +84,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             checks.append((f"auth:{host}", settings.rate_limit_publishable))
 
         for identity, limit in checks:
-            retry_after = self.limiter.hit(identity, limit)
+            retry_after = await self.shared.hit(identity, limit)
             if retry_after is not None:
                 return _rate_limited(retry_after)
 
