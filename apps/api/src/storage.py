@@ -14,13 +14,20 @@ class ObjectStorage(Protocol):
     async def delete(self, key: str) -> None: ...
 
 
+class StorageKeyError(ValueError):
+    pass
+
+
 class LocalStorage:
     def __init__(self, root: str = "./data/objects") -> None:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _path(self, key: str) -> Path:
-        path = self.root / key
+        root = self.root.resolve()
+        path = (root / key).resolve()
+        if path == root or not path.is_relative_to(root):
+            raise StorageKeyError(f"storage key escapes the storage root: {key!r}")
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
 

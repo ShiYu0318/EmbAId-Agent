@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import re
 from datetime import UTC, datetime
 from typing import Any
 
@@ -19,6 +20,7 @@ from ..db.models import (
 from ..db.session import session_scope
 from ..search.base import IndexedChunk
 from ..security.api_keys import sign_payload
+from ..security.outbound import assert_public_url
 from ..tasks.queue import enqueue
 from . import runtime
 from .chunking import chunk_text
@@ -46,8 +48,26 @@ def content_digest(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+_UNSAFE_FILENAME_CHARS = re.compile(r"[^\w.\- ]+")
+MAX_FILENAME_CHARS = 120
+
+
+def safe_filename(filename: str | None) -> str:
+    """Reduce a client-supplied name to a single harmless path segment."""
+    name = (filename or "").replace("\\", "/").rsplit("/", 1)[-1]
+    name = _UNSAFE_FILENAME_CHARS.sub("_", name).strip(" .")
+    if len(name) > MAX_FILENAME_CHARS:
+        stem, dot, suffix = name.rpartition(".")
+        keep = MAX_FILENAME_CHARS - len(suffix) - 1
+        if dot and 0 < len(suffix) <= 10:
+            name = f"{stem[:keep]}.{suffix}"
+        else:
+            name = name[:MAX_FILENAME_CHARS]
+    return name or "document"
+
+
 def storage_key_for(project_id: str, document_id: str, filename: str) -> str:
-    return f"{project_id}/{document_id}/{filename}"
+    return f"{project_id}/{document_id}/{safe_filename(filename)}"
 
 
 def canonical_payload(payload: dict[str, Any]) -> bytes:
@@ -381,7 +401,12 @@ class _HttpxWebhookClient:
     async def post(self, url: str, content: bytes, headers: dict[str, str]) -> Any:
         import httpx
 
-        async with httpx.AsyncClient(timeout=WEBHOOK_TIMEOUT_SECONDS) as client:
+        # The target is re-checked at send time because DNS can change after the
+        # endpoint was saved, and redirects are never followed.
+        await assert_public_url(url)
+        async with httpx.AsyncClient(
+            timeout=WEBHOOK_TIMEOUT_SECONDS, follow_redirects=False
+        ) as client:
             return await client.post(url, content=content, headers=headers)
 
 

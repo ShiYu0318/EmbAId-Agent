@@ -24,6 +24,16 @@ class GoogleProfile:
     email: str
     name: str | None
     picture: str | None
+    email_verified: bool = False
+
+
+def safe_next_path(value: object) -> str:
+    """Only same-site relative paths survive; anything else falls back to the root."""
+    if not isinstance(value, str) or not value.startswith("/"):
+        return "/"
+    if value.startswith(("//", "/\\")) or any(ord(char) < 0x20 for char in value):
+        return "/"
+    return value
 
 
 def _sign_state(next_path: str) -> str:
@@ -31,7 +41,7 @@ def _sign_state(next_path: str) -> str:
     now = datetime.now(UTC)
     payload = {
         "purpose": "google_oauth",
-        "next": next_path,
+        "next": safe_next_path(next_path),
         "iat": now,
         "exp": now + timedelta(seconds=STATE_TTL_SECONDS),
     }
@@ -46,8 +56,7 @@ def verify_state(state: str) -> str:
         raise OAuthError("invalid or expired state") from exc
     if payload.get("purpose") != "google_oauth":
         raise OAuthError("invalid state")
-    next_path = payload.get("next", "/")
-    return next_path if isinstance(next_path, str) else "/"
+    return safe_next_path(payload.get("next", "/"))
 
 
 def authorization_url(next_path: str = "/") -> str:
@@ -100,10 +109,13 @@ async def exchange_code(code: str) -> GoogleProfile:
     email = info.get("email")
     if not sub or not email:
         raise OAuthError("google profile is missing required fields")
+    if info.get("email_verified") not in (True, "true"):
+        raise OAuthError("google account email is not verified")
 
     return GoogleProfile(
         sub=str(sub),
         email=str(email).lower(),
         name=info.get("name"),
         picture=info.get("picture"),
+        email_verified=True,
     )

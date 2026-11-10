@@ -2,12 +2,13 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Response, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 
 from ...config import get_settings
 from ...db.models import Organization, Project
 from ...providers.registry import CHAT_PROVIDERS, EMBEDDING_PROVIDERS
+from .. import validation
 from ..deps import CurrentUser, SessionDep, owned_organization, owned_project
 from ..errors import ApiError
 from ..services.templates import PersonaTemplate, get_template, list_templates, template_keys
@@ -18,7 +19,9 @@ router = APIRouter(prefix="/v1", tags=["projects"])
 class ProjectCreate(BaseModel):
     name: str = Field(min_length=1, max_length=160)
     template: str | None = Field(default=None, max_length=40)
-    system_prompt: str | None = None
+    system_prompt: str | None = Field(
+        default=None, max_length=validation.MAX_SYSTEM_PROMPT_CHARS
+    )
     chat_provider: str | None = Field(default=None, max_length=40)
     chat_model: str | None = Field(default=None, max_length=120)
     embedding_provider: str | None = Field(default=None, max_length=40)
@@ -30,7 +33,9 @@ class ProjectCreate(BaseModel):
 
 class ProjectUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=160)
-    system_prompt: str | None = None
+    system_prompt: str | None = Field(
+        default=None, max_length=validation.MAX_SYSTEM_PROMPT_CHARS
+    )
     chat_provider: str | None = Field(default=None, max_length=40)
     chat_model: str | None = Field(default=None, max_length=120)
     embedding_provider: str | None = Field(default=None, max_length=40)
@@ -64,6 +69,23 @@ class WidgetConfigPayload(BaseModel):
     bot_avatar_url: str | None = Field(default=None, max_length=2000)
     persona: str = Field(default="", max_length=500)
     accent_color: str = Field(default="#0033ff", max_length=20)
+
+    @field_validator("bot_avatar_url")
+    @classmethod
+    def _avatar_is_http(cls, value: str | None) -> str | None:
+        return validation.http_url(value)
+
+    @field_validator("accent_color")
+    @classmethod
+    def _accent_is_hex(cls, value: str) -> str:
+        return validation.hex_color(value)
+
+    @field_validator("suggested_questions")
+    @classmethod
+    def _questions_are_short(cls, value: list[str]) -> list[str]:
+        if any(len(question) > 200 for question in value):
+            raise ValueError("each suggested question is limited to 200 characters")
+        return value
 
 
 class TemplatePayload(BaseModel):

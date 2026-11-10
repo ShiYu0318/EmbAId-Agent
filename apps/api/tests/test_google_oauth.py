@@ -100,10 +100,62 @@ async def test_google_upsert_links_existing_email_account(client: AsyncClient) -
         await session.commit()
 
     profile = google_oauth.GoogleProfile(
-        sub="google-sub-2", email="existing@example.com", name="Existing", picture="http://pic"
+        sub="google-sub-2", email="existing@example.com", name="Existing", picture="http://pic",
+        email_verified=True,
     )
     async with session_scope() as session:
         user = await _upsert_google_user(session, profile)
         assert user.google_sub == "google-sub-2"
         assert user.password_hash is not None
         assert user.avatar_url == "http://pic"
+
+
+async def test_google_upsert_refuses_unverified_email_link(client: AsyncClient) -> None:
+    import pytest
+
+    from src.api.routers.auth import _upsert_google_user
+    from src.db.models import User
+    from src.db.session import session_scope
+    from src.security import passwords
+
+    async with session_scope() as session:
+        session.add(
+            User(email="victim@example.com", password_hash=passwords.hash_password("password-123"))
+        )
+        await session.commit()
+
+    profile = google_oauth.GoogleProfile(
+        sub="attacker-sub", email="victim@example.com", name=None, picture=None
+    )
+    async with session_scope() as session:
+        with pytest.raises(google_oauth.OAuthError):
+            await _upsert_google_user(session, profile)
+
+
+async def test_callback_returns_tokens_in_fragment(
+    client: AsyncClient, monkeypatch: object
+) -> None:
+    async def exchange(code: str) -> google_oauth.GoogleProfile:
+        return google_oauth.GoogleProfile(
+            sub="sub-9", email="frag@example.com", name=None, picture=None, email_verified=True
+        )
+
+    monkeypatch.setattr(google_oauth, "exchange_code", exchange)  # type: ignore[attr-defined]
+    state = google_oauth._sign_state("/projects")
+
+    response = await client.get(
+        "/auth/oauth/google/callback",
+        params={"code": "abc", "state": state},
+        follow_redirects=False,
+    )
+
+    location = response.headers["location"]
+    assert "/oauth/callback#" in location
+    assert "access_token=" in location.split("#", 1)[1]
+    assert "?" not in location.split("#", 1)[0]
+    assert "next=%2Fprojects" in location
+
+
+async def test_state_drops_external_next_targets() -> None:
+    for target in ("https://evil.example.org", "//evil.example.org", "/\\evil", "javascript:1"):
+        assert google_oauth.verify_state(google_oauth._sign_state(target)) == "/"

@@ -7,6 +7,7 @@ from sqlalchemy import select
 
 from ...db.models import Document, IngestionSource
 from ...ingestion import jobs
+from ...security.outbound import UnsafeUrlError, check_url
 from ...storage import get_storage
 from ..deps import CurrentUser, SessionDep, owned_project
 from ..errors import ApiError, NotFound
@@ -16,6 +17,14 @@ router = APIRouter(prefix="/v1", tags=["ingestion"])
 
 SourceType = Literal["upload", "url_crawl", "sitemap", "notion", "google_docs"]
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+UPLOAD_CHUNK_BYTES = 1024 * 1024
+
+
+class UploadTooLarge(ApiError):
+    code = "payload_too_large"
+
+    def __init__(self) -> None:
+        super().__init__("uploaded file exceeds the size limit", 413)
 
 
 class SourceCreate(BaseModel):
@@ -58,8 +67,14 @@ def _redact(config: dict[str, Any]) -> dict[str, Any]:
 
 
 def _validate_config(source_type: str, config: dict[str, Any]) -> None:
-    if source_type in {"url_crawl", "sitemap"} and not config.get("url"):
-        raise ApiError(f"{source_type} sources require a url in config")
+    if source_type in {"url_crawl", "sitemap"}:
+        url = config.get("url")
+        if not url or not isinstance(url, str):
+            raise ApiError(f"{source_type} sources require a url in config")
+        try:
+            check_url(url)
+        except UnsafeUrlError as exc:
+            raise ApiError(f"source url rejected: {exc}") from exc
     if source_type == "notion" and not config.get("token"):
         raise ApiError("notion sources require a token in config")
     if source_type == "google_docs" and not config.get("document_ids"):
@@ -148,6 +163,18 @@ async def reindex_source(
     return _payload(source)
 
 
+async def _read_capped(file: UploadFile) -> bytes:
+    """Read the upload in chunks and stop as soon as it passes the limit."""
+    if file.size is not None and file.size > MAX_UPLOAD_BYTES:
+        raise UploadTooLarge()
+    buffer = bytearray()
+    while chunk := await file.read(UPLOAD_CHUNK_BYTES):
+        buffer.extend(chunk)
+        if len(buffer) > MAX_UPLOAD_BYTES:
+            raise UploadTooLarge()
+    return bytes(buffer)
+
+
 @router.post(
     "/projects/{project_id}/documents/upload",
     status_code=status.HTTP_201_CREATED,
@@ -162,13 +189,11 @@ async def upload_document(
 ) -> dict[str, str]:
     project = await owned_project(session, user, project_id)
 
-    data = await file.read()
+    data = await _read_capped(file)
     if not data:
         raise ApiError("uploaded file is empty")
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise ApiError("uploaded file exceeds the size limit")
 
-    filename = file.filename or "document"
+    filename = jobs.safe_filename(file.filename)
     document = Document(
         project_id=project.id,
         title=(title or filename)[:500],

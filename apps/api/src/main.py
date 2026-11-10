@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
+from .api.deps import CurrentUser
 from .api.middleware import RateLimitMiddleware, SecurityHeadersMiddleware, SplitCORSMiddleware
 from .config import get_settings
 from .db.session import create_all, dispose_engine
@@ -60,8 +61,9 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="EmbAId Agent API",
         version="0.1.0",
-        docs_url="/docs",
-        redoc_url="/redoc",
+        docs_url="/docs" if settings.docs_enabled else None,
+        redoc_url="/redoc" if settings.docs_enabled else None,
+        openapi_url="/openapi.json" if settings.docs_enabled else None,
         lifespan=lifespan,
     )
 
@@ -95,8 +97,13 @@ def create_app() -> FastAPI:
             headers={"Cache-Control": "public, max-age=300"},
         )
 
+    # Public liveness probe: says nothing about how the deployment is configured.
     @app.get("/health", tags=["system"])
-    async def health() -> dict[str, object]:
+    async def health() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @app.get("/v1/system/status", tags=["system"])
+    async def system_status(user: CurrentUser) -> dict[str, object]:
         return {
             "status": "ok",
             "environment": settings.environment,

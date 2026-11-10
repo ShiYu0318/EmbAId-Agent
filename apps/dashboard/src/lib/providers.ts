@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { apiBaseUrl } from "@/lib/api/config";
+import { useAuth } from "@/lib/auth/context";
 import type { ChatProvider, EmbeddingProvider } from "@/lib/api/types";
 
 interface ProviderOption<T> {
@@ -49,20 +49,21 @@ export interface ApiHealth {
   };
 }
 
-/** The API's public /health report, or null while loading or unreachable. */
+/** The signed-in system status report, or null while loading or unreachable. */
 export function useApiHealth(): ApiHealth | null {
+  const { api } = useAuth();
   const [health, setHealth] = useState<ApiHealth | null>(null);
   useEffect(() => {
     let active = true;
-    fetch(`${apiBaseUrl()}/health`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body: ApiHealth | null) => {
-        if (active && body) setHealth(body);
+    api.system
+      .status()
+      .then((body) => {
+        if (active) setHealth(body);
       })
       .catch(() => undefined);
     return () => {
       active = false;
     };
-  }, []);
+  }, [api]);
   return health;
 }
