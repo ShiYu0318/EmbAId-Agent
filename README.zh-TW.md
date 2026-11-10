@@ -240,7 +240,8 @@ Widget 會把這些事件轉成即時的「思考中」面板：每個階段以�
 | `token` | `{ text }` | 生成期間持續送出 |
 | `citations` | `{ items: [...] }` | 檢索後送出一次 |
 | `trace` | 完整的 `RetrievalTrace` | 結束前送出一次 |
-| `done` | `{ answered: boolean }` | 最後送出一次 |
+| `done` | `{ answered, confidence, flagged }` | 回答完成時，最後送出一次 |
+| `error` | `{ code, message }` | 回答無法完成時取代 `done`，最後送出一次 |
 
 ---
 
@@ -444,7 +445,7 @@ flowchart LR
 - 引用標籤、回饋按鈕，以及網路錯誤時的重試
 - Shadow DOM 隔離，零執行期相依
 - 以發佈用金鑰向 API 讀取設定，修改外觀不必重新部署
-- 可自訂主色、頭像、問候語、人格與起始問題
+- 可自訂主色、淺色／深色／跟隨系統的外觀、顯示角落、頭像、問候語、人格與起始問題
 - 串流回答，附行內引用與 Markdown 渲染
 - 淺色、深色與自動主題；多語系介面
 
@@ -597,9 +598,9 @@ cd apps/api
 uv run uvicorn src.main:app --reload
 ```
 
-打開 `http://localhost:8000/health` 確認狀態。`providers` 會列出哪些模型供應商已經設定好，你選的那個應該是
-`true`。啟動幾秒後，`embeddings` 會回報 `EMBEDDING_DIMENSIONS` 和向量模型實際輸出的維度是否一致。互動式 API
-文件在 `/docs`。
+打開 `http://localhost:8000/health` 確認狀態，它只會回 `{"status": "ok"}`。哪些模型供應商已經設定好，以及
+啟動幾秒後 `EMBEDDING_DIMENSIONS` 和向量模型實際輸出的維度是否一致，請看儀表板的「設定」頁；登入後也可以從
+`GET /v1/system/status` 取得同一份報告。非正式環境的互動式 API 文件在 `/docs`。
 
 **4. 啟動儀表板**（第二個終端機，在 repo 根目錄）：
 
@@ -790,6 +791,10 @@ LANDING_DASHBOARD_URL=https://app.example.com node apps/landing/build.mjs
 | `API_PUBLIC_URL`、`DASHBOARD_URL` | localhost | 對外的網址，用於連結和 OAuth。 |
 | `RATE_LIMIT_PUBLISHABLE` | `20` | 瀏覽器端金鑰每分鐘的請求上限。 |
 | `RATE_LIMIT_SECRET` | `200` | 伺服器端金鑰每分鐘的請求上限。 |
+| `RATE_LIMIT_PER_IP` | `600` | 同一個用戶端位址每分鐘的請求上限，不分金鑰，避免有人用亂編的金鑰繞過金鑰限制。設為 `0` 關閉。 |
+| `ALLOW_PRIVATE_NETWORK_TARGETS` | `false` | 允許爬取來源與 webhook 連到 loopback、私有與 link-local 位址。除非是在可信任的部署裡爬內部網站，否則不要開。 |
+| `CRAWL_MAX_RESPONSE_BYTES` | `5000000` | 爬蟲願意下載的單一頁面或 sitemap 大小上限。 |
+| `API_DOCS_ENABLED` | 未設定 | `/docs`、`/redoc` 與 `/openapi.json`。未設定時，非正式環境開啟、正式環境關閉。 |
 | `GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET` | 未設定 | 啟用「使用 Google 繼續」和 Google 文件匯入。 |
 | `SENTRY_DSN` | 未設定 | 錯誤回報。留空時不會送出任何資料。 |
 
@@ -799,6 +804,9 @@ LANDING_DASHBOARD_URL=https://app.example.com node apps/landing/build.mjs
 
 正式環境中，若 `JWT_SECRET` 仍是預設值，或 CORS 來源使用萬用字元，API 會拒絕啟動。其他沒有列出的設定都是選用的，
 未設定時會安全地略過。
+
+**放在反向代理後面時：** 位址限流用的是伺服器看到的用戶端位址。請讓代理送出 `X-Forwarded-For`，並讓 uvicorn
+信任它（`FORWARDED_ALLOW_IPS=<代理位址>` 或 `--forwarded-allow-ips`），否則所有訪客都會被當成代理的位址，共用同一個上限。
 
 ---
 
@@ -840,7 +848,7 @@ widget 啟動時會從 `GET /v1/widget-config` 讀取外觀與建議問題，所
 | 文件一直停在「處理中」 | `QUEUE_ENABLED=true` 但沒有啟動 worker。啟動一個（`uv run arq src.tasks.worker.WorkerSettings`），或改成 `QUEUE_ENABLED=false`。 |
 | 文件最後變成「失敗」 | 在儀表板點開文件看錯誤訊息。通常是向量模型的供應商連不上，或缺少金鑰。 |
 | `provider_unavailable: openai_api_key is not set` | 專案使用的供應商沒有金鑰。補上金鑰，或在「設定」把專案改用其他模型。 |
-| `expected N dimensions, not M` | `EMBEDDING_DIMENSIONS` 和向量模型不一致。`/health` 的 `embeddings` 會顯示實際的維度（儀表板的「設定」頁也會提醒）。改正後參考[更換向量模型](#模型)。 |
+| `expected N dimensions, not M` | `EMBEDDING_DIMENSIONS` 和向量模型不一致。儀表板的「設定」頁會顯示實際的維度（`GET /v1/system/status` 也有）。改正後參考[更換向量模型](#模型)。 |
 | Ollama：connection refused | 啟動 Ollama（`ollama serve`），並確認 `OLLAMA_BASE_URL`。從 Docker 連線時，主機是 `host.docker.internal`。 |
 | 儀表板連不到 API，或出現 CORS 錯誤 | 把儀表板的網址加進 `CORS_ORIGINS`，並確認 `NEXT_PUBLIC_API_URL`。 |
 | 網站上沒有出現 widget | 打開瀏覽器主控台。`widget.js` 404：建置 widget。`403`：把網站加進金鑰的允許網域。混合內容錯誤：用 https 提供 API。 |
@@ -902,7 +910,7 @@ SDK 提供 ESM、CJS 與型別宣告，沒有執行期相依。
 
 ## API 參考
 
-互動式文件位於 `/docs`（Swagger）與 `/redoc`。所有錯誤都使用相同的格式：
+互動式文件位於 `/docs`（Swagger）與 `/redoc`；正式環境預設關閉，設定 `API_DOCS_ENABLED=true` 才會開啟。所有錯誤都使用相同的格式：
 `{"detail": {"code": "...", "message": "..."}}`。完整端點清單請見[英文版 README](README.md#api-reference)，
 以下列出最常用的部分：
 
@@ -914,6 +922,7 @@ SDK 提供 ESM、CJS 與型別宣告，沒有執行期相依。
 | `POST` `GET` | `/v1/projects/{id}/api-keys` | JWT | 建立與列出金鑰 |
 | `POST` | `/v1/chat` | API 金鑰 | 提問，以 SSE 串流回傳推理步驟與回答 |
 | `GET` | `/v1/widget-config` | 發佈用金鑰 | Widget 啟動設定 |
+| `GET` | `/v1/system/status` | JWT | 已設定的供應商、搜尋後端與向量維度檢查 |
 | `GET` | `/v1/conversations` | JWT | 瀏覽對話（可依 `channel` 篩選：`widget`、`dashboard`、`api`） |
 | `GET` | `/v1/messages/{id}/trace` | JWT | 完整檢索軌跡 |
 | `GET` | `/v1/projects/{id}/analytics` | JWT | 數據分析，含每日回答與婉拒、信心分布、來源管道與上期比較 |
@@ -947,11 +956,22 @@ SDK 提供 ESM、CJS 與型別宣告，沒有執行期相依。
 
 ### 其他控制
 
-- argon2id 密碼雜湊；短效的 JWT access token 搭配輪替的 refresh token
-- 安全標頭與嚴格的 CORS；非開發環境不接受萬用字元來源
+- argon2id 密碼雜湊；短效的 JWT access token 搭配輪替的 refresh token。不論信箱是否存在，登入花費的時間都一樣。
+- Google 登入只接受已驗證的 Google 信箱，並把 token 放在 URL fragment 交給儀表板；fragment 不會送到伺服器，
+  也不會寫進存取紀錄。
+- 對外請求會先檢查。爬取來源、sitemap 項目與 webhook 網址不能指向 loopback、私有、link-local 或雲端 metadata
+  位址；儲存網址時檢查一次，每次請求與每一次轉址再檢查一次。設定 `ALLOW_PRIVATE_NETWORK_TARGETS=true` 可解除。
+  檢查是在連線前解析主機名稱，連線本身沒有綁定到那個位址，所以不要把 API 放在有「本身沒有驗證」服務的網路裡。
+- 限流分三層：每把金鑰（各自的 `rate_limit_per_minute`）、每個用戶端位址、以及登入端點。限流器在行程內計數：
+  API 有多個副本時，每個副本各算各的。
+- 每個回應都帶安全標頭：`default-src 'none'` 的內容安全政策、`Permissions-Policy`、`X-Frame-Options`、`nosniff`，
+  正式環境加上 HSTS。CORS 嚴格；非開發環境不接受萬用字元來源。
+- `/health` 不透露任何部署資訊；設定細節需要登入才看得到。
 - Webhook 內容以 HMAC-SHA256 簽章，接收端可以驗證來源與完整性
 - 爬蟲遵守 `robots.txt`，並以明確的 user agent 表明身分
-- 上傳上限 25 MB，解析前先驗證格式
+- 上傳上限 25 MB，分段讀取，解析前先驗證格式。檔名會被簡化成單一安全的路徑片段，儲存的檔案無法離開儲存根目錄。
+- 對話 CSV 匯出會處理試算表會當成公式執行的儲存格。
+- Widget 設定會驗證：頭像網址必須是 http(s)、顏色必須是十六進位、允許的來源只能是 `scheme://host[:port]`，不接受萬用字元。
 - 在查詢建構時強制租戶隔離，而不是靠慣例
 
 ---
