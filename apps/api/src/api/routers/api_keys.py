@@ -2,13 +2,14 @@ from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Response, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...config import get_settings
 from ...db.models import ApiKey, User
 from ...security import api_keys
+from .. import validation
 from ..deps import CurrentUser, SessionDep, owned_project
 from ..errors import NotFound
 
@@ -23,11 +24,21 @@ class ApiKeyCreate(BaseModel):
     allowed_origins: list[str] = Field(default_factory=list, max_length=50)
     rate_limit_per_minute: int | None = Field(default=None, ge=1, le=10000)
 
+    @field_validator("allowed_origins")
+    @classmethod
+    def _normalise_origins(cls, value: list[str]) -> list[str]:
+        return validation.allowed_origins(value)
+
 
 class ApiKeyUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     allowed_origins: list[str] | None = Field(default=None, max_length=50)
     rate_limit_per_minute: int | None = Field(default=None, ge=1, le=10000)
+
+    @field_validator("allowed_origins")
+    @classmethod
+    def _normalise_origins(cls, value: list[str] | None) -> list[str] | None:
+        return None if value is None else validation.allowed_origins(value)
 
 
 class ApiKeyPayload(BaseModel):
