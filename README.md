@@ -319,7 +319,8 @@ which document to write next.
 | `token` | `{ text }` | Repeatedly while generating |
 | `citations` | `{ items: [...] }` | Once, after retrieval |
 | `trace` | Full `RetrievalTrace` | Once, before completion |
-| `done` | `{ answered: boolean }` | Once, last |
+| `done` | `{ answered, confidence, flagged }` | Once, last, when the answer completed |
+| `error` | `{ code, message }` | Once, last, in place of `done` when the answer could not be finished |
 
 ---
 
@@ -551,7 +552,8 @@ vectors, so a crawl can be cleanly undone in one action.
 - Citation chips, feedback buttons, and a retry action on network errors
 - Shadow DOM isolation, no runtime dependencies
 - Configuration fetched from the API by publishable key, so appearance changes need no redeploy
-- Themeable accent colour, avatar, greeting, persona, and starter questions
+- Themeable accent colour, light/dark/auto appearance, corner position, avatar, greeting, persona,
+  and starter questions
 - Streaming answers with inline citations and Markdown rendering
 - Light, dark, and automatic themes; multilingual UI
 
@@ -715,10 +717,11 @@ cd apps/api
 uv run uvicorn src.main:app --reload
 ```
 
-Check it at `http://localhost:8000/health`. The `providers` field shows which model providers are
-configured; the one you chose should be `true`. A few seconds after startup, `embeddings` reports
-whether `EMBEDDING_DIMENSIONS` matches what the embedding model really returns. Interactive API docs
-are at `/docs`.
+Check it at `http://localhost:8000/health`, which answers `{"status": "ok"}` and nothing else. The
+dashboard's **Settings** page shows which model providers are configured, and a few seconds after
+startup whether `EMBEDDING_DIMENSIONS` matches what the embedding model really returns; the same
+report is at `GET /v1/system/status` for a signed-in user. Interactive API docs are at `/docs`
+outside production.
 
 **4. Start the dashboard** (second terminal, from the repository root):
 
@@ -924,6 +927,10 @@ values live in `apps/api/src/config.py` and `apps/api/.env.example`.
 | `API_PUBLIC_URL`, `DASHBOARD_URL` | localhost | Public addresses, used for links and OAuth. |
 | `RATE_LIMIT_PUBLISHABLE` | `20` | Requests per minute for browser-facing keys. |
 | `RATE_LIMIT_SECRET` | `200` | Requests per minute for server-side keys. |
+| `RATE_LIMIT_PER_IP` | `600` | Requests per minute from one client address across all keys, so made-up keys cannot dodge the per-key limits. `0` turns it off. |
+| `ALLOW_PRIVATE_NETWORK_TARGETS` | `false` | Lets crawl sources and webhooks reach loopback, private and link-local addresses. Leave off unless you crawl an intranet from a trusted deployment. |
+| `CRAWL_MAX_RESPONSE_BYTES` | `5000000` | Largest page or sitemap the crawler will download. |
+| `API_DOCS_ENABLED` | unset | `/docs`, `/redoc` and `/openapi.json`. Unset means on outside production and off in production. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | unset | Adds "Continue with Google" and Google Docs import. |
 | `SENTRY_DSN` | unset | Error reporting. Nothing is sent anywhere while it is empty. |
 
@@ -934,6 +941,10 @@ client ID and secret in `.env`.
 
 In production the API refuses to start with a default `JWT_SECRET` or a wildcard CORS origin.
 Everything not listed is optional and safely skipped when unset.
+
+**Behind a reverse proxy:** the per-address limit uses the client address the server sees. Have
+the proxy send `X-Forwarded-For` and tell uvicorn to trust it (`FORWARDED_ALLOW_IPS=<proxy address>`
+or `--forwarded-allow-ips`), otherwise every visitor shares the proxy's address and one limit.
 
 ---
 
@@ -978,7 +989,7 @@ entirely inside a Shadow DOM, so no host CSS leaks in and none of its styles lea
 | A document stays at *processing* | `QUEUE_ENABLED=true` with no worker running. Start one (`uv run arq src.tasks.worker.WorkerSettings`) or set `QUEUE_ENABLED=false`. |
 | A document ends in *failed* | Open it in the dashboard to read the error. Usually the embedding provider is unreachable or its key is missing. |
 | `provider_unavailable: openai_api_key is not set` | The project uses a provider without a key. Add the key, or switch the project's models under **Settings**. |
-| `expected N dimensions, not M` | `EMBEDDING_DIMENSIONS` does not match the embedding model. `/health` → `embeddings` shows the real size (the dashboard's **Settings** page warns too). Fix it, then see [Changing the embedding model](#models). |
+| `expected N dimensions, not M` | `EMBEDDING_DIMENSIONS` does not match the embedding model. The dashboard's **Settings** page shows the real size (as does `GET /v1/system/status`). Fix it, then see [Changing the embedding model](#models). |
 | Ollama: connection refused | Start Ollama (`ollama serve`) and check `OLLAMA_BASE_URL`. From Docker, the host is `host.docker.internal`. |
 | The dashboard cannot reach the API, or shows a CORS error | Add the dashboard's address to `CORS_ORIGINS`, and check `NEXT_PUBLIC_API_URL`. |
 | The widget does not appear on a website | Open the browser console. `widget.js` 404: build the widget. `403`: add the site to the key's allowed origins. Mixed-content error: serve the API over https. |
@@ -1044,7 +1055,8 @@ The SDK ships ESM, CJS, and type declarations with no runtime dependencies.
 
 ## API reference
 
-Interactive documentation is served at `/docs` (Swagger) and `/redoc`. All errors share the
+Interactive documentation is served at `/docs` (Swagger) and `/redoc`; in production it is off
+unless `API_DOCS_ENABLED=true`. All errors share the
 envelope `{"detail": {"code": "...", "message": "..."}}`.
 
 ### Authentication
@@ -1092,6 +1104,7 @@ envelope `{"detail": {"code": "...", "message": "..."}}`.
 | --- | --- | --- | --- |
 | `POST` | `/v1/chat` | API key | Ask a question, SSE stream back |
 | `GET` | `/v1/widget-config` | publishable key | Widget bootstrap configuration |
+| `GET` | `/v1/system/status` | JWT | Configured providers, search backend and embedding check |
 | `GET` | `/v1/conversations` | JWT | Browse conversations; filter by `channel` (`widget`, `dashboard`, `api`) |
 | `GET` `DELETE` | `/v1/conversations/{id}` | JWT | Read or delete a transcript |
 | `GET` | `/v1/conversations/export` | JWT | Bulk export |
@@ -1225,11 +1238,28 @@ rate. The `sk_` key that can actually change things never reaches a browser.
 
 ### Other controls
 
-- argon2id password hashing; short-lived JWT access tokens with rotating refresh tokens
-- Security headers and strict CORS; wildcard origins rejected outside development
+- argon2id password hashing; short-lived JWT access tokens with rotating refresh tokens. Login
+  takes the same time whether or not the email exists.
+- Google sign-in accepts only verified Google emails and hands tokens to the dashboard in the URL
+  fragment, which is never sent to a server or written to access logs.
+- Outbound requests are checked. Crawl sources, sitemap entries and webhook URLs may not point at
+  loopback, private, link-local or cloud-metadata addresses; the check runs when the URL is saved
+  and again on every request and redirect hop. `ALLOW_PRIVATE_NETWORK_TARGETS=true` lifts it.
+  The check resolves the hostname before connecting and does not pin the connection to that
+  address, so keep the API off networks that hold services with no authentication of their own.
+- Rate limits per key (each key's own `rate_limit_per_minute`), per client address, and on the
+  login endpoints. The limiter is in-process: with several API replicas, each keeps its own count.
+- Security headers on every response: a `default-src 'none'` content security policy,
+  `Permissions-Policy`, `X-Frame-Options`, `nosniff`, and HSTS in production. Strict CORS;
+  wildcard origins rejected outside development.
+- `/health` reveals nothing about the deployment; configuration details need a login.
 - Webhook payloads signed with HMAC-SHA256 so receivers can verify origin and integrity
 - Crawling honours `robots.txt` and identifies itself with a descriptive user agent
-- Uploads capped at 25 MB with format validation before parsing
+- Uploads capped at 25 MB, read in bounded chunks, with format validation before parsing.
+  Filenames are reduced to a single safe path segment and stored files cannot leave the storage root.
+- Conversation CSV exports neutralise cells that a spreadsheet would run as formulas.
+- Widget settings are validated: avatar URLs must be http(s), colours hex, and allowed origins a
+  bare `scheme://host[:port]` with no wildcards.
 - Tenant isolation enforced in query construction, not by convention
 
 ---

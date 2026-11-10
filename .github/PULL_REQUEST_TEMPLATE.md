@@ -7,8 +7,10 @@ https://github.com/apache/spark/blob/master/.github/PULL_REQUEST_TEMPLATE
 
 ## Proposed changes
 
-<!-- Describe the change and its scope. Link the Issue (for example, Closes #123),
-design discussion, or other context needed to review the implementation. -->
+<!-- Describe the change and its scope. List every Issue this PR resolves with a closing
+keyword, one per line (for example, Closes #123). Every change in the PR must belong to a
+listed Issue, and each commit should name the Issue it addresses. Add the design discussion
+or other context needed to review the implementation. -->
 
 ## Motivation
 
