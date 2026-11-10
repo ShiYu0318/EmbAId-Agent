@@ -13,6 +13,9 @@
     "typecheck": "pnpm -r typecheck"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "@tailwindcss/oxide", "sharp", "unrs-resolver"]
+    "onlyBuiltDependencies": ["esbuild", "@tailwindcss/oxide", "sharp", "unrs-resolver"],
+    "overrides": {
+      "jsdom": "^26.1.0"
+    }
   }
 }
