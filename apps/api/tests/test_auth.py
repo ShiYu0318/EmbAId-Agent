@@ -82,3 +82,24 @@ async def test_access_token_rejected_as_refresh_token(client: AsyncClient) -> No
 async def test_me_requires_authentication(client: AsyncClient) -> None:
     response = await client.get("/auth/me")
     assert response.status_code == 401
+
+
+async def test_login_hashes_for_unknown_email(client: AsyncClient, monkeypatch: object) -> None:
+    from src.security import passwords
+
+    calls: list[str] = []
+    monkeypatch.setattr(passwords, "verify_dummy", calls.append)  # type: ignore[attr-defined]
+
+    response = await client.post(
+        "/auth/login", json={"email": "nobody@example.com", "password": "whatever-123"}
+    )
+
+    assert response.status_code == 401
+    assert calls == ["whatever-123"]
+
+
+async def test_login_rejects_oversized_password(client: AsyncClient) -> None:
+    response = await client.post(
+        "/auth/login", json={"email": "nobody@example.com", "password": "x" * 5000}
+    )
+    assert response.status_code == 422

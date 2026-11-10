@@ -27,7 +27,7 @@ class SignupRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(max_length=200)
 
 
 class RefreshRequest(BaseModel):
@@ -96,11 +96,10 @@ async def signup(payload: SignupRequest, session: SessionDep) -> TokenPayload:
 async def login(payload: LoginRequest, session: SessionDep) -> TokenPayload:
     result = await session.execute(select(User).where(User.email == payload.email.lower()))
     user = result.scalars().first()
-    if (
-        user is None
-        or user.password_hash is None
-        or not passwords.verify_password(user.password_hash, payload.password)
-    ):
+    if user is None or user.password_hash is None:
+        passwords.verify_dummy(payload.password)
+        raise Unauthorized("invalid email or password")
+    if not passwords.verify_password(user.password_hash, payload.password):
         raise Unauthorized("invalid email or password")
 
     if passwords.needs_rehash(user.password_hash):

@@ -32,5 +32,13 @@ def verify_password(password_hash: str, password: str) -> bool:
     return True
 
 
+_DUMMY_HASH = _hasher.hash("embaid-dummy-password-0")
+
+
+def verify_dummy(password: str) -> None:
+    """Spend the same hashing time as a real check so unknown emails are not revealed."""
+    verify_password(_DUMMY_HASH, password)
+
+
 def needs_rehash(password_hash: str) -> bool:
     return _hasher.check_needs_rehash(password_hash)
