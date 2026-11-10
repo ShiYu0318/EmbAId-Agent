@@ -636,6 +636,10 @@ widget。
   `docker compose -f docker/docker-compose.yml exec ollama ollama pull llama3` 把模型下載進去。
 - **port 被佔用：** 用 `API_PORT`、`DASHBOARD_PORT`、`POSTGRES_PORT`、`REDIS_PORT` 改掉，例如
   `POSTGRES_PORT=5433 docker compose -f docker/docker-compose.yml up --build`。
+- **對外開放的範圍：** Postgres、Redis、Qdrant 與 Ollama 只發佈在 `127.0.0.1`，因為它們使用預設密碼或沒有驗證。
+  只有 API 與儀表板監聽所有網路介面。
+- **從舊版升級：** 容器現在以非特權使用者（uid 10001）執行。舊版建立的資料 volume 屬於 root，請執行一次
+  `docker compose -f docker/docker-compose.yml run --rm --user root api chown -R app:app /app/data` 交出擁有權。
 - **用 Qdrant 取代 pgvector：**
   `SEARCH_BACKEND=qdrant UV_EXTRAS="--extra qdrant" docker compose -f docker/docker-compose.yml --profile qdrant up --build`。
 - **選用套件：** 用 `UV_EXTRAS` 裝進 API 的映像檔，例如
@@ -792,6 +796,7 @@ LANDING_DASHBOARD_URL=https://app.example.com node apps/landing/build.mjs
 | `RATE_LIMIT_PUBLISHABLE` | `20` | 瀏覽器端金鑰每分鐘的請求上限。 |
 | `RATE_LIMIT_SECRET` | `200` | 伺服器端金鑰每分鐘的請求上限。 |
 | `RATE_LIMIT_PER_IP` | `600` | 同一個用戶端位址每分鐘的請求上限，不分金鑰，避免有人用亂編的金鑰繞過金鑰限制。設為 `0` 關閉。 |
+| `RATE_LIMIT_BACKEND` | `memory` | `memory` 在每個 API 行程內計數。`redis` 把計數放在 `REDIS_URL`，所有副本共用同一個視窗；Redis 連不上時退回記憶體計數。compose 檔設為 `redis`。 |
 | `ALLOW_PRIVATE_NETWORK_TARGETS` | `false` | 允許爬取來源與 webhook 連到 loopback、私有與 link-local 位址。除非是在可信任的部署裡爬內部網站，否則不要開。 |
 | `CRAWL_MAX_RESPONSE_BYTES` | `5000000` | 爬蟲願意下載的單一頁面或 sitemap 大小上限。 |
 | `API_DOCS_ENABLED` | 未設定 | `/docs`、`/redoc` 與 `/openapi.json`。未設定時，非正式環境開啟、正式環境關閉。 |
@@ -882,9 +887,10 @@ for await (const event of client.chat.stream({ message: "退款期限是多久�
 }
 ```
 
-串流是一個型別化的 `AsyncGenerator`，事件型別包括 `conversation`、`token`、`citations`、`trace`、`done`、
-`error`，以及一個 `unknown` 型別，讓伺服器未來新增的事件（例如 `status`）不會讓既有用戶端出錯。需要完整結果
-而不是串流時，改用 `chat.send()`。
+串流是一個型別化的 `AsyncGenerator`，事件型別包括 `conversation`、`status`、`token`、`quick_replies`、
+`citations`、`trace`、`done`、`error`，以及一個 `unknown` 型別，讓伺服器未來新增的事件不會讓既有用戶端出錯。
+`done` 帶有 `answered`、`confidence` 與 `flagged`。需要完整結果而不是串流時，改用 `chat.send()`；除了回答與引用，
+它還會回傳 `answered`、`flagged`、`quickReplies`、`confidenceScore` 與 `refusalReason`。
 
 管理功能需要私密金鑰，而且必須在伺服器端執行：
 
@@ -961,9 +967,13 @@ SDK 提供 ESM、CJS 與型別宣告，沒有執行期相依。
   也不會寫進存取紀錄。
 - 對外請求會先檢查。爬取來源、sitemap 項目與 webhook 網址不能指向 loopback、私有、link-local 或雲端 metadata
   位址；儲存網址時檢查一次，每次請求與每一次轉址再檢查一次。設定 `ALLOW_PRIVATE_NETWORK_TARGETS=true` 可解除。
-  檢查是在連線前解析主機名稱，連線本身沒有綁定到那個位址，所以不要把 API 放在有「本身沒有驗證」服務的網路裡。
-- 限流分三層：每把金鑰（各自的 `rate_limit_per_minute`）、每個用戶端位址、以及登入端點。限流器在行程內計數：
-  API 有多個副本時，每個副本各算各的。
+  每條連線都連到通過檢查的那個位址，所以檢查之後才改變的 DNS 回應（DNS rebinding）無法把連線導走；`Host` 標頭與
+  TLS 驗證仍使用原本的主機名稱。使用無頭瀏覽器渲染時，頁面發出的每個請求都會檢查，頁面本身的主機也會綁定位址；
+  頁面對其他主機發出的請求會檢查，但由瀏覽器自行解析。
+- 限流分三層：每把金鑰（各自的 `rate_limit_per_minute`）、每個用戶端位址、以及登入端點。設定
+  `RATE_LIMIT_BACKEND=redis` 時，計數放在 Redis，所有 API 副本共用；Redis 連不上時，API 會改在記憶體內計數，
+  直到 Redis 恢復。預設值 `memory` 是每個行程各自計數。
+- Docker 映像以非特權使用者執行，compose 檔只把 Postgres、Redis、Qdrant 與 Ollama 發佈在 `127.0.0.1`。
 - 每個回應都帶安全標頭：`default-src 'none'` 的內容安全政策、`Permissions-Policy`、`X-Frame-Options`、`nosniff`，
   正式環境加上 HSTS。CORS 嚴格；非開發環境不接受萬用字元來源。
 - `/health` 不透露任何部署資訊；設定細節需要登入才看得到。
