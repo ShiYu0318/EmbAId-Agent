@@ -6,7 +6,8 @@ workflow. Internal collaborators can branch in this repository; external contrib
 
 ## Your first contribution
 
-1. Read an existing Issue, or open one describing the problem and the intended outcome. Agree on
+1. Read an existing Issue, or open one describing the problem and the intended outcome; see
+   [Issues first](#issues-first). Agree on
    API, data-model, provider, or retrieval changes before implementing them.
 2. Claim a focused task in the Issue. Name the affected module and coordinate with anyone editing
    the same interfaces. A small end-to-end change is easier to review than a broad cleanup.
@@ -48,6 +49,32 @@ Model setup and the local services are described in the README. Build the widget
 the API's `/widget.js` endpoint. Keep `.env` files local; update `.env.example` when introducing
 configuration, without including working keys or personal endpoints.
 
+## Issues first
+
+Every piece of work starts as an Issue, however small: a bug, a feature, a refactor, a security
+fix, a documentation correction. Open the Issue before writing the change, and give it one bounded
+outcome that can be checked. When a review turns up several problems, open one Issue per problem
+instead of one Issue for the whole review. Split an Issue that grows a second outcome.
+
+Commits follow the Issues. Each commit addresses one Issue and names it in the subject, so the
+history can be read Issue by Issue:
+
+```text
+fix: block internal addresses in crawler and sitemap fetches (#3)
+feat: expose widget theme and position in the widget config api (#16)
+```
+
+An Issue may take more than one commit, for example an API change followed by the dashboard change
+that uses it. Do not fold unrelated Issues into one commit; if two changes cannot be separated,
+name both Issues and say why in the PR.
+
+A pull request exists to close Issues. Its description lists every Issue it resolves with a closing
+keyword (`Closes #12`), one per line, so merging closes them. A PR may close several related Issues
+when they belong to one theme and are easier to review together; it must not contain work that no
+Issue describes. If you find something new while working, open an Issue for it first, then either
+add a commit for it or leave it for a later PR. Vulnerabilities that are not yet fixed are the one
+exception to public Issues: report them through [SECURITY.md](SECURITY.md) instead.
+
 ## Branches and commits
 
 Start from an updated `main` and create one branch per Issue:
@@ -59,7 +86,7 @@ git switch -c feat/123-document-sync
 ```
 
 Use `feat/`, `fix/`, `refactor/`, `docs/`, `test/`, `ci/`, or `chore/` with a short descriptive
-suffix. An Issue number is useful when one exists. Do not push directly to `main`, rewrite shared
+suffix. Include the number of the Issue the branch starts with. Do not push directly to `main`, rewrite shared
 history, or mix unrelated formatting changes into a functional PR. Rebase only a branch you own;
 coordinate before rewriting a branch someone else uses.
 
@@ -83,7 +110,7 @@ history merely to make the implementation look different.
 Write PR titles and descriptions in English so contributors can review work across teams.
 Use a concise title describing the change. The template follows the structure used by Apache Spark:
 proposed changes, motivation, user impact and compatibility, testing, and generative AI disclosure.
-Link the Issue or design discussion, explain observable behavior and migration requirements, and
+List every Issue the PR closes with a closing keyword, explain observable behavior and migration requirements, and
 report actual checks and any checks you could not run. Include screenshots for visible interface
 changes and an API example when a public contract changes. Disclose generative AI assistance in
 the designated section, including the tool version when known, and explain how its output was checked.

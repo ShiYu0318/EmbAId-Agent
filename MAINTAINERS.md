@@ -10,6 +10,8 @@ change. Owners listed there must have write access to the repository.
 Assign a primary reviewer and a backup for each area in the CONTRIBUTING repository map as team
 members join. Record real GitHub handles in CODEOWNERS once those responsibilities are agreed.
 Use one Issue with an assignee per work item, and link dependent Issues when work crosses modules.
+Commits name the Issue they address and a PR closes the Issues it lists; see
+[Issues first](CONTRIBUTING.md#issues-first).
 Discuss shared API, schema, SSE and widget contracts before splitting their implementation.
 
 Give regular contributors write access where appropriate; reserve administrator access for the
