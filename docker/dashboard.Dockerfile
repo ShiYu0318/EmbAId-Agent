@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM node:26-slim
 
 # Build and run as the image's unprivileged user.
 RUN corepack enable && mkdir /repo && chown node:node /repo

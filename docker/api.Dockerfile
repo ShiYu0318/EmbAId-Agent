@@ -1,5 +1,5 @@
 # Build the embeddable widget so the API can serve it at /widget.js.
-FROM node:20-slim AS widget
+FROM node:26-slim AS widget
 RUN corepack enable
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
