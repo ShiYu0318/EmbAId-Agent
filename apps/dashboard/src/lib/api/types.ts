@@ -100,6 +100,8 @@ export interface WidgetConfig {
   bot_avatar_url: string | null;
   persona: string;
   accent_color: string;
+  theme: "light" | "dark" | "auto";
+  position: "bottom-right" | "bottom-left" | "top-right" | "top-left";
 }
 
 export interface ProjectTemplate {

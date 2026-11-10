@@ -31,6 +31,8 @@ const DEFAULT_CONFIG: WidgetConfig = {
   bot_avatar_url: null,
   persona: "",
   accent_color: DEFAULT_ACCENT,
+  theme: "auto",
+  position: "bottom-right",
 };
 
 function Studio({ projectId, t, locale }: { projectId: string; t: TranslateFn; locale: Locale }) {
@@ -200,6 +202,27 @@ function Studio({ projectId, t, locale }: { projectId: string; t: TranslateFn; l
                 onChange={(e) => set("accent_color", e.target.value.trim())}
               />
             </div>
+          </Field>
+          <Field label={t("widget.theme")}>
+            <Select
+              value={config.theme}
+              onChange={(e) => set("theme", e.target.value as WidgetConfig["theme"])}
+            >
+              <option value="auto">{t("widget.themeAuto")}</option>
+              <option value="light">{t("widget.themeLight")}</option>
+              <option value="dark">{t("widget.themeDark")}</option>
+            </Select>
+          </Field>
+          <Field label={t("widget.position")}>
+            <Select
+              value={config.position}
+              onChange={(e) => set("position", e.target.value as WidgetConfig["position"])}
+            >
+              <option value="bottom-right">{t("widget.positionBottomRight")}</option>
+              <option value="bottom-left">{t("widget.positionBottomLeft")}</option>
+              <option value="top-right">{t("widget.positionTopRight")}</option>
+              <option value="top-left">{t("widget.positionTopLeft")}</option>
+            </Select>
           </Field>
           <Field label={t("widget.avatarUrl")}>
             <Input

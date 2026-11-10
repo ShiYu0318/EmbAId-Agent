@@ -381,3 +381,19 @@ async def test_chat_reports_pipeline_failure_as_error_event(
     error = events[-1][1]
     assert error["code"] == "stream_failed"
     assert "secret detail" not in error["message"]
+
+
+async def test_widget_theme_and_position_round_trip(authed_client: AsyncClient) -> None:
+    project_id, raw_key = await _project_with_key(authed_client)
+    url = f"/v1/projects/{project_id}/widget-config"
+
+    saved = await authed_client.put(url, json={"theme": "dark", "position": "top-left"})
+    assert saved.status_code == 200
+    assert (await authed_client.get(url)).json()["theme"] == "dark"
+
+    public = (await authed_client.get("/v1/widget-config", headers={"X-API-Key": raw_key})).json()
+    assert public["theme"] == "dark"
+    assert public["position"] == "top-left"
+
+    assert (await authed_client.put(url, json={"theme": "neon"})).status_code == 422
+    assert (await authed_client.put(url, json={"position": "centre"})).status_code == 422

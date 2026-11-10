@@ -154,6 +154,8 @@ async def test_widget_config_roundtrip(authed_client: AsyncClient) -> None:
         "bot_avatar_url": "https://example.com/avatar.png",
         "persona": "親切的產品顧問",
         "accent_color": "#ff0055",
+        "theme": "light",
+        "position": "bottom-left",
     }
     put = await authed_client.put(f"/v1/projects/{project_id}/widget-config", json=payload)
     assert put.status_code == 200

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Response, status
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -82,6 +82,8 @@ class WidgetConfigPayload(BaseModel):
     bot_avatar_url: str | None = Field(default=None, max_length=2000)
     persona: str = Field(default="", max_length=500)
     accent_color: str = Field(default="#0033ff", max_length=20)
+    theme: Literal["light", "dark", "auto"] = "auto"
+    position: Literal["bottom-right", "bottom-left", "top-right", "top-left"] = "bottom-right"
 
     @field_validator("bot_avatar_url")
     @classmethod
