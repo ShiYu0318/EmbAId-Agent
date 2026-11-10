@@ -101,3 +101,54 @@ async def test_update_document_is_scoped_to_owner(
         f"/v1/documents/{document_id}", json={"title": "hijacked"}, headers=headers
     )
     assert response.status_code == 404
+
+
+async def test_stale_only_filters_before_paging(authed_client: AsyncClient) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from src.db.models import Document
+    from src.db.session import session_scope
+
+    project_id = await _project(authed_client)
+    now = datetime.now(UTC)
+    async with session_scope() as session:
+        # the newest documents are fresh, the stale ones sit behind them
+        for index in range(3):
+            session.add(
+                Document(
+                    project_id=project_id,
+                    title=f"stale-{index}",
+                    status="indexed",
+                    last_verified_at=now - timedelta(days=400),
+                    created_at=now - timedelta(days=10 + index),
+                )
+            )
+        for index in range(3):
+            session.add(
+                Document(
+                    project_id=project_id,
+                    title=f"fresh-{index}",
+                    status="indexed",
+                    last_verified_at=now,
+                    created_at=now - timedelta(minutes=index),
+                )
+            )
+        await session.commit()
+
+    url = f"/v1/projects/{project_id}/documents"
+    first = (await authed_client.get(url, params={"stale_only": True, "limit": 2})).json()
+    second = (
+        await authed_client.get(url, params={"stale_only": True, "limit": 2, "offset": 2})
+    ).json()
+
+    assert [d["title"] for d in first] == ["stale-0", "stale-1"]
+    assert [d["title"] for d in second] == ["stale-2"]
+    assert all(d["is_stale"] for d in first + second)
+
+
+async def test_document_list_rejects_invalid_paging(authed_client: AsyncClient) -> None:
+    project_id = await _project(authed_client)
+    url = f"/v1/projects/{project_id}/documents"
+
+    assert (await authed_client.get(url, params={"limit": 0})).status_code == 422
+    assert (await authed_client.get(url, params={"offset": -1})).status_code == 422

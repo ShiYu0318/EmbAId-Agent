@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Query, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -217,14 +217,21 @@ async def list_documents(
     session: SessionDep,
     document_status: str | None = Query(default=None, alias="status"),
     stale_only: bool = False,
-    limit: int = Query(default=50, le=200),
-    offset: int = 0,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
 ) -> list[DocumentPayload]:
     project = await owned_project(session, user, project_id)
+    cutoff = _staleness_cutoff(project)
 
     query = select(Document).where(Document.project_id == project.id)
     if document_status:
         query = query.where(Document.status == document_status)
+    if stale_only:
+        # Filter in the query, before paging: filtering a fetched page would hide stale
+        # documents that sit beyond it and return short pages.
+        query = query.where(
+            or_(Document.last_verified_at.is_(None), Document.last_verified_at < cutoff)
+        )
 
     result = await session.execute(
         query.order_by(Document.created_at.desc()).limit(limit).offset(offset)
@@ -245,9 +252,8 @@ async def list_documents(
     counts = {document_id: int(count) for document_id, count, _ in stats}
     chars = {document_id: int(char_count) for document_id, _, char_count in stats}
     tags = await _tags_for(session, [d.id for d in documents])
-    cutoff = _staleness_cutoff(project)
 
-    payloads = [
+    return [
         _document_payload(
             document,
             counts.get(document.id, 0),
@@ -257,9 +263,6 @@ async def list_documents(
         )
         for document in documents
     ]
-    if stale_only:
-        payloads = [payload for payload in payloads if payload.is_stale]
-    return payloads
 
 
 @router.get("/documents/{document_id}", response_model=DocumentDetail)
