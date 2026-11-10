@@ -11,8 +11,8 @@ from ..security.outbound import (
     UnsafeUrlError,
     assert_public_url,
     pinned_client,
-    resolve_public_address,
 )
+from ..security.proxy import PinningProxy
 
 USER_AGENT = "EmbAId-Agent-Ingest/0.1 (+https://github.com/ShiYu0318/EmbAId-Agent)"
 DEFAULT_MAX_PAGES = 25
@@ -23,6 +23,10 @@ MAX_SITEMAP_DEPTH = 2
 MAX_REDIRECTS = 5
 # Requests that never leave the browser.
 _INLINE_SCHEMES = frozenset({"data", "blob", "about"})
+# Chromium skips the proxy for loopback unless told otherwise.
+PROXY_BYPASS = "<-loopback>"
+# WebRTC can send UDP around an HTTP proxy; keep it on the proxied path only.
+BROWSER_ARGS = ["--force-webrtc-ip-handling-policy=disable_non_proxied_udp"]
 
 _CHROME_TAGS = (
     "script",
@@ -214,12 +218,16 @@ async def render_with_playwright(url: str, timeout: float = DEFAULT_TIMEOUT_SECO
         return None
 
     try:
-        address = await resolve_public_address(url)
-        async with async_playwright() as playwright:
-            browser = await playwright.chromium.launch(args=_resolver_args(url, address))
+        await assert_public_url(url)
+        # The browser resolves nothing itself: every connection it makes, to the page's
+        # host or any other, is opened by the proxy to an address that passed the check.
+        async with PinningProxy() as proxy, async_playwright() as playwright:
+            browser = await playwright.chromium.launch(
+                proxy={"server": proxy.url, "bypass": PROXY_BYPASS}, args=BROWSER_ARGS
+            )
             try:
                 page = await browser.new_page(user_agent=USER_AGENT)
-                # The page's scripts and subresources are requests too.
+                # Refuse unsafe requests before they are sent, and anything not http(s).
                 await page.route("**/*", _guard_route)
                 await page.goto(url, timeout=timeout * 1000, wait_until="networkidle")
                 return await page.content()
@@ -227,17 +235,6 @@ async def render_with_playwright(url: str, timeout: float = DEFAULT_TIMEOUT_SECO
                 await browser.close()
     except Exception:
         return None
-
-
-def _resolver_args(url: str, address: object | None) -> list[str]:
-    """Chromium flags that make the page's own host resolve to the checked address."""
-    if address is None:
-        return []
-    host = (urlsplit(url).hostname or "").lower()
-    target = f"[{address}]" if ":" in str(address) else str(address)
-    if not host or host == str(address):
-        return []
-    return [f"--host-resolver-rules=MAP {host} {target}"]
 
 
 async def request_allowed(url: str) -> bool:

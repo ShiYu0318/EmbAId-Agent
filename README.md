@@ -1256,9 +1256,9 @@ rate. The `sk_` key that can actually change things never reaches a browser.
   and again on every request and redirect hop. `ALLOW_PRIVATE_NETWORK_TARGETS=true` lifts it.
   Each connection goes to the address that passed the check, so a DNS answer that changes
   afterwards (DNS rebinding) cannot redirect it; the hostname is still used for the `Host` header
-  and for TLS verification. With headless rendering, every request the page makes is checked and
-  the page's own host is pinned; requests a page makes to other hosts are checked but resolved by
-  the browser.
+  and for TLS verification. Headless rendering sends all of the browser's traffic through a
+  loopback proxy that resolves each host, checks it and connects to the checked address, so the
+  browser resolves nothing itself: the page, its scripts and every subresource are pinned.
 - Rate limits per key (each key's own `rate_limit_per_minute`), per client address, and on the
   login endpoints. With `RATE_LIMIT_BACKEND=redis` the windows live in Redis and are shared by
   every API replica; if Redis cannot be reached the API counts in memory until it is back. The
