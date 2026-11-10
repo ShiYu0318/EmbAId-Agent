@@ -351,3 +351,33 @@ async def test_clarifying_choices_arrive_as_quick_replies(
     assert found["quick_replies"]["items"] == ["一般會員", "企業客戶"]
     assert 0 <= found["done"]["confidence"] <= 1
     assert found["done"]["flagged"] is False
+
+
+async def test_chat_reports_pipeline_failure_as_error_event(
+    authed_client: AsyncClient,
+    backend: FakeSearchBackend,
+    stub_providers: FakeChatModel,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project_id, key = await _project_with_key(authed_client)
+    await _seed_chunk(backend, authed_client, project_id)
+
+    async def explode(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("provider exploded with a secret detail")
+
+    monkeypatch.setattr("src.api.routers.chat.pipeline.prepare", explode)
+
+    response = await authed_client.post(
+        "/v1/chat",
+        json={"message": "可以退貨嗎？"},
+        headers={"X-API-Key": key},
+    )
+    events = parse_sse(response.text)
+
+    names = [name for name, _ in events]
+    assert names[0] == "conversation"
+    assert names[-1] == "error"
+    assert "done" not in names
+    error = events[-1][1]
+    assert error["code"] == "stream_failed"
+    assert "secret detail" not in error["message"]

@@ -138,6 +138,10 @@ export class ApiClient {
           confidence: typeof record.confidence === "number" ? record.confidence : null,
           flagged: Boolean(record.flagged),
         });
+      } else if (event === "error") {
+        // The server reports a failure mid-stream in-band, since the status is already sent.
+        const record = (payload ?? {}) as Record<string, unknown>;
+        handlers.onError?.(new Error(String(record.message ?? "stream failed")));
       }
     };
 
