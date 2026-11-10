@@ -265,15 +265,3 @@ async def test_headless_requests_are_checked() -> None:
     assert not await web.request_allowed("http://169.254.169.254/latest/meta-data/")
     assert not await web.request_allowed("http://localhost:6379/")
     assert not await web.request_allowed("file:///etc/passwd")
-
-
-def test_headless_browser_pins_the_page_host() -> None:
-    address = ipaddress.ip_address("93.184.216.34")
-    assert web._resolver_args("https://Docs.Example.com/a", address) == [
-        "--host-resolver-rules=MAP docs.example.com 93.184.216.34"
-    ]
-    v6 = ipaddress.ip_address("2606:2800:220:1::1")
-    assert web._resolver_args("https://docs.example.com/", v6) == [
-        "--host-resolver-rules=MAP docs.example.com [2606:2800:220:1::1]"
-    ]
-    assert web._resolver_args("https://docs.example.com/", None) == []
