@@ -17,6 +17,14 @@ router = APIRouter(prefix="/v1", tags=["ingestion"])
 
 SourceType = Literal["upload", "url_crawl", "sitemap", "notion", "google_docs"]
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+UPLOAD_CHUNK_BYTES = 1024 * 1024
+
+
+class UploadTooLarge(ApiError):
+    code = "payload_too_large"
+
+    def __init__(self) -> None:
+        super().__init__("uploaded file exceeds the size limit", 413)
 
 
 class SourceCreate(BaseModel):
@@ -155,6 +163,18 @@ async def reindex_source(
     return _payload(source)
 
 
+async def _read_capped(file: UploadFile) -> bytes:
+    """Read the upload in chunks and stop as soon as it passes the limit."""
+    if file.size is not None and file.size > MAX_UPLOAD_BYTES:
+        raise UploadTooLarge()
+    buffer = bytearray()
+    while chunk := await file.read(UPLOAD_CHUNK_BYTES):
+        buffer.extend(chunk)
+        if len(buffer) > MAX_UPLOAD_BYTES:
+            raise UploadTooLarge()
+    return bytes(buffer)
+
+
 @router.post(
     "/projects/{project_id}/documents/upload",
     status_code=status.HTTP_201_CREATED,
@@ -169,13 +189,11 @@ async def upload_document(
 ) -> dict[str, str]:
     project = await owned_project(session, user, project_id)
 
-    data = await file.read()
+    data = await _read_capped(file)
     if not data:
         raise ApiError("uploaded file is empty")
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise ApiError("uploaded file exceeds the size limit")
 
-    filename = file.filename or "document"
+    filename = jobs.safe_filename(file.filename)
     document = Document(
         project_id=project.id,
         title=(title or filename)[:500],
