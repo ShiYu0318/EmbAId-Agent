@@ -21,6 +21,10 @@ updates:
       # jsdom 27 and later need a newer Node than the Node 20 this repository supports.
       - dependency-name: jsdom
         update-types: ["version-update:semver-major"]
+      # TypeScript 7 drops the JavaScript compiler API. typescript-eslint and tsup's
+      # declaration build still need it, so the major waits until they support it.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /docker
