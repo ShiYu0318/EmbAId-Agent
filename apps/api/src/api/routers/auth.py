@@ -152,6 +152,9 @@ async def _upsert_google_user(session: AsyncSession, profile: google_oauth.Googl
     result = await session.execute(select(User).where(User.email == profile.email))
     user = result.scalars().first()
     if user is not None:
+        # Linking by email is only safe when Google vouches for the address.
+        if not profile.email_verified:
+            raise google_oauth.OAuthError("google account email is not verified")
         user.google_sub = profile.sub
         if profile.picture and not user.avatar_url:
             user.avatar_url = profile.picture
@@ -202,18 +205,20 @@ async def google_callback(
     try:
         next_path = google_oauth.verify_state(state)
         profile = await google_oauth.exchange_code(code)
+        user = await _upsert_google_user(session, profile)
     except google_oauth.OAuthError as exc:
         logger.warning("google oauth callback failed: %s", exc)
         return failure("oauth_failed")
 
-    user = await _upsert_google_user(session, profile)
     issued = _tokens_for(user)
 
-    query = urlencode(
+    # Tokens travel in the fragment: it is never sent to a server, so it stays out of
+    # access logs and Referer headers.
+    fragment = urlencode(
         {
             "access_token": issued.access_token,
             "refresh_token": issued.refresh_token,
             "next": next_path,
         }
     )
-    return RedirectResponse(f"{dashboard}/oauth/callback?{query}")
+    return RedirectResponse(f"{dashboard}/oauth/callback#{fragment}")
