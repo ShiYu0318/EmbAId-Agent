@@ -9,10 +9,22 @@ from ..config import get_settings
 from ..security.rate_limit import SlidingWindowLimiter, key_identity
 from ..security.rate_limit import limiter as shared_limiter
 
+# The API only serves JSON, an event stream and one script, so its own responses may
+# load nothing. The interactive docs pull their assets from a CDN and are left alone.
+API_CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+PERMISSIONS_POLICY = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+DOCS_PATHS = ("/docs", "/redoc")
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         response = await call_next(request)
+        path = request.url.path
+        if not path.startswith(DOCS_PATHS):
+            response.headers.setdefault("Content-Security-Policy", API_CSP)
+        response.headers.setdefault("Permissions-Policy", PERMISSIONS_POLICY)
+        if path.startswith("/auth/"):
+            response.headers.setdefault("Cache-Control", "no-store")
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")

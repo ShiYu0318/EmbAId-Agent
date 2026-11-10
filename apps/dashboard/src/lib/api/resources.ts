@@ -42,6 +42,20 @@ export function createApi(client: ApiClient) {
       me: () => client.get<TokenResponse["user"]>("/auth/me"),
     },
 
+    system: {
+      status: () =>
+        client.get<{
+          search_backend?: string;
+          providers?: Record<string, boolean>;
+          embeddings?: {
+            status: "pending" | "ok" | "mismatch" | "unavailable";
+            configured_dimensions?: number;
+            actual_dimensions?: number;
+            model?: string;
+          };
+        }>("/v1/system/status"),
+    },
+
     projects: {
       list: () => client.get<Project[]>("/v1/projects"),
       get: (id: string) => client.get<Project>(`/v1/projects/${id}`),

@@ -100,3 +100,57 @@ async def test_per_key_limit_is_enforced(authed_client: AsyncClient) -> None:
 
     assert statuses[:3] == [200, 200, 200]
     assert statuses[3:] == [429, 429, 429]
+
+
+async def test_api_responses_carry_a_locked_down_csp(client: AsyncClient) -> None:
+    response = await client.get("/health")
+
+    assert "default-src 'none'" in response.headers["Content-Security-Policy"]
+    assert "camera=()" in response.headers["Permissions-Policy"]
+
+
+async def test_docs_page_is_not_broken_by_the_csp(client: AsyncClient) -> None:
+    response = await client.get("/docs")
+
+    assert response.status_code == 200
+    assert "Content-Security-Policy" not in response.headers
+
+
+async def test_auth_responses_are_not_cached(client: AsyncClient) -> None:
+    response = await client.post(
+        "/auth/signup", json={"email": "cache@example.com", "password": "sup3r-secret-pass"}
+    )
+
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+async def test_public_health_reveals_no_configuration(client: AsyncClient) -> None:
+    response = await client.get("/health")
+
+    assert response.json() == {"status": "ok"}
+
+
+async def test_system_status_requires_authentication(
+    client: AsyncClient, authed_client: AsyncClient
+) -> None:
+    body = (await authed_client.get("/v1/system/status")).json()
+    assert {"providers", "embeddings", "search_backend"} <= body.keys()
+
+    del client.headers["Authorization"]
+    assert (await client.get("/v1/system/status")).status_code == 401
+
+
+async def test_docs_are_disabled_in_production(monkeypatch: object) -> None:
+    from httpx import ASGITransport
+
+    from src.config import get_settings
+    from src.main import create_app
+
+    monkeypatch.setenv("ENVIRONMENT", "production")  # type: ignore[attr-defined]
+    get_settings.cache_clear()
+    transport = ASGITransport(app=create_app())
+
+    async with AsyncClient(transport=transport, base_url="http://test") as production:
+        assert (await production.get("/docs")).status_code == 404
+        assert (await production.get("/openapi.json")).status_code == 404
+        assert (await production.get("/health")).status_code == 200

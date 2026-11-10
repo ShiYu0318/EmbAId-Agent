@@ -101,6 +101,10 @@ class Settings(BaseSettings):
     google_client_secret: str | None = None
     oauth_redirect_base: str = "http://localhost:8000"
 
+    # Interactive API docs (/docs, /redoc, /openapi.json). Unset: on outside production,
+    # off in production.
+    api_docs_enabled: bool | None = None
+
     sentry_dsn: str | None = None
     # Built widget served at /widget.js; found automatically in the monorepo and Docker image.
     widget_bundle_path: str | None = None
@@ -128,6 +132,12 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
+
+    @property
+    def docs_enabled(self) -> bool:
+        if self.api_docs_enabled is not None:
+            return self.api_docs_enabled
+        return not self.is_production
 
 
 @lru_cache
