@@ -156,7 +156,21 @@ def _summary(conversation: Conversation, message_count: int) -> ConversationSumm
     )
 
 
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_safe(value: Any) -> Any:
+    """Stop spreadsheet apps from running visitor text as a formula."""
+    if isinstance(value, str) and value.startswith(_FORMULA_PREFIXES):
+        return f"'{value}"
+    return value
+
+
 def _export_row(conversation: Conversation, message: Message | None) -> tuple[Any, ...]:
+    return tuple(csv_safe(cell) for cell in _raw_export_row(conversation, message))
+
+
+def _raw_export_row(conversation: Conversation, message: Message | None) -> tuple[Any, ...]:
     confidence = None if message is None else message.confidence_score
     return (
         conversation.id,
