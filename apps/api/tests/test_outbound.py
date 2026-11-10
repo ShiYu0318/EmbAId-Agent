@@ -169,3 +169,41 @@ async def test_source_creation_rejects_internal_url(authed_client: AsyncClient) 
     assert response.status_code == 400
     assert "rejected" in response.text
     assert web.MAX_REDIRECTS == 5
+
+
+@pytest.mark.parametrize(
+    "url", ["http://127.0.0.1:9000/hook", "http://169.254.169.254/", "https://localhost/hook"]
+)
+async def test_webhook_creation_rejects_internal_url(authed_client: AsyncClient, url: str) -> None:
+    project = await authed_client.post("/v1/projects", json={"name": "KB"})
+    response = await authed_client.post(
+        f"/v1/projects/{project.json()['id']}/webhooks",
+        json={"url": url, "subscribed_events": ["document.indexed"]},
+    )
+    assert response.status_code == 400
+    assert "rejected" in response.text
+
+
+async def test_webhook_update_rejects_internal_url(authed_client: AsyncClient) -> None:
+    project = await authed_client.post("/v1/projects", json={"name": "KB"})
+    created = await authed_client.post(
+        f"/v1/projects/{project.json()['id']}/webhooks",
+        json={"url": "https://example.com/hook", "subscribed_events": ["document.indexed"]},
+    )
+    response = await authed_client.patch(
+        f"/v1/webhooks/{created.json()['id']}", json={"url": "http://10.0.0.8/hook"}
+    )
+    assert response.status_code == 400
+
+
+async def test_webhook_delivery_refuses_rebound_host(monkeypatch: pytest.MonkeyPatch) -> None:
+    import ipaddress
+
+    from src.ingestion.jobs import _HttpxWebhookClient
+
+    async def resolve(host: str, port: int) -> list[outbound.IpAddress]:
+        return [ipaddress.ip_address("127.0.0.1")]
+
+    monkeypatch.setattr(outbound, "_resolve", resolve)
+    with pytest.raises(UnsafeUrlError):
+        await _HttpxWebhookClient().post("https://rebind.example.com/hook", b"{}", {})

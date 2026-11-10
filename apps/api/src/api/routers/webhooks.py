@@ -11,6 +11,7 @@ from ...config import get_settings
 from ...db.models import Organization, Project, User, WebhookDelivery, WebhookEndpoint
 from ..deps import CurrentUser, SessionDep, owned_project
 from ..errors import ApiError, NotFound
+from ...security.outbound import UnsafeUrlError, check_url
 from ..services import events
 
 router = APIRouter(prefix="/v1", tags=["webhooks"])
@@ -65,6 +66,10 @@ def _validate_url(url: str) -> None:
     parsed = urlparse(url)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise ApiError("webhook url must be an absolute http or https url")
+    try:
+        check_url(url)
+    except UnsafeUrlError as exc:
+        raise ApiError(f"webhook url rejected: {exc}") from exc
     if parsed.scheme != "https" and get_settings().is_production:
         raise ApiError("webhook url must use https in production")
 

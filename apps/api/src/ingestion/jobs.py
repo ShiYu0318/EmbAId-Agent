@@ -25,6 +25,7 @@ from .chunking import chunk_text
 from .connectors import build_connector
 from .contextual import contextualize, embedding_inputs
 from .loaders import load_document
+from ..security.outbound import assert_public_url
 from .web import crawl_site, expand_sitemap, fetch_page
 
 EMBED_BATCH_SIZE = 64
@@ -381,7 +382,12 @@ class _HttpxWebhookClient:
     async def post(self, url: str, content: bytes, headers: dict[str, str]) -> Any:
         import httpx
 
-        async with httpx.AsyncClient(timeout=WEBHOOK_TIMEOUT_SECONDS) as client:
+        # The target is re-checked at send time because DNS can change after the
+        # endpoint was saved, and redirects are never followed.
+        await assert_public_url(url)
+        async with httpx.AsyncClient(
+            timeout=WEBHOOK_TIMEOUT_SECONDS, follow_redirects=False
+        ) as client:
             return await client.post(url, content=content, headers=headers)
 
 
