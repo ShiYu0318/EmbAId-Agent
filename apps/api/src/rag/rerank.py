@@ -50,6 +50,19 @@ def _sigmoid(value: float) -> float:
     return exponential / (1.0 + exponential)
 
 
+def _as_probabilities(raw_scores: list[float]) -> list[float]:
+    """Relevance between 0 and 1, whichever scale the encoder answered in.
+
+    Single-label cross-encoders already return probabilities. Applying a sigmoid to
+    those again squeezes every score into 0.5-0.73, above any confidence threshold, so
+    the pipeline would never abstain. Only raw logits, recognisable by a value outside
+    0-1, are converted.
+    """
+    if all(0.0 <= score <= 1.0 for score in raw_scores):
+        return raw_scores
+    return [_sigmoid(score) for score in raw_scores]
+
+
 # Hosted rerankers share one request shape: {model, query, documents, top_n} in, a list of
 # {index, relevance_score} out.
 HOSTED_RERANKERS: dict[str, tuple[str, str, str]] = {
@@ -120,7 +133,7 @@ async def rerank(
         except Exception as exc:
             logger.warning("reranking failed (%s); keeping fused order", exc)
             return chunks
-        scores = [_sigmoid(float(raw)) for raw in raw_scores]
+        scores = _as_probabilities([float(raw) for raw in raw_scores])
 
     for chunk, score in zip(chunks, scores, strict=False):
         chunk.rerank_score = score
