@@ -17,6 +17,10 @@ updates:
       javascript:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # jsdom 27 and later need a newer Node than the Node 20 this repository supports.
+      - dependency-name: jsdom
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /docker
