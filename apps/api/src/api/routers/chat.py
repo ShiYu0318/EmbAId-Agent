@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, Request
@@ -17,6 +18,8 @@ from ...rag.types import ChatTurn
 from ...search.factory import get_search_backend
 from ..deps import KeyDep, SessionDep
 from ..errors import NotFound, ProviderUnavailable
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1", tags=["chat"])
 
@@ -139,6 +142,25 @@ async def chat(
     await session.commit()
 
     async def event_stream() -> AsyncIterator[str]:
+        # A failure after the response has started cannot change the status code, so it
+        # is reported in-band and the client can tell it from a normal end of stream.
+        try:
+            async for frame in answer_stream():
+                yield frame
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("chat stream failed for conversation %s", conversation_id)
+            await session.rollback()
+            yield _frame(
+                "error",
+                {
+                    "code": "stream_failed",
+                    "message": "the assistant could not finish this answer",
+                },
+            )
+
+    async def answer_stream() -> AsyncIterator[str]:
         yield _frame(
             "conversation",
             {"conversation_id": conversation_id, "message_id": assistant_id},

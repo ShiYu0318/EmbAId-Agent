@@ -351,3 +351,49 @@ async def test_clarifying_choices_arrive_as_quick_replies(
     assert found["quick_replies"]["items"] == ["一般會員", "企業客戶"]
     assert 0 <= found["done"]["confidence"] <= 1
     assert found["done"]["flagged"] is False
+
+
+async def test_chat_reports_pipeline_failure_as_error_event(
+    authed_client: AsyncClient,
+    backend: FakeSearchBackend,
+    stub_providers: FakeChatModel,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project_id, key = await _project_with_key(authed_client)
+    await _seed_chunk(backend, authed_client, project_id)
+
+    async def explode(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("provider exploded with a secret detail")
+
+    monkeypatch.setattr("src.api.routers.chat.pipeline.prepare", explode)
+
+    response = await authed_client.post(
+        "/v1/chat",
+        json={"message": "可以退貨嗎？"},
+        headers={"X-API-Key": key},
+    )
+    events = parse_sse(response.text)
+
+    names = [name for name, _ in events]
+    assert names[0] == "conversation"
+    assert names[-1] == "error"
+    assert "done" not in names
+    error = events[-1][1]
+    assert error["code"] == "stream_failed"
+    assert "secret detail" not in error["message"]
+
+
+async def test_widget_theme_and_position_round_trip(authed_client: AsyncClient) -> None:
+    project_id, raw_key = await _project_with_key(authed_client)
+    url = f"/v1/projects/{project_id}/widget-config"
+
+    saved = await authed_client.put(url, json={"theme": "dark", "position": "top-left"})
+    assert saved.status_code == 200
+    assert (await authed_client.get(url)).json()["theme"] == "dark"
+
+    public = (await authed_client.get("/v1/widget-config", headers={"X-API-Key": raw_key})).json()
+    assert public["theme"] == "dark"
+    assert public["position"] == "top-left"
+
+    assert (await authed_client.put(url, json={"theme": "neon"})).status_code == 422
+    assert (await authed_client.put(url, json={"position": "centre"})).status_code == 422

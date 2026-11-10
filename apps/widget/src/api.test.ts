@@ -72,4 +72,24 @@ describe("ApiClient.stream", () => {
     await client.stream("?", null, { onDone: (info) => (done = info) });
     expect(done).toEqual({ answered: false, confidence: null, flagged: false });
   });
+
+  it("reports a server-side stream failure through onError", async () => {
+    const body =
+      frame("conversation", { conversation_id: "c1", message_id: "m1" }) +
+      frame("error", { code: "stream_failed", message: "the assistant could not finish this answer" });
+    vi.stubGlobal("fetch", vi.fn(async () => streamOf(body)));
+
+    const errors: string[] = [];
+    let finished = false;
+    const client = new ApiClient({ apiKey: "pub_x", projectId: "p", apiUrl: "http://api" });
+    await client.stream("hi", null, {
+      onError: (error) => errors.push(error.message),
+      onDone: () => {
+        finished = true;
+      },
+    });
+
+    expect(errors).toEqual(["the assistant could not finish this answer"]);
+    expect(finished).toBe(false);
+  });
 });

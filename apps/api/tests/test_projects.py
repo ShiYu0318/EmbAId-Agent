@@ -154,6 +154,8 @@ async def test_widget_config_roundtrip(authed_client: AsyncClient) -> None:
         "bot_avatar_url": "https://example.com/avatar.png",
         "persona": "親切的產品顧問",
         "accent_color": "#ff0055",
+        "theme": "light",
+        "position": "bottom-left",
     }
     put = await authed_client.put(f"/v1/projects/{project_id}/widget-config", json=payload)
     assert put.status_code == 200
@@ -252,3 +254,19 @@ async def test_tags_are_scoped_to_owner(authed_client: AsyncClient) -> None:
         await authed_client.patch(f"/v1/tags/{tag_id}", json={"name": "x"}, headers=headers)
     ).status_code == 404
     assert (await authed_client.delete(f"/v1/tags/{tag_id}", headers=headers)).status_code == 404
+
+
+async def test_update_project_rejects_null_for_required_fields(
+    authed_client: AsyncClient,
+) -> None:
+    project = (await authed_client.post("/v1/projects", json={"name": "Docs"})).json()
+    url = f"/v1/projects/{project['id']}"
+
+    rejected = await authed_client.patch(url, json={"name": None, "staleness_days": None})
+    assert rejected.status_code == 422
+
+    await authed_client.patch(url, json={"system_prompt": "Be brief."})
+    cleared = await authed_client.patch(url, json={"system_prompt": None})
+    assert cleared.status_code == 200
+    assert cleared.json()["system_prompt"] is None
+    assert cleared.json()["name"] == "Docs"

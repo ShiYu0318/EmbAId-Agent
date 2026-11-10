@@ -17,6 +17,8 @@ export function toEmbedConfig(config: WidgetConfig, locale: Locale): Partial<Emb
     starterQuestions: config.suggested_questions.map((q) => q.trim()).filter(Boolean),
     botName: config.bot_name,
     botAvatarUrl: config.bot_avatar_url,
+    theme: config.theme ?? "auto",
+    position: config.position ?? "bottom-right",
     locale,
   };
 }

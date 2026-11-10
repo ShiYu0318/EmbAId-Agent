@@ -13,6 +13,18 @@ from ...db.models import Conversation, Message, Organization, Project, User
 from ..deps import CurrentUser, SessionDep, owned_project
 from ..errors import NotFound
 
+LIKE_ESCAPE = "\\"
+
+
+def _escape_like(term: str) -> str:
+    """Make a search term literal: without this, `%` and `_` act as wildcards."""
+    return (
+        term.replace(LIKE_ESCAPE, LIKE_ESCAPE * 2)
+        .replace("%", f"{LIKE_ESCAPE}%")
+        .replace("_", f"{LIKE_ESCAPE}_")
+    )
+
+
 router = APIRouter(prefix="/v1/conversations", tags=["conversations"])
 
 MAX_EXPORT_ROWS = 5000
@@ -105,15 +117,15 @@ def _filters(
     if end is not None:
         clauses.append(Conversation.started_at < _day_after(end))
     if search and search.strip():
-        pattern = f"%{search.strip()}%"
+        pattern = f"%{_escape_like(search.strip())}%"
         matched = aliased(Message)
         clauses.append(
             or_(
-                Conversation.title.ilike(pattern),
+                Conversation.title.ilike(pattern, escape=LIKE_ESCAPE),
                 select(matched.id)
                 .where(
                     matched.conversation_id == Conversation.id,
-                    matched.content.ilike(pattern),
+                    matched.content.ilike(pattern, escape=LIKE_ESCAPE),
                 )
                 .exists(),
             )
