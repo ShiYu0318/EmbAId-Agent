@@ -7,7 +7,7 @@ from urllib.robotparser import RobotFileParser
 from bs4 import BeautifulSoup
 
 from ..config import get_settings
-from ..security.outbound import UnsafeUrlError, assert_public_url
+from ..security.outbound import UnsafeUrlError, assert_public_url, pinned_client
 
 USER_AGENT = "EmbAId-Agent-Ingest/0.1 (+https://github.com/ShiYu0318/EmbAId-Agent)"
 DEFAULT_MAX_PAGES = 25
@@ -86,14 +86,10 @@ class HttpPageFetcher:
 
     def _ensure_client(self) -> object:
         if self._client is None:
-            import httpx
-
             # Redirects are followed by hand so every hop is checked against the
-            # outbound guard before it is requested.
-            self._client = httpx.AsyncClient(
-                timeout=self.timeout,
-                follow_redirects=False,
-                headers={"user-agent": self.user_agent},
+            # outbound guard, and each connection goes to the address that was checked.
+            self._client = pinned_client(
+                timeout=self.timeout, headers={"user-agent": self.user_agent}
             )
         return self._client
 
