@@ -1,7 +1,11 @@
 FROM node:26-slim
 
+# Node 25 and later no longer bundle corepack, so pnpm is installed directly at the version
+# package.json pins in "packageManager".
+RUN npm install --global pnpm@10.33.0
+
 # Build and run as the image's unprivileged user.
-RUN corepack enable && mkdir /repo && chown node:node /repo
+RUN mkdir /repo && chown node:node /repo
 
 USER node
 WORKDIR /repo
