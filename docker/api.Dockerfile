@@ -9,7 +9,7 @@ RUN pnpm install --frozen-lockfile --filter @embaid/widget
 COPY apps/widget apps/widget
 RUN pnpm --filter @embaid/widget build
 
-FROM python:3.13-slim
+FROM python:3.15-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
