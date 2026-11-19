@@ -1,32 +1,42 @@
-name: Feature or design proposal
-description: Agree on a problem and its scope before implementing it.
+name: Feature or design proposal / 功能或設計提案
+description: Agree on a problem and its scope before implementing it. / 實作前先對問題與範圍取得共識。
 title: "[Proposal]: "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
-      value: "Please read CONTRIBUTING.md. Write in English or Traditional Chinese (繁體中文)."
+      value: |
+        Please read CONTRIBUTING.md. Write in English or Traditional Chinese.
+        請先閱讀 CONTRIBUTING.zh-TW.md。可以用英文或繁體中文撰寫。
   - type: textarea
     id: problem
     attributes:
-      label: Problem and users
-      description: Describe a concrete task, who needs it, and the current limitation.
+      label: Problem and users / 問題與使用者
+      description: |
+        Describe a concrete task, who needs it, and the current limitation.
+        描述一個具體的任務、誰需要它，以及目前的限制。
     validations:
       required: true
   - type: textarea
     id: outcome
     attributes:
-      label: Proposed outcome
-      description: Explain the intended behavior, scope boundaries, and acceptance criteria.
+      label: Proposed outcome / 預期成果
+      description: |
+        Explain the intended behavior, scope boundaries, and acceptance criteria.
+        說明預期的行為、範圍邊界與驗收條件。
     validations:
       required: true
   - type: textarea
     id: design
     attributes:
-      label: Design and alternatives
-      description: Note affected modules, public contracts, dependencies, and alternatives considered.
+      label: Design and alternatives / 設計與替代方案
+      description: |
+        Note affected modules, public contracts, dependencies, and alternatives considered.
+        列出受影響的模組、公開介面、依賴套件，以及考慮過的替代方案。
   - type: textarea
     id: evaluation
     attributes:
-      label: Evaluation and dependencies
-      description: How will we check the result, and which other tasks or reviewers are needed?
+      label: Evaluation and dependencies / 驗證方式與相依工作
+      description: |
+        How will we check the result, and which other tasks or reviewers are needed?
+        要怎麼驗證結果？需要哪些其他工作或審查者？
