@@ -114,11 +114,15 @@ class Settings(BaseSettings):
 
     @field_validator("*", mode="before")
     @classmethod
-    def _comment_means_unset(cls, value: Any, info: ValidationInfo) -> Any:
+    def _clean_env_strings(cls, value: Any, info: ValidationInfo) -> Any:
+        if not isinstance(value, str):
+            return value
+        # Strip non-printable ASCII control chars (e.g. \x16 SYN from Ctrl+V on Windows).
+        cleaned = "".join(ch for ch in value if ch.isprintable()).strip()
         # `KEY=   # note` reads as the value "# note" in a .env file: treat it as unset.
-        if isinstance(value, str) and value.strip().startswith("#"):
+        if cleaned.startswith("#"):
             return cls.model_fields[info.field_name].default
-        return value
+        return cleaned
 
     @property
     def google_oauth_enabled(self) -> bool:

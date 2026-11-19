@@ -154,3 +154,9 @@ def test_claude_has_room_to_think_before_answering(monkeypatch: pytest.MonkeyPat
     assert model.max_tokens >= 16000
     payload = model._get_request_payload([("user", "hi")])
     assert "temperature" not in payload  # Claude Sonnet 5.5 rejects non-default sampling
+
+
+def test_settings_strips_control_characters_from_api_keys() -> None:
+    settings = Settings(gemini_api_key="\x16\x16\x16AIzaSyFakeTestKey123\x16")
+    assert settings.gemini_api_key == "AIzaSyFakeTestKey123"
+    

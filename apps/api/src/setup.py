@@ -152,6 +152,11 @@ def missing_ollama_models(base_url: str, wanted: list[str]) -> list[str] | None:
     return [model for model in wanted if model not in names]
 
 
+def _strip_control_chars(value: str) -> str:
+    # Windows getpass uses msvcrt.getwch(), which turns Ctrl+V into raw \x16 (SYN) bytes.
+    return "".join(ch for ch in value if ch.isprintable()).strip()
+
+
 # --- prompts ----------------------------------------------------------------
 
 
@@ -202,16 +207,19 @@ def run(env_path: Path, preset_name: str | None, interactive: bool) -> int:
     for key, value in values.items():
         text = set_value(text, key, value)
 
+    paste_hint = ", right-click to paste if Ctrl+V fails" if sys.platform == "win32" else ""
     missing_keys: list[tuple[str, str]] = []
     for key, where in preset.keys:
         if get_value(text, key):
             continue
-        secret = getpass.getpass(f"{key} (from {where}, Enter to skip): ") if interactive else ""
-        if secret.strip():
-            text = set_value(text, key, secret.strip())
+        prompt = f"{key} (from {where}{paste_hint}, Enter to skip): "
+        raw_secret = getpass.getpass(prompt) if interactive else ""
+        secret = _strip_control_chars(raw_secret)
+        if secret:
+            text = set_value(text, key, secret)
         else:
             missing_keys.append((key, where))
-
+            
     env_path.write_text(text)
     print(f"\nWrote {env_path}")
     print(f"Models: {preset.title}.")

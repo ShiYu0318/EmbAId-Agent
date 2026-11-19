@@ -65,3 +65,20 @@ def test_set_value_keeps_trailing_comments() -> None:
         setup.set_value(text, "QUEUE_ENABLED", "true") == "QUEUE_ENABLED=true   # explained here\n"
     )
     assert setup.set_value(text, "NEW_KEY", "x").endswith("NEW_KEY=x\n")
+
+
+def test_interactive_run_strips_control_characters_from_pasted_keys(
+    env_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    answers = iter(["4"])  # Google Gemini
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
+    # Simulate Ctrl+V on Windows terminals injecting \x16 (SYN) control characters.
+    keys = iter(["\x16\x16\x16AIzaSyFakeTestKey123\x16"])
+    monkeypatch.setattr(setup.getpass, "getpass", lambda prompt="": next(keys))
+
+    setup.run(env_path, None, interactive=True)
+
+    assert "\x16" not in env_path.read_text()
+    settings = Settings(_env_file=env_path)
+    assert settings.gemini_api_key == "AIzaSyFakeTestKey123"
+    
