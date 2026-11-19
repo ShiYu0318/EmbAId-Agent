@@ -75,6 +75,31 @@ Issue describes. If you find something new while working, open an Issue for it f
 add a commit for it or leave it for a later PR. Vulnerabilities that are not yet fixed are the one
 exception to public Issues: report them through [SECURITY.md](SECURITY.md) instead.
 
+### Writing an Issue
+
+Pick the template that fits: **Bug report** for something that behaves wrongly, **Feature or
+design proposal** for new behavior or a change to a public contract, and **Task** for refactors,
+documentation, tests, CI, dependencies and other chores. Search open and closed Issues first, and
+comment on an existing one instead of opening a duplicate.
+
+Write the Issue in English or Traditional Chinese, whichever lets you describe the problem most
+precisely. Keep code, commands, error messages and identifiers as they are. Pull requests and
+commit messages stay in English.
+
+Title the Issue with the problem as it appears today, not the fix you have in mind, so it still
+reads correctly if a different solution is chosen. Name the affected component and be specific
+enough to tell it apart from similar Issues:
+
+```text
+[Bug]: Widget drops the last token when a stream frame is split
+[Proposal]: Let projects choose the reranker per knowledge source
+[Task]: API tests do not cover deleting a project with active ingestion jobs
+```
+
+In the body, state the current behavior and the outcome that would close the Issue, with enough
+detail that someone else could pick it up. Link related Issues and PRs by number. Use synthetic or
+redacted data only.
+
 ## Branches and commits
 
 Start from an updated `main` and create one branch per Issue:

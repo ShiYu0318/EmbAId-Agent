@@ -1,0 +1,39 @@
+name: Task
+description: Refactoring, documentation, tests, CI, dependencies, or other work that is not a bug or a new feature.
+title: "[Task]: "
+body:
+  - type: markdown
+    attributes:
+      value: "Please read CONTRIBUTING.md. Write in English or Traditional Chinese (繁體中文)."
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of work
+      options:
+        - Refactor
+        - Documentation
+        - Tests
+        - CI or build
+        - Dependencies
+        - Other chore
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current state
+      description: What is wrong, missing, or harder than it should be today, and where (files, modules, workflows).
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: The single outcome that closes this Issue, stated so a reviewer can check it.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Related Issues, constraints, or anything a reviewer should know.
