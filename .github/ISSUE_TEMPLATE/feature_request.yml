@@ -1,7 +1,11 @@
 name: Feature or design proposal
 description: Agree on a problem and its scope before implementing it.
 title: "[Proposal]: "
+labels: ["enhancement"]
 body:
+  - type: markdown
+    attributes:
+      value: "Please read CONTRIBUTING.md. Write in English or Traditional Chinese (繁體中文)."
   - type: textarea
     id: problem
     attributes:
