@@ -17,7 +17,7 @@
 
 [官方網站](https://embaid-agent.vercel.app) · [快速開始](#快速開始) · [Agent 推理流程](#agent-推理流程)
 
-新加入專案請先閱讀 [CONTRIBUTING.md](CONTRIBUTING.md)，了解開發檢查、模組分工、commit 規範與 PR 流程。
+新加入專案請先閱讀 [CONTRIBUTING.zh-TW.md](CONTRIBUTING.zh-TW.md)，了解開發檢查、模組分工、commit 規範與 PR 流程。
 審查責任與維護方式見 [MAINTAINERS.md](MAINTAINERS.md)，安全問題的私下回報方式見 [SECURITY.md](SECURITY.md)。
 
 </div>

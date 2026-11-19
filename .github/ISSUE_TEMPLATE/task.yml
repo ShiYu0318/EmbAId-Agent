@@ -1,39 +1,47 @@
-name: Task
-description: Refactoring, documentation, tests, CI, dependencies, or other work that is not a bug or a new feature.
+name: Task / 工作項目
+description: Refactoring, documentation, tests, CI, dependencies, or other work that is not a bug or a new feature. / 重構、文件、測試、CI、依賴套件等非錯誤、非新功能的工作。
 title: "[Task]: "
 body:
   - type: markdown
     attributes:
-      value: "Please read CONTRIBUTING.md. Write in English or Traditional Chinese (繁體中文)."
+      value: |
+        Please read CONTRIBUTING.md. Write in English or Traditional Chinese.
+        請先閱讀 CONTRIBUTING.zh-TW.md。可以用英文或繁體中文撰寫。
   - type: dropdown
     id: kind
     attributes:
-      label: Kind of work
+      label: Kind of work / 工作類型
       options:
-        - Refactor
-        - Documentation
-        - Tests
-        - CI or build
-        - Dependencies
-        - Other chore
+        - Refactor / 重構
+        - Documentation / 文件
+        - Tests / 測試
+        - CI or build / CI 或建置
+        - Dependencies / 依賴套件
+        - Other chore / 其他雜務
     validations:
       required: true
   - type: textarea
     id: current
     attributes:
-      label: Current state
-      description: What is wrong, missing, or harder than it should be today, and where (files, modules, workflows).
+      label: Current state / 目前狀況
+      description: |
+        What is wrong, missing, or harder than it should be today, and where (files, modules, workflows).
+        目前哪裡有問題、缺少什麼或不必要地麻煩，以及位置（檔案、模組、workflow）。
     validations:
       required: true
   - type: textarea
     id: done
     attributes:
-      label: Done when
-      description: The single outcome that closes this Issue, stated so a reviewer can check it.
+      label: Done when / 完成條件
+      description: |
+        The single outcome that closes this Issue, stated so a reviewer can check it.
+        能關閉這個 Issue 的單一成果，寫到審查者可以驗證的程度。
     validations:
       required: true
   - type: textarea
     id: notes
     attributes:
-      label: Notes
-      description: Related Issues, constraints, or anything a reviewer should know.
+      label: Notes / 備註
+      description: |
+        Related Issues, constraints, or anything a reviewer should know.
+        相關的 Issue、限制，或審查者需要知道的事。

@@ -1,5 +1,7 @@
 # Contributing to EmbAId Agent
 
+**English** · [繁體中文](CONTRIBUTING.zh-TW.md)
+
 EmbAId Agent is an open-source, self-hostable website assistant. Read the
 [README](README.md) for the product and architecture, then use this guide for the development
 workflow. Internal collaborators can branch in this repository; external contributors should fork it.
@@ -198,8 +200,10 @@ build command above runs from the repository root and also builds the widget bun
 - Describe why a non-obvious constraint exists in comments. Remove stale planning references,
   commented-out experiments and narration that merely repeats the code. Keep useful security,
   compatibility, and algorithm explanations.
-- Keep English and Traditional Chinese README instructions aligned. Add visible UI strings to both
-  locale catalogs. Distinguish implemented behavior, simulated demos and planned capabilities.
+- Keep the English and Traditional Chinese versions of the README and this guide aligned, and
+  keep both languages in the Issue and PR templates. The English guide is authoritative. Add
+  visible UI strings to both locale catalogs. Distinguish implemented behavior, simulated demos
+  and planned capabilities.
 - Commit lockfile changes with dependency changes. Do not commit generated builds, local data,
   virtual environments, recordings, keys, tokens or customer/student documents.
 

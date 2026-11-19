@@ -1,34 +1,44 @@
-name: Bug report
-description: Report a reproducible problem using synthetic or redacted data.
+name: Bug report / 回報錯誤
+description: Report a reproducible problem using synthetic or redacted data. / 回報可重現的問題，只使用假資料或已遮蔽的資料。
 title: "[Bug]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
-      value: "Please read CONTRIBUTING.md. Write in English or Traditional Chinese (繁體中文). Report security vulnerabilities privately through SECURITY.md."
+      value: |
+        Please read CONTRIBUTING.md. Write in English or Traditional Chinese. Report security vulnerabilities privately through SECURITY.md.
+        請先閱讀 CONTRIBUTING.zh-TW.md。可以用英文或繁體中文撰寫。安全漏洞請依 SECURITY.md 私下回報。
   - type: textarea
     id: problem
     attributes:
-      label: Expected and actual behavior
-      description: Explain what you expected, what happened, and which component is affected.
+      label: Expected and actual behavior / 預期與實際行為
+      description: |
+        Explain what you expected, what happened, and which component is affected.
+        說明你預期的結果、實際發生的情況，以及受影響的元件。
     validations:
       required: true
   - type: textarea
     id: reproduction
     attributes:
-      label: Steps to reproduce
-      description: Include a minimal example with synthetic input. Never include credentials or private documents.
+      label: Steps to reproduce / 重現步驟
+      description: |
+        Include a minimal example with synthetic input. Never include credentials or private documents.
+        附上使用假資料的最小重現範例。絕對不要放憑證或私人文件。
     validations:
       required: true
   - type: textarea
     id: environment
     attributes:
-      label: Environment
-      description: Include the commit, operating system, runtime versions, deployment mode, and relevant provider/search backend.
+      label: Environment / 環境
+      description: |
+        Include the commit, operating system, runtime versions, deployment mode, and relevant provider/search backend.
+        寫出 commit、作業系統、各 runtime 版本、部署方式，以及相關的 provider／搜尋後端。
     validations:
       required: true
   - type: textarea
     id: evidence
     attributes:
-      label: Logs or screenshots
-      description: Redact tokens, identifiers, and private content.
+      label: Logs or screenshots / Log 或截圖
+      description: |
+        Redact tokens, identifiers, and private content.
+        請遮蔽 token、識別碼與私人內容。
