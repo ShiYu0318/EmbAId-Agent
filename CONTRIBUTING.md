@@ -56,6 +56,25 @@ fix, a documentation correction. Open the Issue before writing the change, and g
 outcome that can be checked. When a review turns up several problems, open one Issue per problem
 instead of one Issue for the whole review. Split an Issue that grows a second outcome.
 
+Commits follow the Issues. Each commit addresses one Issue and names it in the subject, so the
+history can be read Issue by Issue:
+
+```text
+fix: block internal addresses in crawler and sitemap fetches (#3)
+feat: expose widget theme and position in the widget config api (#16)
+```
+
+An Issue may take more than one commit, for example an API change followed by the dashboard change
+that uses it. Do not fold unrelated Issues into one commit; if two changes cannot be separated,
+name both Issues and say why in the PR.
+
+A pull request exists to close Issues. Its description lists every Issue it resolves with a closing
+keyword (`Closes #12`), one per line, so merging closes them. A PR may close several related Issues
+when they belong to one theme and are easier to review together; it must not contain work that no
+Issue describes. If you find something new while working, open an Issue for it first, then either
+add a commit for it or leave it for a later PR. Vulnerabilities that are not yet fixed are the one
+exception to public Issues: report them through [SECURITY.md](SECURITY.md) instead.
+
 ### Writing an Issue
 
 Pick the template that fits: **Bug report** for something that behaves wrongly, **Feature or
@@ -80,25 +99,6 @@ enough to tell it apart from similar Issues:
 In the body, state the current behavior and the outcome that would close the Issue, with enough
 detail that someone else could pick it up. Link related Issues and PRs by number. Use synthetic or
 redacted data only.
-
-Commits follow the Issues. Each commit addresses one Issue and names it in the subject, so the
-history can be read Issue by Issue:
-
-```text
-fix: block internal addresses in crawler and sitemap fetches (#3)
-feat: expose widget theme and position in the widget config api (#16)
-```
-
-An Issue may take more than one commit, for example an API change followed by the dashboard change
-that uses it. Do not fold unrelated Issues into one commit; if two changes cannot be separated,
-name both Issues and say why in the PR.
-
-A pull request exists to close Issues. Its description lists every Issue it resolves with a closing
-keyword (`Closes #12`), one per line, so merging closes them. A PR may close several related Issues
-when they belong to one theme and are easier to review together; it must not contain work that no
-Issue describes. If you find something new while working, open an Issue for it first, then either
-add a commit for it or leave it for a later PR. Vulnerabilities that are not yet fixed are the one
-exception to public Issues: report them through [SECURITY.md](SECURITY.md) instead.
 
 ## Branches and commits
 
