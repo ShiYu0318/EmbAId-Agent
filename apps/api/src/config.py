@@ -5,6 +5,13 @@ from pydantic import ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def strip_control_chars(value: str) -> str:
+    """Strip non-printable ASCII control chars (e.g. \\x16 SYN) but keep standard whitespace."""
+    return "".join(
+        ch for ch in value if ch in ("\t", "\n", "\r") or (ord(ch) >= 32 and ord(ch) != 127)
+    ).strip()
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -117,8 +124,7 @@ class Settings(BaseSettings):
     def _clean_env_strings(cls, value: Any, info: ValidationInfo) -> Any:
         if not isinstance(value, str):
             return value
-        # Strip non-printable ASCII control chars (e.g. \x16 SYN from Ctrl+V on Windows).
-        cleaned = "".join(ch for ch in value if ch.isprintable()).strip()
+        cleaned = strip_control_chars(value)
         # `KEY=   # note` reads as the value "# note" in a .env file: treat it as unset.
         if cleaned.startswith("#"):
             return cls.model_fields[info.field_name].default

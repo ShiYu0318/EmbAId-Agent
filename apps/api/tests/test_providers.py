@@ -159,4 +159,3 @@ def test_claude_has_room_to_think_before_answering(monkeypatch: pytest.MonkeyPat
 def test_settings_strips_control_characters_from_api_keys() -> None:
     settings = Settings(gemini_api_key="\x16\x16\x16AIzaSyFakeTestKey123\x16")
     assert settings.gemini_api_key == "AIzaSyFakeTestKey123"
-    

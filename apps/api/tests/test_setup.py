@@ -68,7 +68,7 @@ def test_set_value_keeps_trailing_comments() -> None:
 
 
 def test_interactive_run_strips_control_characters_from_pasted_keys(
-    env_path: Path, monkeypatch: pytest.MonkeyPatch
+    env_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     answers = iter(["4"])  # Google Gemini
     monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
@@ -78,7 +78,7 @@ def test_interactive_run_strips_control_characters_from_pasted_keys(
 
     setup.run(env_path, None, interactive=True)
 
+    assert "control characters stripped" in capsys.readouterr().out
     assert "\x16" not in env_path.read_text()
     settings = Settings(_env_file=env_path)
     assert settings.gemini_api_key == "AIzaSyFakeTestKey123"
-    

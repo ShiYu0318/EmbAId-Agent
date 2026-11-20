@@ -17,6 +17,8 @@ import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from src.config import strip_control_chars
+
 API_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -214,12 +216,14 @@ def run(env_path: Path, preset_name: str | None, interactive: bool) -> int:
             continue
         prompt = f"{key} (from {where}{paste_hint}, Enter to skip): "
         raw_secret = getpass.getpass(prompt) if interactive else ""
-        secret = _strip_control_chars(raw_secret)
+        secret = strip_control_chars(raw_secret)
+        if len(secret) < len(raw_secret.strip()):
+            print("Warning: control characters stripped; use right-click to paste if Ctrl+V fails.")
         if secret:
             text = set_value(text, key, secret)
         else:
             missing_keys.append((key, where))
-            
+
     env_path.write_text(text)
     print(f"\nWrote {env_path}")
     print(f"Models: {preset.title}.")
