@@ -154,11 +154,6 @@ def missing_ollama_models(base_url: str, wanted: list[str]) -> list[str] | None:
     return [model for model in wanted if model not in names]
 
 
-def _strip_control_chars(value: str) -> str:
-    # Windows getpass uses msvcrt.getwch(), which turns Ctrl+V into raw \x16 (SYN) bytes.
-    return "".join(ch for ch in value if ch.isprintable()).strip()
-
-
 # --- prompts ----------------------------------------------------------------
 
 
