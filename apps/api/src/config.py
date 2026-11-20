@@ -5,6 +5,13 @@ from pydantic import ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def strip_control_chars(value: str) -> str:
+    """Strip non-printable ASCII control chars (e.g. \\x16 SYN) but keep standard whitespace."""
+    return "".join(
+        ch for ch in value if ch in ("\t", "\n", "\r") or (ord(ch) >= 32 and ord(ch) != 127)
+    ).strip()
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -114,11 +121,14 @@ class Settings(BaseSettings):
 
     @field_validator("*", mode="before")
     @classmethod
-    def _comment_means_unset(cls, value: Any, info: ValidationInfo) -> Any:
+    def _clean_env_strings(cls, value: Any, info: ValidationInfo) -> Any:
+        if not isinstance(value, str):
+            return value
+        cleaned = strip_control_chars(value)
         # `KEY=   # note` reads as the value "# note" in a .env file: treat it as unset.
-        if isinstance(value, str) and value.strip().startswith("#"):
+        if cleaned.startswith("#"):
             return cls.model_fields[info.field_name].default
-        return value
+        return cleaned
 
     @property
     def google_oauth_enabled(self) -> bool:

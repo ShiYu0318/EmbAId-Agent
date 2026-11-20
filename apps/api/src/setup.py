@@ -17,6 +17,8 @@ import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from src.config import strip_control_chars
+
 API_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -202,13 +204,18 @@ def run(env_path: Path, preset_name: str | None, interactive: bool) -> int:
     for key, value in values.items():
         text = set_value(text, key, value)
 
+    paste_hint = ", right-click to paste if Ctrl+V fails" if sys.platform == "win32" else ""
     missing_keys: list[tuple[str, str]] = []
     for key, where in preset.keys:
         if get_value(text, key):
             continue
-        secret = getpass.getpass(f"{key} (from {where}, Enter to skip): ") if interactive else ""
-        if secret.strip():
-            text = set_value(text, key, secret.strip())
+        prompt = f"{key} (from {where}{paste_hint}, Enter to skip): "
+        raw_secret = getpass.getpass(prompt) if interactive else ""
+        secret = strip_control_chars(raw_secret)
+        if len(secret) < len(raw_secret.strip()):
+            print("Warning: control characters stripped; use right-click to paste if Ctrl+V fails.")
+        if secret:
+            text = set_value(text, key, secret)
         else:
             missing_keys.append((key, where))
 
