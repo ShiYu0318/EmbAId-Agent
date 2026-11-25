@@ -212,7 +212,7 @@
     "多輪思考與自主規劃": "Multi-round reasoning and planning",
     "拆解子問題、多輪檢索與自我檢查（Self-reflection）；輪數、成本與時間都有上限，每一步都留下可見的推理紀錄。":
       "Break the question into sub-questions, retrieve over several rounds and check its own draft (self-reflection); rounds, cost and time are capped, and every step leaves a visible record.",
-    "DeltaRAG 時效與衝突判斷": "DeltaRAG: freshness and conflict decisions",
+    "ValidRAG 時效與衝突判斷": "ValidRAG: freshness and conflict decisions",
     "區分「版本不同」「適用對象不同」與「真正矛盾」，決定回答、再找證據或婉拒，不預設最新的就是對的。":
       "Tell apart different versions, different audiences and genuine contradictions, then answer, look for more evidence or decline, without assuming the newest source is right.",
     "知識同步與存取層級": "Knowledge sync and access levels",
