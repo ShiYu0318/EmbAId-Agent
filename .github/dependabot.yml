@@ -25,6 +25,10 @@ updates:
       # declaration build still need it, so the major waits until they support it.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # @types/node follows the newest Node that CI tests (22). A newer major would type-check
+      # APIs that do not exist at runtime on the supported Node versions.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /docker
